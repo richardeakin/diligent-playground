@@ -4,6 +4,17 @@ set( CMAKE_VERBOSE_MAKEFILE ON )
 
 project( DiligentPlayground )
 
+option(BUILD_SAMPLES "Build Samples" ON)
+
+
+# -------------------------------------------------------------------
+# Diligent
+
+add_subdirectory(blocks/Cinder-Gx/third_party/DiligentCore)
+add_subdirectory(blocks/Cinder-Gx/third_party/DiligentTools)
+
+# -------------------------------------------------------------------
+# Cinder
 
 include( cinder/proj/cmake/utilities.cmake )
 
@@ -27,5 +38,7 @@ set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib/mason/${CMAK
 add_subdirectory( cinder )
 
 
-add_subdirectory(test/CubeTest)
+# -------------------------------------------------------------------
+# apps
 
+add_subdirectory(test)
