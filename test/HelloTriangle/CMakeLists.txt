@@ -37,6 +37,8 @@ PUBLIC
 
 target_link_libraries( HelloTriangle PRIVATE cinder-gx )
 
+copy_required_dlls( HelloTriangle )
+
 set_target_properties( HelloTriangle PROPERTIES
     FOLDER test
 )

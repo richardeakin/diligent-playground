@@ -4,15 +4,19 @@
 
 // cinder-gx
 #include "cinder/app/RendererGx.h"
+#include "cinder/graphics/PipelineState.h"
+
+//#define APP_RENDERER_BACKEND gx::RENDER_DEVICE_TYPE::RENDER_DEVICE_TYPE_D3D11
+#define APP_RENDERER_BACKEND gx::RENDER_DEVICE_TYPE::RENDER_DEVICE_TYPE_D3D12
+//#define APP_RENDERER_BACKEND gx::RENDER_DEVICE_TYPE::RENDER_DEVICE_TYPE_VULKAN
 
 // included from DiligentEngine\DiligentSamples\SampleBase\include\SampleBase.hpp
-#include "EngineFactory.h"
-#include "RefCntAutoPtr.hpp"
-#include "RenderDevice.h"
-#include "DeviceContext.h"
-#include "SwapChain.h"
-//#include "InputController.hpp"
-#include "BasicMath.hpp"
+//#include "EngineFactory.h"
+//#include "RefCntAutoPtr.hpp"
+//#include "RenderDevice.h"
+//#include "DeviceContext.h"
+//#include "SwapChain.h"
+//#include "BasicMath.hpp"
 
 using namespace ci;
 using namespace Diligent;
@@ -62,98 +66,6 @@ void main(in  PSInput  PSIn,
 }
 )";
 
-#if 0
-void Tutorial01_HelloTriangle::Initialize(const SampleInitInfo& InitInfo)
-{
-    SampleBase::Initialize(InitInfo);
-
-    // Pipeline state object encompasses configuration of all GPU stages
-
-    GraphicsPipelineStateCreateInfo PSOCreateInfo;
-
-    // Pipeline state name is used by the engine to report issues.
-    // It is always a good idea to give objects descriptive names.
-    PSOCreateInfo.PSODesc.Name = "Simple triangle PSO";
-
-    // This is a graphics pipeline
-    PSOCreateInfo.PSODesc.PipelineType = PIPELINE_TYPE_GRAPHICS;
-
-    // clang-format off
-    // This tutorial will render to a single render target
-    PSOCreateInfo.GraphicsPipeline.NumRenderTargets             = 1;
-    // Set render target format which is the format of the swap chain's color buffer
-    PSOCreateInfo.GraphicsPipeline.RTVFormats[0]                = m_pSwapChain->GetDesc().ColorBufferFormat;
-    // Use the depth buffer format from the swap chain
-    PSOCreateInfo.GraphicsPipeline.DSVFormat                    = m_pSwapChain->GetDesc().DepthBufferFormat;
-    // Primitive topology defines what kind of primitives will be rendered by this pipeline state
-    PSOCreateInfo.GraphicsPipeline.PrimitiveTopology            = PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-    // No back face culling for this tutorial
-    PSOCreateInfo.GraphicsPipeline.RasterizerDesc.CullMode      = CULL_MODE_NONE;
-    // Disable depth testing
-    PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.DepthEnable = False;
-    // clang-format on
-
-    ShaderCreateInfo ShaderCI;
-    // Tell the system that the shader source code is in HLSL.
-    // For OpenGL, the engine will convert this into GLSL under the hood.
-    ShaderCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_HLSL;
-    // OpenGL backend requires emulated combined HLSL texture samplers (g_Texture + g_Texture_sampler combination)
-    ShaderCI.UseCombinedTextureSamplers = true;
-    // Create a vertex shader
-    RefCntAutoPtr<IShader> pVS;
-    {
-        ShaderCI.Desc.ShaderType = SHADER_TYPE_VERTEX;
-        ShaderCI.EntryPoint      = "main";
-        ShaderCI.Desc.Name       = "Triangle vertex shader";
-        ShaderCI.Source          = VSSource;
-        m_pDevice->CreateShader(ShaderCI, &pVS);
-    }
-
-    // Create a pixel shader
-    RefCntAutoPtr<IShader> pPS;
-    {
-        ShaderCI.Desc.ShaderType = SHADER_TYPE_PIXEL;
-        ShaderCI.EntryPoint      = "main";
-        ShaderCI.Desc.Name       = "Triangle pixel shader";
-        ShaderCI.Source          = PSSource;
-        m_pDevice->CreateShader(ShaderCI, &pPS);
-    }
-
-    // Finally, create the pipeline state
-    PSOCreateInfo.pVS = pVS;
-    PSOCreateInfo.pPS = pPS;
-    m_pDevice->CreateGraphicsPipelineState(PSOCreateInfo, &m_pPSO);
-}
-
-// Render a frame
-void Tutorial01_HelloTriangle::Render()
-{
-    // Clear the back buffer
-    const float ClearColor[] = {0.350f, 0.350f, 0.350f, 1.0f};
-    // Let the engine perform required state transitions
-    auto* pRTV = m_pSwapChain->GetCurrentBackBufferRTV();
-    auto* pDSV = m_pSwapChain->GetDepthBufferDSV();
-    m_pImmediateContext->ClearRenderTarget(pRTV, ClearColor, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
-    m_pImmediateContext->ClearDepthStencil(pDSV, CLEAR_DEPTH_FLAG, 1.f, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
-
-    // Set the pipeline state in the immediate context
-    m_pImmediateContext->SetPipelineState(m_pPSO);
-
-    // Typically we should now call CommitShaderResources(), however shaders in this example don't
-    // use any resources.
-
-    DrawAttribs drawAttrs;
-    drawAttrs.NumVertices = 3; // We will render 3 vertices
-    m_pImmediateContext->Draw(drawAttrs);
-}
-
-void Tutorial01_HelloTriangle::Update(double CurrTime, double ElapsedTime)
-{
-    SampleBase::Update(CurrTime, ElapsedTime);
-}
-
-#endif
-
 class HelloTriangleApp : public app::App {
   public:   
     void    setup() override;
@@ -161,20 +73,42 @@ class HelloTriangleApp : public app::App {
     void    update() override;
     void    draw() override;
     
+    gx::PipelineStateRef mPipelineState;
 };
 
 void HelloTriangleApp::setup()
 {
     // Pipeline state object encompasses configuration of all GPU stages
-
-    GraphicsPipelineStateCreateInfo PSOCreateInfo;
-
-    // Pipeline state name is used by the engine to report issues.
-    // It is always a good idea to give objects descriptive names.
-    PSOCreateInfo.PSODesc.Name = "Simple triangle PSO";
-
-    // This is a graphics pipeline
-    PSOCreateInfo.PSODesc.PipelineType = PIPELINE_TYPE_GRAPHICS;
+    mPipelineState = gx::createGraphicsPipelineState( gx::GraphicsPipelineCreateInfo()
+        // Pipeline state name is used by the engine to report issues.
+        // It is always a good idea to give objects descriptive names.
+        .name( "Simple triangle PSO" )
+        // No back face culling for this tutorial
+        .rasterizerStateDesc( gx::RasterizerStateDesc().cullMode( gx::CULL_MODE_NONE ) )
+        // Disable depth testing
+        .depthStencilDesc( gx::DepthStencilStateDesc().depthEnable( false ) )
+        // For this tutorial, we will use simple vertex shader
+        // that creates a procedural triangle
+        // Diligent Engine can use HLSL source on all supported platforms.
+        // It will convert HLSL to GLSL in OpenGL mode, while Vulkan backend will compile it directly to SPIRV.
+        .vertexShader( gx::createShader( gx::ShaderCreateInfo()
+            .name( "Triangle vertex shader" )
+            .shaderType( gx::SHADER_TYPE_VERTEX )
+            // Tell the system that the shader source code is in HLSL.
+            // For OpenGL, the engine will convert this into GLSL under the hood.
+            .sourceLanguage( gx::SHADER_SOURCE_LANGUAGE_HLSL )
+            .source( VSSource )
+        ) )
+        // Pixel shader simply outputs interpolated vertex color
+        .pixelShader( gx::createShader( gx::ShaderCreateInfo()
+            .name( "Triangle pixel shader" )
+            .shaderType( gx::SHADER_TYPE_PIXEL )
+            // Tell the system that the shader source code is in HLSL.
+            // For OpenGL, the engine will convert this into GLSL under the hood.
+            .sourceLanguage( gx::SHADER_SOURCE_LANGUAGE_HLSL )
+            .source( PSSource )
+        ) )
+    );
 }
 
 void HelloTriangleApp::resize()
@@ -187,7 +121,15 @@ void HelloTriangleApp::update()
 
 void HelloTriangleApp::draw()
 {
+    // Clear the back buffer
+    gx::clear( ColorA::gray( 0.05f, 1.0f ) );
+    // Set the pipeline state in the immediate context
+    gx::setPipelineState( mPipelineState );
+    // Typically we should now call CommitShaderResources(), however shaders in this example don't
+    // use any resources.
+    // We will render 3 vertices
+    gx::draw( gx::DrawAttribs().numVertices( 3 ) );
 }
 
 // TODO: enable debug log / break
-CINDER_APP( HelloTriangleApp, app::RendererGx( app::RendererGx::Options().deviceType( gx::RENDER_DEVICE_TYPE::RENDER_DEVICE_TYPE_D3D11 ) ) )
+CINDER_APP( HelloTriangleApp, app::RendererGx( app::RendererGx::Options().deviceType( APP_RENDERER_BACKEND ) ) )
