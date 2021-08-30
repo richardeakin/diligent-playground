@@ -18,11 +18,10 @@ ci_make_app(
 #target_include_directories( "HelloTriangle" PUBLIC ${ARG_INCLUDES} )
 #target_link_libraries( "HelloTriangle" cinder ${ARG_LIBRARIES} )
 
-# TODO NEXT: finish sorting through how to add diligent engine deps
 get_supported_backends(DILIGENT_ENGINE_LIBRARIES)
-
 message( "DILIGENT_ENGINE_LIBRARIES: ${DILIGENT_ENGINE_LIBRARIES}" )
 
+# from DiligentEngine\DiligentSamples\SampleBase\CMakeLists.txt
 target_link_libraries(HelloTriangle
 PRIVATE 
     Diligent-BuildSettings
@@ -31,7 +30,13 @@ PUBLIC
     Diligent-GraphicsTools
     # Diligent-TextureLoader
     Diligent-TargetPlatform
-    Diligent-Imgui
+    # Diligent-Imgui
     ${DILIGENT_ENGINE_LIBRARIES}
     # Diligent-NativeAppBase
+)
+
+target_link_libraries( HelloTriangle PRIVATE cinder-gx )
+
+set_target_properties( HelloTriangle PROPERTIES
+    FOLDER test
 )

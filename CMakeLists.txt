@@ -6,12 +6,13 @@ project( DiligentPlayground )
 
 option(BUILD_SAMPLES "Build Samples" ON)
 
+# variable_watch(CINDER_LIB_DIRECTORY)
 
 # -------------------------------------------------------------------
 # Diligent
 
-add_subdirectory(blocks/Cinder-Gx/third_party/DiligentCore)
-add_subdirectory(blocks/Cinder-Gx/third_party/DiligentTools)
+# add_subdirectory(blocks/Cinder-Gx/third_party/DiligentCore)
+# add_subdirectory(blocks/Cinder-Gx/third_party/DiligentTools)
 
 # -------------------------------------------------------------------
 # Cinder
@@ -36,9 +37,9 @@ set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib/mason/${CMAK
 # include( ${CMAKE_CURRENT_SOURCE_DIR}/proj/cmake/libmason.cmake )
 
 add_subdirectory( cinder )
-
+add_subdirectory( blocks/Cinder-Gx )
 
 # -------------------------------------------------------------------
 # apps
 
-add_subdirectory(test)
+add_subdirectory( test )

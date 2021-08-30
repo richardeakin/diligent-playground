@@ -13,3 +13,9 @@ ci_make_app(
 	SOURCES     ${APP_PATH}/src/CubeTestApp.cpp
 	CINDER_PATH ${CINDER_PATH}
 )
+
+# TODO: can I do this from the parent CMakeLists.txt?
+# - only want it to happen when running from parent
+set_target_properties(HelloTriangle PROPERTIES
+    FOLDER test
+)

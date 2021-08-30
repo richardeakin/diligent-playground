@@ -1,8 +1,9 @@
 #include "cinder/app/App.h"
-#include "cinder/app/RendererGl.h"
-#include "cinder/gl/gl.h"
 #include "cinder/ImageIo.h"
 #include "cinder/Log.h"
+
+// cinder-gx
+#include "cinder/app/RendererGx.h"
 
 // included from DiligentEngine\DiligentSamples\SampleBase\include\SampleBase.hpp
 #include "EngineFactory.h"
@@ -188,5 +189,5 @@ void HelloTriangleApp::draw()
 {
 }
 
-CINDER_APP( HelloTriangleApp, app::RendererGl( app::RendererGl::Options().msaa( 16 ) ) )
-
+// TODO: enable debug log / break
+CINDER_APP( HelloTriangleApp, app::RendererGx( app::RendererGx::Options().deviceType( gx::RENDER_DEVICE_TYPE::RENDER_DEVICE_TYPE_D3D11 ) ) )
