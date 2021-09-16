@@ -37,6 +37,10 @@ set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib/mason/${CMAK
 # include( ${CMAKE_CURRENT_SOURCE_DIR}/proj/cmake/libmason.cmake )
 
 add_subdirectory( cinder )
+
+get_filename_component( CINDER_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cinder/" ABSOLUTE )
+message("CINDER_PATH: ${CINDER_PATH}")
+
 add_subdirectory( blocks/Cinder-Gx )
 
 # -------------------------------------------------------------------
