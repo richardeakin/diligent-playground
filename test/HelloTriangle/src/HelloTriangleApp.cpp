@@ -1,3 +1,5 @@
+// This was copied from Cinder-Gx (blocks/Cinder-Gx/samples/_tutorials/Tutorial01_HelloTriangle)
+
 #include "cinder/app/App.h"
 #include "cinder/ImageIo.h"
 #include "cinder/Log.h"
