@@ -46,4 +46,4 @@ add_subdirectory( blocks/Cinder-Gx )
 # -------------------------------------------------------------------
 # apps
 
-add_subdirectory( test )
+add_subdirectory( test/gx )

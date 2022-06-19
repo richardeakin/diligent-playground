@@ -4,7 +4,7 @@ set( CMAKE_VERBOSE_MAKEFILE ON )
 project( HelloTriangle )
 set( APP_TARGET "HelloTriangle" )
 
-get_filename_component( CINDER_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cinder" ABSOLUTE )
+get_filename_component( CINDER_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../../cinder" ABSOLUTE )
 get_filename_component( APP_PATH "${CMAKE_CURRENT_SOURCE_DIR}/" ABSOLUTE )
 
 
@@ -38,5 +38,5 @@ target_link_libraries( ${APP_TARGET} PRIVATE cinder-gx )
 copy_required_dlls( ${APP_TARGET} )
 
 set_target_properties( ${APP_TARGET} PROPERTIES
-    FOLDER test
+    FOLDER test/gx
 )
