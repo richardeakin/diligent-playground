@@ -6,7 +6,7 @@ project( DiligentPlayground )
 
 # option(BUILD_SAMPLES "Build Samples" ON)
 option(BUILD_STANDALONE "Build GX" ON)
-option(BUILD_GX "Build GX" OFF)
+option(BUILD_GX "Build GX" ON)
 
 
 # variable_watch(CINDER_LIB_DIRECTORY)
@@ -17,13 +17,19 @@ include( cinder/proj/cmake/utilities.cmake )
 # -------------------------------------------------------------------
 # Diligent
 
-add_subdirectory(blocks/Cinder-Gx/third_party/DiligentCore)
-add_subdirectory(blocks/Cinder-Gx/third_party/DiligentTools)
+get_filename_component(DILIGENT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/deps/DiligentEngine" ABSOLUTE)
+ci_log_i( "DILIGENT_PATH: ${DILIGENT_PATH}" )
+
+add_subdirectory(${DILIGENT_PATH}/DiligentCore)
+add_subdirectory(${DILIGENT_PATH}/DiligentTools)
 
 if( ${BUILD_STANDALONE} )
 
-	# apps
 	ci_log_i( "including standalone test apps..." )
+	
+	# pull in add_sample_app() and its cpp
+	set(DILIGENT_BUILD_SAMPLE_BASE_ONLY ON)
+	add_subdirectory(${DILIGENT_PATH}/DiligentSamples)
 
 	add_subdirectory( test/standalone )
 endif()

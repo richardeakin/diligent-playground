@@ -33,7 +33,7 @@
 namespace Diligent
 {
 
-class Tutorial02_Cube final : public SampleBase
+class TutorialFromCube final : public SampleBase
 {
 public:
     virtual void Initialize(const SampleInitInfo& InitInfo) override final;

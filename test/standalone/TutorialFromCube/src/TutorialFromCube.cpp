@@ -25,7 +25,7 @@
  *  of the possibility of such damages.
  */
 
-#include "Tutorial02_Cube.hpp"
+#include "TutorialFromCube.hpp"
 #include "MapHelper.hpp"
 #include "GraphicsUtilities.h"
 
@@ -34,10 +34,10 @@ namespace Diligent
 
 SampleBase* CreateSample()
 {
-    return new Tutorial02_Cube();
+    return new TutorialFromCube();
 }
 
-void Tutorial02_Cube::CreatePipelineState()
+void TutorialFromCube::CreatePipelineState()
 {
     // Pipeline state object encompasses configuration of all GPU stages
 
@@ -137,7 +137,7 @@ void Tutorial02_Cube::CreatePipelineState()
     m_pPSO->CreateShaderResourceBinding(&m_pSRB, true);
 }
 
-void Tutorial02_Cube::CreateVertexBuffer()
+void TutorialFromCube::CreateVertexBuffer()
 {
     // Layout of this structure matches the one we defined in the pipeline state
     struct Vertex
@@ -190,7 +190,7 @@ void Tutorial02_Cube::CreateVertexBuffer()
     m_pDevice->CreateBuffer(VertBuffDesc, &VBData, &m_CubeVertexBuffer);
 }
 
-void Tutorial02_Cube::CreateIndexBuffer()
+void TutorialFromCube::CreateIndexBuffer()
 {
     // clang-format off
     Uint32 Indices[] =
@@ -215,7 +215,7 @@ void Tutorial02_Cube::CreateIndexBuffer()
     m_pDevice->CreateBuffer(IndBuffDesc, &IBData, &m_CubeIndexBuffer);
 }
 
-void Tutorial02_Cube::Initialize(const SampleInitInfo& InitInfo)
+void TutorialFromCube::Initialize(const SampleInitInfo& InitInfo)
 {
     SampleBase::Initialize(InitInfo);
 
@@ -225,7 +225,7 @@ void Tutorial02_Cube::Initialize(const SampleInitInfo& InitInfo)
 }
 
 // Render a frame
-void Tutorial02_Cube::Render()
+void TutorialFromCube::Render()
 {
     auto* pRTV = m_pSwapChain->GetCurrentBackBufferRTV();
     auto* pDSV = m_pSwapChain->GetDepthBufferDSV();
@@ -260,7 +260,7 @@ void Tutorial02_Cube::Render()
     m_pImmediateContext->DrawIndexed(DrawAttrs);
 }
 
-void Tutorial02_Cube::Update(double CurrTime, double ElapsedTime)
+void TutorialFromCube::Update(double CurrTime, double ElapsedTime)
 {
     SampleBase::Update(CurrTime, ElapsedTime);
 
