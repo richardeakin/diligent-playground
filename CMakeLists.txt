@@ -6,8 +6,7 @@ project( DiligentPlayground )
 
 # option(BUILD_SAMPLES "Build Samples" ON)
 option(BUILD_STANDALONE "Build GX" ON)
-option(BUILD_GX "Build GX" ON)
-
+option(BUILD_GX "Build GX" OFF)
 
 # variable_watch(CINDER_LIB_DIRECTORY)
 
@@ -35,37 +34,34 @@ if( ${BUILD_STANDALONE} )
 	set(DILIGENT_BUILD_SAMPLE_BASE_ONLY ON)
 	add_subdirectory(${DILIGENT_PATH}/DiligentSamples)
 
+	# my stuff
 	add_subdirectory( test/standalone )
 endif()
 
-# -------------------------------------------------------------------
-# Cinder + Cinder-Gx
+# # -------------------------------------------------------------------
+# # Cinder + Cinder-Gx
 
-#ci_log_i( "testing log info." )
-#ci_log( debug ${CMAKE_CURRENT_LIST_LINE} "debug info" )
-ci_log_v( "cinder path: ${CINDER_PATH_FULL}" )
-if( NOT CMAKE_BUILD_TYPE )
-	ci_log_v( "CMAKE_BUILD_TYPE not specified, defaulting to Debug" )
-	set( CMAKE_BUILD_TYPE Debug CACHE STRING
-		 "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel. "
-		 FORCE
-	)
-else()
-	ci_log_v( "CMAKE_BUILD_TYPE set to ${CMAKE_BUILD_TYPE}" )
-endif()
+# #ci_log( debug ${CMAKE_CURRENT_LIST_LINE} "debug info" )
+# if( NOT CMAKE_BUILD_TYPE )
+# 	ci_log_v( "CMAKE_BUILD_TYPE not specified, defaulting to Debug" )
+# 	set( CMAKE_BUILD_TYPE Debug CACHE STRING
+# 		 "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel. "
+# 		 FORCE
+# 	)
+# else()
+# 	ci_log_v( "CMAKE_BUILD_TYPE set to ${CMAKE_BUILD_TYPE}" )
+# endif()
 
-# mason things
-# set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib/mason/${CMAKE_BUILD_TYPE} )
-# include( ${CMAKE_CURRENT_SOURCE_DIR}/proj/cmake/libmason.cmake )
+# # mason things
+# # set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib/mason/${CMAKE_BUILD_TYPE} )
+# # include( ${CMAKE_CURRENT_SOURCE_DIR}/proj/cmake/libmason.cmake )
 
-if( ${BUILD_GX} )
-
-	add_subdirectory( blocks/Cinder-Gx )
-
-	# apps
-	add_subdirectory( test/gx )
-
-endif()
+# if( ${BUILD_GX} )
+# 	# simon's block
+# 	add_subdirectory( blocks/Cinder-Gx )
+# 	# apps
+# 	add_subdirectory( test/gx )
+# endif()
 
 # -------------------------------------------------------------------
 
