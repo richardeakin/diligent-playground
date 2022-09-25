@@ -186,7 +186,17 @@ void TutorialFromCube::Initialize(const SampleInitInfo& InitInfo)
     CreatePipelineState();
     //CreateVertexBuffer();
     //CreateIndexBuffer();
-    LoadTexture();
+    //LoadTexture();
+
+    // tut04:
+    // Load textured cube
+    m_CubeVertexBuffer = TexturedCube::CreateVertexBuffer(m_pDevice, TexturedCube::VERTEX_COMPONENT_FLAG_POS_UV);
+    m_CubeIndexBuffer  = TexturedCube::CreateIndexBuffer(m_pDevice);
+    m_TextureSRV       = TexturedCube::LoadTexture(m_pDevice, "raccoon.jpg")->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE);
+    // Set cube texture SRV in the SRB
+    m_SRB->GetVariableByName(SHADER_TYPE_PIXEL, "g_Texture")->Set(m_TextureSRV);
+
+    CreateInstanceBuffer();
 }
 
 // Render a frame
@@ -195,20 +205,21 @@ void TutorialFromCube::Render()
     auto* pRTV = m_pSwapChain->GetCurrentBackBufferRTV();
     auto* pDSV = m_pSwapChain->GetDepthBufferDSV();
     // Clear the back buffer
-    const float ClearColor[] = {0.350f, 0.350f, 0.350f, 1.0f};
+    const float ClearColor[] = {0.950f, 0.350f, 0.350f, 1.0f};
     m_pImmediateContext->ClearRenderTarget(pRTV, ClearColor, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
     m_pImmediateContext->ClearDepthStencil(pDSV, CLEAR_DEPTH_FLAG, 1.f, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 
     {
         // Map the buffer and write current world-view-projection matrix
         MapHelper<float4x4> CBConstants(m_pImmediateContext, m_VSConstants, MAP_WRITE, MAP_FLAG_DISCARD);
-        *CBConstants = m_WorldViewProjMatrix.Transpose();
+        CBConstants[0] = m_ViewProjMatrix.Transpose();
+        CBConstants[1] = m_RotationMatrix.Transpose();
     }
 
-    // Bind vertex and index buffers
-    const Uint64 offset   = 0;
-    IBuffer*     pBuffs[] = {m_CubeVertexBuffer};
-    m_pImmediateContext->SetVertexBuffers(0, 1, pBuffs, &offset, RESOURCE_STATE_TRANSITION_MODE_TRANSITION, SET_VERTEX_BUFFERS_FLAG_RESET);
+    // Bind vertex, instance and index buffers
+    const Uint64 offsets[] = {0, 0};
+    IBuffer*     pBuffs[]  = {m_CubeVertexBuffer, m_InstanceBuffer};
+    m_pImmediateContext->SetVertexBuffers(0, _countof(pBuffs), pBuffs, offsets, RESOURCE_STATE_TRANSITION_MODE_TRANSITION, SET_VERTEX_BUFFERS_FLAG_RESET);
     m_pImmediateContext->SetIndexBuffer(m_CubeIndexBuffer, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 
     // Set the pipeline state
@@ -217,9 +228,10 @@ void TutorialFromCube::Render()
     // makes sure that resources are transitioned to required states.
     m_pImmediateContext->CommitShaderResources(m_SRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 
-    DrawIndexedAttribs DrawAttrs;     // This is an indexed draw call
-    DrawAttrs.IndexType  = VT_UINT32; // Index type
-    DrawAttrs.NumIndices = 36;
+    DrawIndexedAttribs DrawAttrs;       // This is an indexed draw call
+    DrawAttrs.IndexType    = VT_UINT32; // Index type
+    DrawAttrs.NumIndices   = 36;
+    DrawAttrs.NumInstances = m_GridSize * m_GridSize * m_GridSize; // The number of instances
     // Verify the state of vertex and index buffers
     DrawAttrs.Flags = DRAW_FLAG_VERIFY_ALL;
     m_pImmediateContext->DrawIndexed(DrawAttrs);
@@ -228,12 +240,10 @@ void TutorialFromCube::Render()
 void TutorialFromCube::Update(double CurrTime, double ElapsedTime)
 {
     SampleBase::Update(CurrTime, ElapsedTime);
+    UpdateUI();
 
-    // Apply rotation
-    float4x4 CubeModelTransform = float4x4::RotationY(static_cast<float>(CurrTime) * 1.0f) * float4x4::RotationX(-PI_F * 0.1f);
-
-    // Camera is at (0, 0, -5) looking along the Z axis
-    float4x4 View = float4x4::Translation(0.f, 0.0f, 5.0f);
+    // Set cube view matrix
+    float4x4 View = float4x4::RotationX(-0.6f) * float4x4::Translation(0.f, 0.f, 4.0f);
 
     // Get pretransform matrix that rotates the scene according the surface orientation
     auto SrfPreTransform = GetSurfacePretransformMatrix(float3{0, 0, 1});
@@ -241,8 +251,11 @@ void TutorialFromCube::Update(double CurrTime, double ElapsedTime)
     // Get projection matrix adjusted to the current screen orientation
     auto Proj = GetAdjustedProjectionMatrix(PI_F / 4.0f, 0.1f, 100.f);
 
-    // Compute world-view-projection matrix
-    m_WorldViewProjMatrix = CubeModelTransform * View * SrfPreTransform * Proj;
+    // Compute view-projection matrix
+    m_ViewProjMatrix = View * SrfPreTransform * Proj;
+
+    // Global rotation matrix
+    m_RotationMatrix = float4x4::RotationY(static_cast<float>(CurrTime) * 1.0f) * float4x4::RotationX(-static_cast<float>(CurrTime) * 0.25f);
 }
 
 } // namespace Diligent
