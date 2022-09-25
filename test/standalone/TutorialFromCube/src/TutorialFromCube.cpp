@@ -38,6 +38,9 @@
 namespace Diligent
 {
 
+// Params:
+float ClearColor[] = {(0.193f, 0.279f, 0.746f, 1.000f)};
+
 SampleBase* CreateSample()
 {
     return new TutorialFromCube();
@@ -118,6 +121,9 @@ void TutorialFromCube::UpdateUI()
         {
             PopulateInstanceBuffer();
         }
+
+        ImGui::Separator();
+        ImGui::ColorEdit4( "ClearColor", &ClearColor[0], ImGuiColorEditFlags_Float );
     }
     ImGui::End();
 }
@@ -205,7 +211,6 @@ void TutorialFromCube::Render()
     auto* pRTV = m_pSwapChain->GetCurrentBackBufferRTV();
     auto* pDSV = m_pSwapChain->GetDepthBufferDSV();
     // Clear the back buffer
-    const float ClearColor[] = {0.950f, 0.350f, 0.350f, 1.0f};
     m_pImmediateContext->ClearRenderTarget(pRTV, ClearColor, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
     m_pImmediateContext->ClearDepthStencil(pDSV, CLEAR_DEPTH_FLAG, 1.f, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 
