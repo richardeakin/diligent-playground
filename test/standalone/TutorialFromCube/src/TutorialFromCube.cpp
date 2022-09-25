@@ -30,6 +30,9 @@
 #include "GraphicsUtilities.h"
 #include "TextureUtilities.h"
 
+#include "TexturedCube.hpp"
+#include "imgui.h"
+
 namespace Diligent
 {
 
@@ -88,7 +91,17 @@ void TutorialFromCube::CreatePipelineState()
         m_pDevice->CreateShader(ShaderCI, &pVS);
         // Create dynamic uniform buffer that will store our transformation matrix
         // Dynamic buffers can be frequently updated by the CPU
-        CreateUniformBuffer(m_pDevice, sizeof(float4x4), "VS constants CB", &m_VSConstants);
+        CreateUniformBuffer(m_pDevice, sizeof(float4x4), "VS constants CB", &m_ShaderConstants);
+    }
+
+    // Create a geometry shader
+    RefCntAutoPtr<IShader> pGS;
+    {
+        ShaderCI.Desc.ShaderType = SHADER_TYPE_GEOMETRY;
+        ShaderCI.EntryPoint      = "main";
+        ShaderCI.Desc.Name       = "Cube GS";
+        ShaderCI.FilePath        = "cube.gsh";
+        m_pDevice->CreateShader(ShaderCI, &pGS);
     }
 
     // Create a pixel shader
@@ -113,6 +126,7 @@ void TutorialFromCube::CreatePipelineState()
     // clang-format on
 
     PSOCreateInfo.pVS = pVS;
+    PSOCreateInfo.pGS = pGS;
     PSOCreateInfo.pPS = pPS;
 
     PSOCreateInfo.GraphicsPipeline.InputLayout.LayoutElements = LayoutElems;
@@ -152,134 +166,27 @@ void TutorialFromCube::CreatePipelineState()
     // Since we did not explcitly specify the type for 'Constants' variable, default
     // type (SHADER_RESOURCE_VARIABLE_TYPE_STATIC) will be used. Static variables
     // never change and are bound directly through the pipeline state object.
-    m_pPSO->GetStaticVariableByName(SHADER_TYPE_VERTEX, "Constants")->Set(m_VSConstants);
+    //m_pPSO->GetStaticVariableByName(SHADER_TYPE_VERTEX, "Constants")->Set(m_VSConstants);
+    m_pPSO->GetStaticVariableByName(SHADER_TYPE_VERTEX,   "VSConstants")->Set(m_ShaderConstants);
+    m_pPSO->GetStaticVariableByName(SHADER_TYPE_GEOMETRY, "GSConstants")->Set(m_ShaderConstants);
+    m_pPSO->GetStaticVariableByName(SHADER_TYPE_PIXEL,    "PSConstants")->Set(m_ShaderConstants);
 
     // Since we are using mutable variable, we must create a shader resource binding object
     // http://diligentgraphics.com/2016/03/23/resource-binding-model-in-diligent-engine-2-0/
     m_pPSO->CreateShaderResourceBinding(&m_SRB, true);
 }
 
-void TutorialFromCube::CreateVertexBuffer()
-{
-    // Layout of this structure matches the one we defined in the pipeline state
-    struct Vertex
-    {
-        float3 pos;
-        float2 uv;
-    };
-
-    // Cube vertices
-
-    //      (-1,+1,+1)________________(+1,+1,+1)
-    //               /|              /|
-    //              / |             / |
-    //             /  |            /  |
-    //            /   |           /   |
-    //(-1,-1,+1) /____|__________/(+1,-1,+1)
-    //           |    |__________|____|
-    //           |   /(-1,+1,-1) |    /(+1,+1,-1)
-    //           |  /            |   /
-    //           | /             |  /
-    //           |/              | /
-    //           /_______________|/
-    //        (-1,-1,-1)       (+1,-1,-1)
-    //
-
-    // clang-format off
-    // This time we have to duplicate verices because texture coordinates cannot
-    // be shared
-    Vertex CubeVerts[] =
-    {
-        {float3(-1,-1,-1), float2(0,1)},
-        {float3(-1,+1,-1), float2(0,0)},
-        {float3(+1,+1,-1), float2(1,0)},
-        {float3(+1,-1,-1), float2(1,1)},
-
-        {float3(-1,-1,-1), float2(0,1)},
-        {float3(-1,-1,+1), float2(0,0)},
-        {float3(+1,-1,+1), float2(1,0)},
-        {float3(+1,-1,-1), float2(1,1)},
-
-        {float3(+1,-1,-1), float2(0,1)},
-        {float3(+1,-1,+1), float2(1,1)},
-        {float3(+1,+1,+1), float2(1,0)},
-        {float3(+1,+1,-1), float2(0,0)},
-
-        {float3(+1,+1,-1), float2(0,1)},
-        {float3(+1,+1,+1), float2(0,0)},
-        {float3(-1,+1,+1), float2(1,0)},
-        {float3(-1,+1,-1), float2(1,1)},
-
-        {float3(-1,+1,-1), float2(1,0)},
-        {float3(-1,+1,+1), float2(0,0)},
-        {float3(-1,-1,+1), float2(0,1)},
-        {float3(-1,-1,-1), float2(1,1)},
-
-        {float3(-1,-1,+1), float2(1,1)},
-        {float3(+1,-1,+1), float2(0,1)},
-        {float3(+1,+1,+1), float2(0,0)},
-        {float3(-1,+1,+1), float2(1,0)}
-    };
-    // clang-format on
-
-    BufferDesc VertBuffDesc;
-    VertBuffDesc.Name      = "Cube vertex buffer";
-    VertBuffDesc.Usage     = USAGE_IMMUTABLE;
-    VertBuffDesc.BindFlags = BIND_VERTEX_BUFFER;
-    VertBuffDesc.Size      = sizeof(CubeVerts);
-    BufferData VBData;
-    VBData.pData    = CubeVerts;
-    VBData.DataSize = sizeof(CubeVerts);
-    m_pDevice->CreateBuffer(VertBuffDesc, &VBData, &m_CubeVertexBuffer);
-}
-
-void TutorialFromCube::CreateIndexBuffer()
-{
-    // clang-format off
-    Uint32 Indices[] =
-    {
-        2,0,1,    2,3,0,
-        4,6,5,    4,7,6,
-        8,10,9,   8,11,10,
-        12,14,13, 12,15,14,
-        16,18,17, 16,19,18,
-        20,21,22, 20,22,23
-    };
-    // clang-format on
-
-    BufferDesc IndBuffDesc;
-    IndBuffDesc.Name      = "Cube index buffer";
-    IndBuffDesc.Usage     = USAGE_IMMUTABLE;
-    IndBuffDesc.BindFlags = BIND_INDEX_BUFFER;
-    IndBuffDesc.Size      = sizeof(Indices);
-    BufferData IBData;
-    IBData.pData    = Indices;
-    IBData.DataSize = sizeof(Indices);
-    m_pDevice->CreateBuffer(IndBuffDesc, &IBData, &m_CubeIndexBuffer);
-}
-
-void TutorialFromCube::LoadTexture()
-{
-    TextureLoadInfo loadInfo;
-    loadInfo.IsSRGB = true;
-    RefCntAutoPtr<ITexture> Tex;
-    CreateTextureFromFile("DGLogo.png", loadInfo, m_pDevice, &Tex);
-    // Get shader resource view from the texture
-    m_TextureSRV = Tex->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE);
-
-    // Set texture SRV in the SRB
-    m_SRB->GetVariableByName(SHADER_TYPE_PIXEL, "g_Texture")->Set(m_TextureSRV);
-}
-
-
 void TutorialFromCube::Initialize(const SampleInitInfo& InitInfo)
 {
     SampleBase::Initialize(InitInfo);
 
     CreatePipelineState();
-    CreateVertexBuffer();
-    CreateIndexBuffer();
-    LoadTexture();
+
+    // Load textured cube
+    m_CubeVertexBuffer = TexturedCube::CreateVertexBuffer(m_pDevice, TexturedCube::VERTEX_COMPONENT_FLAG_POS_UV);
+    m_CubeIndexBuffer  = TexturedCube::CreateIndexBuffer(m_pDevice);
+    m_TextureSRV       = TexturedCube::LoadTexture(m_pDevice, "raccoon.jpg")->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE);
+    m_SRB->GetVariableByName(SHADER_TYPE_PIXEL, "g_Texture")->Set(m_TextureSRV);
 }
 
 // Render a frame
@@ -294,7 +201,7 @@ void TutorialFromCube::Render()
 
     {
         // Map the buffer and write current world-view-projection matrix
-        MapHelper<float4x4> CBConstants(m_pImmediateContext, m_VSConstants, MAP_WRITE, MAP_FLAG_DISCARD);
+        MapHelper<float4x4> CBConstants(m_pImmediateContext, m_ShaderConstants, MAP_WRITE, MAP_FLAG_DISCARD);
         *CBConstants = m_WorldViewProjMatrix.Transpose();
     }
 
@@ -318,9 +225,20 @@ void TutorialFromCube::Render()
     m_pImmediateContext->DrawIndexed(DrawAttrs);
 }
 
+void TutorialFromCube::UpdateUI()
+{
+    ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
+    if (ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+    {
+        ImGui::SliderFloat("Line Width", &m_LineWidth, 1.f, 10.f);
+    }
+    ImGui::End();
+}
+
 void TutorialFromCube::Update(double CurrTime, double ElapsedTime)
 {
     SampleBase::Update(CurrTime, ElapsedTime);
+    UpdateUI();
 
     // Apply rotation
     float4x4 CubeModelTransform = float4x4::RotationY(static_cast<float>(CurrTime) * 1.0f) * float4x4::RotationX(-PI_F * 0.1f);

@@ -45,17 +45,21 @@ public:
 
 private:
     void CreatePipelineState();
-    void CreateVertexBuffer();
-    void CreateIndexBuffer();
-    void LoadTexture();
+    void UpdateUI();
+
+    //void CreateVertexBuffer();
+    //void CreateIndexBuffer();
+    //void LoadTexture();
 
     RefCntAutoPtr<IPipelineState>         m_pPSO;
     RefCntAutoPtr<IBuffer>                m_CubeVertexBuffer;
     RefCntAutoPtr<IBuffer>                m_CubeIndexBuffer;
-    RefCntAutoPtr<IBuffer>                m_VSConstants;
+    RefCntAutoPtr<IBuffer>                m_ShaderConstants;
     RefCntAutoPtr<ITextureView>           m_TextureSRV;
     RefCntAutoPtr<IShaderResourceBinding> m_SRB;
+
     float4x4                              m_WorldViewProjMatrix;
+    float    m_LineWidth = 3.f;
 };
 
 } // namespace Diligent
