@@ -22,6 +22,7 @@ struct PSInput
 { 
     float4 Pos : SV_POSITION; 
     float2 UV  : TEX_COORD; 
+    float  TexIndex : TEX_ARRAY_INDEX;
 };
 
 // Note that if separate shader objects are not supported (this is only the case for old GLES3.0 devices), vertex

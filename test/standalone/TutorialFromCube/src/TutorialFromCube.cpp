@@ -38,10 +38,20 @@
 namespace Diligent
 {
 
+namespace {
+
 const int NumTextures = 3;
 
-// Params:
-float ClearColor[] = {(0.193f, 0.279f, 0.746f, 1.000f)};
+// params:
+float ClearColor[] = {(0.95f, 0.35f, 0.35f, 1.0f)};
+
+struct InstanceData
+{
+    float4x4 Matrix;
+    float    TextureInd = 0;
+};
+
+} // anon
 
 SampleBase* CreateSample()
 {
@@ -135,8 +145,8 @@ void TutorialFromCube::UpdateUI()
 void TutorialFromCube::PopulateInstanceBuffer()
 {
     // Populate instance data buffer
-    const auto            zGridSize = static_cast<size_t>(m_GridSize);
-    std::vector<float4x4> InstanceData(zGridSize * zGridSize * zGridSize);
+    const auto                zGridSize = static_cast<size_t>(m_GridSize);
+    std::vector<InstanceData> InstanceData(zGridSize * zGridSize * zGridSize);
 
     float fGridSize = static_cast<float>(m_GridSize);
 
@@ -146,6 +156,7 @@ void TutorialFromCube::PopulateInstanceBuffer()
     std::uniform_real_distribution<float> scale_distr(0.3f, 1.0f);
     std::uniform_real_distribution<float> offset_distr(-0.15f, +0.15f);
     std::uniform_real_distribution<float> rot_distr(-PI_F, +PI_F);
+    std::uniform_int_distribution<Int32>  tex_distr(0, NumTextures - 1);
 
     float BaseScale = 0.6f / fGridSize;
     int   instId    = 0;
@@ -166,8 +177,11 @@ void TutorialFromCube::PopulateInstanceBuffer()
                 rotation *= float4x4::RotationY(rot_distr(gen));
                 rotation *= float4x4::RotationZ(rot_distr(gen));
                 // Combine rotation, scale and translation
-                float4x4 matrix        = rotation * float4x4::Scale(scale, scale, scale) * float4x4::Translation(xOffset, yOffset, zOffset);
-                InstanceData[instId++] = matrix;
+                float4x4 matrix   = rotation * float4x4::Scale(scale, scale, scale) * float4x4::Translation(xOffset, yOffset, zOffset);
+                auto&    CurrInst = InstanceData[instId++];
+                CurrInst.Matrix   = matrix;
+                // Texture array index
+                CurrInst.TextureInd = static_cast<float>(tex_distr(gen));
             }
         }
     }
@@ -179,14 +193,16 @@ void TutorialFromCube::PopulateInstanceBuffer()
 // TODO: make a array<string> here of my animal image names (3 should be enough, annoying to cut them square)
 void TutorialFromCube::LoadTextures()
 {
+    const std::vector<std::string> TexNames = { "raccoon.jpg", "beaver.jpg", "wombat.jpg" };
+
+    assert(TexNames.size() == NumTextures);
+
     // Load a texture array
     RefCntAutoPtr<ITexture> pTexArray;
     for (int tex = 0; tex < NumTextures; ++tex)
     {
-        // Load current texture
-        std::stringstream FileNameSS;
-        FileNameSS << "DGLogo" << tex << ".png";
-        const auto              FileName = FileNameSS.str();
+        const auto              FileName = TexNames[tex];
+
         RefCntAutoPtr<ITexture> SrcTex   = TexturedCube::LoadTexture(m_pDevice, FileName.c_str());
         const auto&             TexDesc  = SrcTex->GetDesc();
         if (pTexArray == nullptr)
@@ -222,19 +238,12 @@ void TutorialFromCube::Initialize(const SampleInitInfo& InitInfo)
     SampleBase::Initialize(InitInfo);
 
     CreatePipelineState();
-    //CreateVertexBuffer();
-    //CreateIndexBuffer();
-    //LoadTexture();
 
-    // tut04:
-    // Load textured cube
     m_CubeVertexBuffer = TexturedCube::CreateVertexBuffer(m_pDevice, TexturedCube::VERTEX_COMPONENT_FLAG_POS_UV);
     m_CubeIndexBuffer  = TexturedCube::CreateIndexBuffer(m_pDevice);
-    m_TextureSRV       = TexturedCube::LoadTexture(m_pDevice, "raccoon.jpg")->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE);
-    // Set cube texture SRV in the SRB
-    m_SRB->GetVariableByName(SHADER_TYPE_PIXEL, "g_Texture")->Set(m_TextureSRV);
 
     CreateInstanceBuffer();
+    LoadTextures();
 }
 
 // Render a frame

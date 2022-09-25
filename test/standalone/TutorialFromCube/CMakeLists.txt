@@ -22,6 +22,8 @@ set(SHADERS
 
 set(ASSETS
     assets/raccoon.jpg
+    assets/beaver.jpg
+    assets/wombat.jpg
 )
 
 add_sample_app("TutorialFromCube" "test/standalone" "${SOURCE}" "${INCLUDE}" "${SHADERS}" "${ASSETS}")
