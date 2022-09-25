@@ -28,6 +28,7 @@
 #include "TutorialFromCube.hpp"
 #include "MapHelper.hpp"
 #include "GraphicsUtilities.h"
+#include "TextureUtilities.h"
 
 namespace Diligent
 {
@@ -114,7 +115,7 @@ void TutorialFromCube::CreatePipelineState()
         // Attribute 0 - vertex position
         LayoutElement{0, 0, 3, VT_FLOAT32, False},
         // Attribute 1 - vertex color
-        LayoutElement{1, 0, 4, VT_FLOAT32, False}
+        LayoutElement{1, 0, 2, VT_FLOAT32, False}
     };
     // clang-format on
     PSOCreateInfo.GraphicsPipeline.InputLayout.LayoutElements = LayoutElems;
@@ -126,6 +127,30 @@ void TutorialFromCube::CreatePipelineState()
     // Define variable type that will be used by default
     PSOCreateInfo.PSODesc.ResourceLayout.DefaultVariableType = SHADER_RESOURCE_VARIABLE_TYPE_STATIC;
 
+    // Shader variables should typically be mutable
+    ShaderResourceVariableDesc Vars[] = 
+    {
+        {SHADER_TYPE_PIXEL, "g_Texture", SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE}
+    };
+    // clang-format on
+    PSOCreateInfo.PSODesc.ResourceLayout.Variables    = Vars;
+    PSOCreateInfo.PSODesc.ResourceLayout.NumVariables = _countof(Vars);
+
+    // clang-format off
+    // Define immutable sampler for g_Texture. Immutable samplers should be used whenever possible
+    SamplerDesc SamLinearClampDesc
+    {
+        FILTER_TYPE_LINEAR, FILTER_TYPE_LINEAR, FILTER_TYPE_LINEAR, 
+        TEXTURE_ADDRESS_CLAMP, TEXTURE_ADDRESS_CLAMP, TEXTURE_ADDRESS_CLAMP
+    };
+    ImmutableSamplerDesc ImtblSamplers[] = 
+    {
+        {SHADER_TYPE_PIXEL, "g_Texture", SamLinearClampDesc}
+    };
+    // clang-format on
+    PSOCreateInfo.PSODesc.ResourceLayout.ImmutableSamplers    = ImtblSamplers;
+    PSOCreateInfo.PSODesc.ResourceLayout.NumImmutableSamplers = _countof(ImtblSamplers);
+
     m_pDevice->CreateGraphicsPipelineState(PSOCreateInfo, &m_pPSO);
 
     // Since we did not explcitly specify the type for 'Constants' variable, default
@@ -134,7 +159,7 @@ void TutorialFromCube::CreatePipelineState()
     m_pPSO->GetStaticVariableByName(SHADER_TYPE_VERTEX, "Constants")->Set(m_VSConstants);
 
     // Create a shader resource binding object and bind all static resources in it
-    m_pPSO->CreateShaderResourceBinding(&m_pSRB, true);
+    m_pPSO->CreateShaderResourceBinding(&m_SRB, true);
 }
 
 void TutorialFromCube::CreateVertexBuffer()
@@ -143,7 +168,7 @@ void TutorialFromCube::CreateVertexBuffer()
     struct Vertex
     {
         float3 pos;
-        float4 color;
+        float2 uv;
     };
 
     // Cube vertices
@@ -164,21 +189,42 @@ void TutorialFromCube::CreateVertexBuffer()
     //
 
     // clang-format off
-    Vertex CubeVerts[8] =
+    // This time we have to duplicate verices because texture coordinates cannot
+    // be shared
+    Vertex CubeVerts[] =
     {
-        {float3(-1,-1,-1), float4(1,0,0,1)},
-        {float3(-1,+1,-1), float4(0,1,0,1)},
-        {float3(+1,+1,-1), float4(0,0,1,1)},
-        {float3(+1,-1,-1), float4(1,1,1,1)},
+        {float3(-1,-1,-1), float2(0,1)},
+        {float3(-1,+1,-1), float2(0,0)},
+        {float3(+1,+1,-1), float2(1,0)},
+        {float3(+1,-1,-1), float2(1,1)},
 
-        {float3(-1,-1,+1), float4(1,1,0,1)},
-        {float3(-1,+1,+1), float4(0,1,1,1)},
-        {float3(+1,+1,+1), float4(1,0,1,1)},
-        {float3(+1,-1,+1), float4(0.2f,0.2f,0.2f,1)},
+        {float3(-1,-1,-1), float2(0,1)},
+        {float3(-1,-1,+1), float2(0,0)},
+        {float3(+1,-1,+1), float2(1,0)},
+        {float3(+1,-1,-1), float2(1,1)},
+
+        {float3(+1,-1,-1), float2(0,1)},
+        {float3(+1,-1,+1), float2(1,1)},
+        {float3(+1,+1,+1), float2(1,0)},
+        {float3(+1,+1,-1), float2(0,0)},
+
+        {float3(+1,+1,-1), float2(0,1)},
+        {float3(+1,+1,+1), float2(0,0)},
+        {float3(-1,+1,+1), float2(1,0)},
+        {float3(-1,+1,-1), float2(1,1)},
+
+        {float3(-1,+1,-1), float2(1,0)},
+        {float3(-1,+1,+1), float2(0,0)},
+        {float3(-1,-1,+1), float2(0,1)},
+        {float3(-1,-1,-1), float2(1,1)},
+
+        {float3(-1,-1,+1), float2(1,1)},
+        {float3(+1,-1,+1), float2(0,1)},
+        {float3(+1,+1,+1), float2(0,0)},
+        {float3(-1,+1,+1), float2(1,0)}
     };
     // clang-format on
 
-    // Create a vertex buffer that stores cube vertices
     BufferDesc VertBuffDesc;
     VertBuffDesc.Name      = "Cube vertex buffer";
     VertBuffDesc.Usage     = USAGE_IMMUTABLE;
@@ -195,12 +241,12 @@ void TutorialFromCube::CreateIndexBuffer()
     // clang-format off
     Uint32 Indices[] =
     {
-        2,0,1, 2,3,0,
-        4,6,5, 4,7,6,
-        0,7,4, 0,3,7,
-        1,0,4, 1,4,5,
-        1,5,2, 5,6,2,
-        3,6,7, 3,2,6
+        2,0,1,    2,3,0,
+        4,6,5,    4,7,6,
+        8,10,9,   8,11,10,
+        12,14,13, 12,15,14,
+        16,18,17, 16,19,18,
+        20,21,22, 20,22,23
     };
     // clang-format on
 
@@ -215,6 +261,19 @@ void TutorialFromCube::CreateIndexBuffer()
     m_pDevice->CreateBuffer(IndBuffDesc, &IBData, &m_CubeIndexBuffer);
 }
 
+void TutorialFromCube::LoadTexture()
+{
+    TextureLoadInfo loadInfo;
+    loadInfo.IsSRGB = true;
+    RefCntAutoPtr<ITexture> Tex;
+    CreateTextureFromFile("raccoon.jpg", loadInfo, m_pDevice, &Tex);
+    // Get shader resource view from the texture
+    m_TextureSRV = Tex->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE);
+
+    // Set texture SRV in the SRB
+    m_SRB->GetVariableByName(SHADER_TYPE_PIXEL, "g_Texture")->Set(m_TextureSRV);
+}
+
 void TutorialFromCube::Initialize(const SampleInitInfo& InitInfo)
 {
     SampleBase::Initialize(InitInfo);
@@ -222,6 +281,7 @@ void TutorialFromCube::Initialize(const SampleInitInfo& InitInfo)
     CreatePipelineState();
     CreateVertexBuffer();
     CreateIndexBuffer();
+    LoadTexture();
 }
 
 // Render a frame
@@ -250,7 +310,7 @@ void TutorialFromCube::Render()
     m_pImmediateContext->SetPipelineState(m_pPSO);
     // Commit shader resources. RESOURCE_STATE_TRANSITION_MODE_TRANSITION mode
     // makes sure that resources are transitioned to required states.
-    m_pImmediateContext->CommitShaderResources(m_pSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+    m_pImmediateContext->CommitShaderResources(m_SRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 
     DrawIndexedAttribs DrawAttrs;     // This is an indexed draw call
     DrawAttrs.IndexType  = VT_UINT32; // Index type

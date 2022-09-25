@@ -16,7 +16,9 @@ set(SHADERS
     assets/cube.psh
 )
 
-set(ASSETS)
+set(ASSETS
+    assets/raccoon.jpg
+)
 
 add_sample_app("TutorialFromCube" "test/standalone" "${SOURCE}" "${INCLUDE}" "${SHADERS}" "${ASSETS}")
 
