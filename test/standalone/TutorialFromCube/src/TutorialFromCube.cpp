@@ -41,6 +41,18 @@ SampleBase* CreateSample()
     return new TutorialFromCube();
 }
 
+namespace
+{
+
+struct Constants
+{
+    float4x4 WorldViewProj;
+    float4   ViewportSize;
+    float    LineWidth;
+};
+
+} // namespace
+
 void TutorialFromCube::CreatePipelineState()
 {
     // Pipeline state object encompasses configuration of all GPU stages
@@ -54,7 +66,6 @@ void TutorialFromCube::CreatePipelineState()
     // This is a graphics pipeline
     PSOCreateInfo.PSODesc.PipelineType = PIPELINE_TYPE_GRAPHICS;
 
-    // clang-format off
     // This tutorial will render to a single render target
     PSOCreateInfo.GraphicsPipeline.NumRenderTargets             = 1;
     // Set render target format which is the format of the swap chain's color buffer
@@ -67,7 +78,9 @@ void TutorialFromCube::CreatePipelineState()
     PSOCreateInfo.GraphicsPipeline.RasterizerDesc.CullMode      = CULL_MODE_BACK;
     // Enable depth testing
     PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.DepthEnable = True;
-    // clang-format on
+
+    // Create dynamic uniform buffer that will store shader constants
+    CreateUniformBuffer(m_pDevice, sizeof(float4x4), "VS constants CB", &m_ShaderConstants);
 
     ShaderCreateInfo ShaderCI;
     // Tell the system that the shader source code is in HLSL.
@@ -81,6 +94,7 @@ void TutorialFromCube::CreatePipelineState()
     RefCntAutoPtr<IShaderSourceInputStreamFactory> pShaderSourceFactory;
     m_pEngineFactory->CreateDefaultShaderSourceStreamFactory(nullptr, &pShaderSourceFactory);
     ShaderCI.pShaderSourceStreamFactory = pShaderSourceFactory;
+
     // Create a vertex shader
     RefCntAutoPtr<IShader> pVS;
     {
@@ -89,9 +103,6 @@ void TutorialFromCube::CreatePipelineState()
         ShaderCI.Desc.Name       = "Cube VS";
         ShaderCI.FilePath        = "cube.vsh";
         m_pDevice->CreateShader(ShaderCI, &pVS);
-        // Create dynamic uniform buffer that will store our transformation matrix
-        // Dynamic buffers can be frequently updated by the CPU
-        CreateUniformBuffer(m_pDevice, sizeof(float4x4), "VS constants CB", &m_ShaderConstants);
     }
 
     // Create a geometry shader
@@ -201,14 +212,18 @@ void TutorialFromCube::Render()
 
     {
         // Map the buffer and write current world-view-projection matrix
-        MapHelper<float4x4> CBConstants(m_pImmediateContext, m_ShaderConstants, MAP_WRITE, MAP_FLAG_DISCARD);
-        *CBConstants = m_WorldViewProjMatrix.Transpose();
+        MapHelper<Constants> Consts(m_pImmediateContext, m_ShaderConstants, MAP_WRITE, MAP_FLAG_DISCARD);
+        Consts->WorldViewProj = m_WorldViewProjMatrix.Transpose();
+
+        const auto& SCDesc   = m_pSwapChain->GetDesc();
+        Consts->ViewportSize = float4(static_cast<float>(SCDesc.Width), static_cast<float>(SCDesc.Height), 1.f / static_cast<float>(SCDesc.Width), 1.f / static_cast<float>(SCDesc.Height));
+
+        Consts->LineWidth = m_LineWidth;
     }
 
     // Bind vertex and index buffers
-    const Uint64 offset   = 0;
-    IBuffer*     pBuffs[] = {m_CubeVertexBuffer};
-    m_pImmediateContext->SetVertexBuffers(0, 1, pBuffs, &offset, RESOURCE_STATE_TRANSITION_MODE_TRANSITION, SET_VERTEX_BUFFERS_FLAG_RESET);
+    IBuffer* pBuffs[] = {m_CubeVertexBuffer};
+    m_pImmediateContext->SetVertexBuffers(0, 1, pBuffs, nullptr, RESOURCE_STATE_TRANSITION_MODE_TRANSITION, SET_VERTEX_BUFFERS_FLAG_RESET);
     m_pImmediateContext->SetIndexBuffer(m_CubeIndexBuffer, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 
     // Set the pipeline state
@@ -217,7 +232,7 @@ void TutorialFromCube::Render()
     // makes sure that resources are transitioned to required states.
     m_pImmediateContext->CommitShaderResources(m_SRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 
-    DrawIndexedAttribs DrawAttrs;     // This is an indexed draw call
+    DrawIndexedAttribs DrawAttrs;
     DrawAttrs.IndexType  = VT_UINT32; // Index type
     DrawAttrs.NumIndices = 36;
     // Verify the state of vertex and index buffers
