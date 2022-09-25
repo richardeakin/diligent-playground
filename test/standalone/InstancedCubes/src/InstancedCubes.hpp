@@ -41,7 +41,7 @@ public:
     virtual void Render() override final;
     virtual void Update(double CurrTime, double ElapsedTime) override final;
 
-    virtual const Char* GetSampleName() const override final { return "Tutorial02: Cube"; }
+    virtual const Char* GetSampleName() const override final { return "InstancedCubes (rte)"; }
 
 private:
     void CreatePipelineState();

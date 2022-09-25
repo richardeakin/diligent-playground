@@ -25,7 +25,7 @@
  *  of the possibility of such damages.
  */
 
-#include "Tutorial03_Texturing.hpp"
+#include "TutorialFromCube.hpp"
 #include "MapHelper.hpp"
 #include "GraphicsUtilities.h"
 #include "TextureUtilities.h"
@@ -35,10 +35,10 @@ namespace Diligent
 
 SampleBase* CreateSample()
 {
-    return new Tutorial03_Texturing();
+    return new TutorialFromCube();
 }
 
-void Tutorial03_Texturing::CreatePipelineState()
+void TutorialFromCube::CreatePipelineState()
 {
     // Pipeline state object encompasses configuration of all GPU stages
 
@@ -159,7 +159,7 @@ void Tutorial03_Texturing::CreatePipelineState()
     m_pPSO->CreateShaderResourceBinding(&m_SRB, true);
 }
 
-void Tutorial03_Texturing::CreateVertexBuffer()
+void TutorialFromCube::CreateVertexBuffer()
 {
     // Layout of this structure matches the one we defined in the pipeline state
     struct Vertex
@@ -233,7 +233,7 @@ void Tutorial03_Texturing::CreateVertexBuffer()
     m_pDevice->CreateBuffer(VertBuffDesc, &VBData, &m_CubeVertexBuffer);
 }
 
-void Tutorial03_Texturing::CreateIndexBuffer()
+void TutorialFromCube::CreateIndexBuffer()
 {
     // clang-format off
     Uint32 Indices[] =
@@ -258,7 +258,7 @@ void Tutorial03_Texturing::CreateIndexBuffer()
     m_pDevice->CreateBuffer(IndBuffDesc, &IBData, &m_CubeIndexBuffer);
 }
 
-void Tutorial03_Texturing::LoadTexture()
+void TutorialFromCube::LoadTexture()
 {
     TextureLoadInfo loadInfo;
     loadInfo.IsSRGB = true;
@@ -272,7 +272,7 @@ void Tutorial03_Texturing::LoadTexture()
 }
 
 
-void Tutorial03_Texturing::Initialize(const SampleInitInfo& InitInfo)
+void TutorialFromCube::Initialize(const SampleInitInfo& InitInfo)
 {
     SampleBase::Initialize(InitInfo);
 
@@ -283,7 +283,7 @@ void Tutorial03_Texturing::Initialize(const SampleInitInfo& InitInfo)
 }
 
 // Render a frame
-void Tutorial03_Texturing::Render()
+void TutorialFromCube::Render()
 {
     auto* pRTV = m_pSwapChain->GetCurrentBackBufferRTV();
     auto* pDSV = m_pSwapChain->GetDepthBufferDSV();
@@ -318,7 +318,7 @@ void Tutorial03_Texturing::Render()
     m_pImmediateContext->DrawIndexed(DrawAttrs);
 }
 
-void Tutorial03_Texturing::Update(double CurrTime, double ElapsedTime)
+void TutorialFromCube::Update(double CurrTime, double ElapsedTime)
 {
     SampleBase::Update(CurrTime, ElapsedTime);
 
