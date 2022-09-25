@@ -45,19 +45,32 @@ public:
 
 private:
     void CreatePipelineState();
-    void CreateVertexBuffer();
-    void CreateIndexBuffer();
-    void LoadTexture();
+    //void CreateVertexBuffer();
+    //void CreateIndexBuffer();
 
     RefCntAutoPtr<IPipelineState>         m_pPSO;
     RefCntAutoPtr<IBuffer>                m_CubeVertexBuffer;
     RefCntAutoPtr<IBuffer>                m_CubeIndexBuffer;
     RefCntAutoPtr<IBuffer>                m_VSConstants;
-    float4x4                              m_WorldViewProjMatrix;
+    //float4x4                              m_WorldViewProjMatrix;
 
-    // tut3
+    void LoadTextures();
+
     RefCntAutoPtr<ITextureView>           m_TextureSRV;
     RefCntAutoPtr<IShaderResourceBinding> m_SRB;
+
+    void CreateInstanceBuffer();
+    void UpdateUI();
+    void PopulateInstanceBuffer();
+
+    RefCntAutoPtr<IBuffer>                m_InstanceBuffer;
+
+    float4x4             m_ViewProjMatrix;
+    float4x4             m_RotationMatrix;
+    int                  m_GridSize   = 5;
+    static constexpr int MaxGridSize  = 32;
+    static constexpr int MaxInstances = MaxGridSize * MaxGridSize * MaxGridSize;
+
 };
 
 } // namespace Diligent
