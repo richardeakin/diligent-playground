@@ -20,5 +20,3 @@ set(ASSETS)
 
 add_sample_app("TutorialFromCube" "test/standalone" "${SOURCE}" "${INCLUDE}" "${SHADERS}" "${ASSETS}")
 
-ci_log_i( "CINDER_PATH: ${CINDER_PATH}")
-
