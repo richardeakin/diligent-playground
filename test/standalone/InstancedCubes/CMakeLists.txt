@@ -1,21 +1,20 @@
 cmake_minimum_required (VERSION 3.6)
 
-project(TutorialFromCube CXX)
-set( APP_TARGET "TutorialFromCube" )
+project(InstancedCubes CXX)
+set( APP_TARGET "InstancedCubes" )
 
 set(SOURCE
-    src/TutorialFromCube.cpp
+    src/InstancedCubes.cpp
     src/TexturedCube.cpp
 )
 
 set(INCLUDE
-    src/TutorialFromCube.hpp
+    src/InstancedCubes.hpp
     src/TexturedCube.hpp
 )
 
 set(SHADERS
-    assets/cube.gsh
-    assets/cube.vsh
+    assets/cube_inst.vsh
     assets/cube.psh
 )
 
@@ -25,7 +24,7 @@ set(ASSETS
     assets/wombat.jpg
 )
 
-add_sample_app("TutorialFromCube" "test/standalone" "${SOURCE}" "${INCLUDE}" "${SHADERS}" "${ASSETS}")
+add_sample_app("InstancedCubes" "test/standalone" "${SOURCE}" "${INCLUDE}" "${SHADERS}" "${ASSETS}")
 
 # doesn't appear to be needed, though it was added in Tutorial03_Texturing onward
 # - perhaps it is if you were to run this CMakeLists.txt on its own
