@@ -25,7 +25,7 @@ void main(in  GSOutput PSIn,
     float lineWidth = g_Constants.LineWidth;
     float lineIntensity = saturate((lineWidth - minDist) / lineWidth);
 
-    float3 EdgeColor = float3(0.0, 0.0, 0.0);
+    float3 EdgeColor = float3(1.0, 0.5, 0.0);
     Color.rgb = lerp(Color.rgb, EdgeColor, lineIntensity);
 
     PSOut.Color = Color;
