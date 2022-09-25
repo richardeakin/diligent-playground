@@ -54,13 +54,11 @@ private:
     RefCntAutoPtr<IBuffer>                m_VSConstants;
     //float4x4                              m_WorldViewProjMatrix;
 
-    // tut03
-    void LoadTexture();
+    void LoadTextures();
 
     RefCntAutoPtr<ITextureView>           m_TextureSRV;
     RefCntAutoPtr<IShaderResourceBinding> m_SRB;
 
-    // tut04
     void CreateInstanceBuffer();
     void UpdateUI();
     void PopulateInstanceBuffer();

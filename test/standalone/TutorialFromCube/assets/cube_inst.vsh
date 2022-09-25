@@ -15,6 +15,7 @@ struct VSInput
     float4 MtrxRow1 : ATTRIB3;
     float4 MtrxRow2 : ATTRIB4;
     float4 MtrxRow3 : ATTRIB5;
+    float  TexArrInd : ATTRIB6;
 };
 
 struct PSInput 
@@ -39,4 +40,7 @@ void main(in  VSInput VSIn,
     // Apply view-projection matrix
     PSIn.Pos = mul(TransformedPos, g_ViewProj);
     PSIn.UV  = VSIn.UV;
+
+    // Pass texture array index to pixel shader
+    PSIn.TexIndex = VSIn.TexArrInd;
 }

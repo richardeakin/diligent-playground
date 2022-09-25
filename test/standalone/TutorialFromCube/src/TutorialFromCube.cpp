@@ -38,6 +38,8 @@
 namespace Diligent
 {
 
+const int NumTextures = 3;
+
 // Params:
 float ClearColor[] = {(0.193f, 0.279f, 0.746f, 1.000f)};
 
@@ -66,7 +68,9 @@ void TutorialFromCube::CreatePipelineState()
         // Attribute 4 - third row
         LayoutElement{4, 1, 4, VT_FLOAT32, False, INPUT_ELEMENT_FREQUENCY_PER_INSTANCE},
         // Attribute 5 - fourth row
-        LayoutElement{5, 1, 4, VT_FLOAT32, False, INPUT_ELEMENT_FREQUENCY_PER_INSTANCE}
+        LayoutElement{5, 1, 4, VT_FLOAT32, False, INPUT_ELEMENT_FREQUENCY_PER_INSTANCE},
+        // Attribute 6 - texture array index
+        LayoutElement{6, 1, 1, VT_FLOAT32, False, INPUT_ELEMENT_FREQUENCY_PER_INSTANCE}
     };
 
     // Create a shader source stream factory to load shaders from files.
@@ -172,15 +176,43 @@ void TutorialFromCube::PopulateInstanceBuffer()
     m_pImmediateContext->UpdateBuffer(m_InstanceBuffer, 0, DataSize, InstanceData.data(), RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 }
 
-void TutorialFromCube::LoadTexture()
+// TODO: make a array<string> here of my animal image names (3 should be enough, annoying to cut them square)
+void TutorialFromCube::LoadTextures()
 {
-    TextureLoadInfo loadInfo;
-    loadInfo.IsSRGB = true;
-    RefCntAutoPtr<ITexture> Tex;
-    CreateTextureFromFile("raccoon.jpg", loadInfo, m_pDevice, &Tex);
-    // Get shader resource view from the texture
-    m_TextureSRV = Tex->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE);
+    // Load a texture array
+    RefCntAutoPtr<ITexture> pTexArray;
+    for (int tex = 0; tex < NumTextures; ++tex)
+    {
+        // Load current texture
+        std::stringstream FileNameSS;
+        FileNameSS << "DGLogo" << tex << ".png";
+        const auto              FileName = FileNameSS.str();
+        RefCntAutoPtr<ITexture> SrcTex   = TexturedCube::LoadTexture(m_pDevice, FileName.c_str());
+        const auto&             TexDesc  = SrcTex->GetDesc();
+        if (pTexArray == nullptr)
+        {
+            //	Create texture array
+            auto TexArrDesc      = TexDesc;
+            TexArrDesc.ArraySize = NumTextures;
+            TexArrDesc.Type      = RESOURCE_DIM_TEX_2D_ARRAY;
+            TexArrDesc.Usage     = USAGE_DEFAULT;
+            TexArrDesc.BindFlags = BIND_SHADER_RESOURCE;
+            m_pDevice->CreateTexture(TexArrDesc, nullptr, &pTexArray);
+        }
+        // Copy current texture into the texture array
+        for (Uint32 mip = 0; mip < TexDesc.MipLevels; ++mip)
+        {
+            CopyTextureAttribs CopyAttribs(SrcTex, RESOURCE_STATE_TRANSITION_MODE_TRANSITION,
+                pTexArray, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+            CopyAttribs.SrcMipLevel = mip;
+            CopyAttribs.DstMipLevel = mip;
+            CopyAttribs.DstSlice    = tex;
+            m_pImmediateContext->CopyTexture(CopyAttribs);
+        }
+    }
 
+    // Get shader resource view from the texture array
+    m_TextureSRV = pTexArray->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE);
     // Set texture SRV in the SRB
     m_SRB->GetVariableByName(SHADER_TYPE_PIXEL, "g_Texture")->Set(m_TextureSRV);
 }
