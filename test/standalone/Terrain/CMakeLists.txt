@@ -11,6 +11,7 @@ set(SOURCE
 set(INCLUDE
     src/Terrain.hpp
     ../common/src/TexturedCube.hpp
+    ../common/src/FileWatch.hpp
 )
 
 set(SHADERS
