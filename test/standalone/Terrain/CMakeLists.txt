@@ -27,4 +27,10 @@ set(ASSETS
     assets/raccoon.jpg
 )
 
+# TODO: use APP_TARGET
 add_sample_app("Terrain" "test/standalone" "${SOURCE}" "${INCLUDE}" "${SHADERS}" "${ASSETS}")
+
+set_target_properties("Terrain" PROPERTIES
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON
+)

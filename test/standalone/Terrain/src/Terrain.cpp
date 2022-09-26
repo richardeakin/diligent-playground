@@ -30,6 +30,8 @@
 // - enable MSAA
 // - add tesselated terrain from tut 08
 
+#include <filesystem>
+
 #include "Terrain.hpp"
 #include "MapHelper.hpp"
 #include "GraphicsUtilities.h"
@@ -37,8 +39,10 @@
 #include "CommonlyUsedStates.h"
 #include "ShaderMacroHelper.hpp"
 
+#include "../../common/src/FileWatch.hpp"
 #include "../../common/src/TexturedCube.hpp"
 #include "imgui.h"
+
 
 using namespace Diligent;
 
@@ -53,6 +57,8 @@ struct Constants
 
 static constexpr TEXTURE_FORMAT RenderTargetFormat = TEX_FORMAT_RGBA8_UNORM;
 static constexpr TEXTURE_FORMAT DepthBufferFormat  = TEX_FORMAT_D32_FLOAT;
+
+std::unique_ptr<filewatch::FileWatch<std::filesystem::path>> mWatchScansDir;
 
 } // anon
 
@@ -214,6 +220,8 @@ void Terrain::Initialize(const SampleInitInfo& InitInfo)
 {
     SampleBase::Initialize(InitInfo);
 
+    WatchShadersDir();
+
     //CreatePipelineState();
     CreateCubePSO();
     CreateRenderTargetPSO();
@@ -223,6 +231,54 @@ void Terrain::Initialize(const SampleInitInfo& InitInfo)
     m_CubeIndexBuffer  = TexturedCube::CreateIndexBuffer(m_pDevice);
     m_CubeTextureSRV       = TexturedCube::LoadTexture(m_pDevice, "raccoon.jpg")->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE);
     m_pCubeSRB->GetVariableByName(SHADER_TYPE_PIXEL, "g_Texture")->Set(m_CubeTextureSRV);
+}
+
+namespace {
+const char* watchEventTypeToString( const filewatch::Event change_type )
+{
+    switch (change_type) {
+        case filewatch::Event::added:			return "added";
+        case filewatch::Event::removed:			return "removed";
+        case filewatch::Event::modified:		return "modified";
+        case filewatch::Event::renamed_old:		return "renamed_old";
+        case filewatch::Event::renamed_new:		return "renamed_new";
+        default: break;
+    };
+
+    return "(unknown)";
+}
+} // anonymous namespace
+
+
+void Terrain::WatchShadersDir()
+{
+    // watch assets dir for shader changes
+    std::filesystem::path shaderDir("assets");
+
+    if( std::filesystem::exists( shaderDir ) ) {
+        LOG_INFO_MESSAGE( __FUNCTION__, "| watching assets directory: ", shaderDir );
+
+        // TODO: watch this dir once we know it is correct
+        // watch for file changes within dir
+        try {
+            mWatchScansDir = std::make_unique<filewatch::FileWatch<std::filesystem::path>>( shaderDir,
+                [=](const std::filesystem::path &path, const filewatch::Event change_type ) {
+                    LOG_INFO_MESSAGE( __FUNCTION__, "| \t- file event type: ", watchEventTypeToString( change_type ) , ", path: " , path );
+                    ReloadOnAssetsUpdated();                    
+                }
+            );
+        }
+        catch( std::system_error &exc ) {
+            LOG_ERROR_MESSAGE( __FUNCTION__, "| exception caught attempting to watch directory (assets): ", shaderDir, ", what: ", exc.what() );
+        }
+    }
+    else {
+        LOG_WARNING_MESSAGE( __FUNCTION__, "| shader directory couldn't be found (not watching): ", shaderDir );
+    }
+}
+
+void Terrain::ReloadOnAssetsUpdated()
+{
 }
 
 void Terrain::WindowResize(Uint32 Width, Uint32 Height)

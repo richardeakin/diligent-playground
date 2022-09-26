@@ -48,6 +48,8 @@ private:
     void CreateCubePSO();
     void CreateRenderTargetPSO();
 
+    void WatchShadersDir();
+    void ReloadOnAssetsUpdated();
     void UpdateUI();
 
     // Cube resources
