@@ -34,20 +34,15 @@
 #include "MapHelper.hpp"
 #include "GraphicsUtilities.h"
 #include "TextureUtilities.h"
+#include "CommonlyUsedStates.h"
+#include "ShaderMacroHelper.hpp"
 
 #include "../../common/src/TexturedCube.hpp"
 #include "imgui.h"
 
-namespace Diligent
-{
+using namespace Diligent;
 
-SampleBase* CreateSample()
-{
-    return new Terrain();
-}
-
-namespace
-{
+namespace {
 
 struct Constants
 {
@@ -56,36 +51,74 @@ struct Constants
     float    LineWidth;
 };
 
-} // namespace
+static constexpr TEXTURE_FORMAT RenderTargetFormat = TEX_FORMAT_RGBA8_UNORM;
+static constexpr TEXTURE_FORMAT DepthBufferFormat  = TEX_FORMAT_D32_FLOAT;
 
-void Terrain::CreatePipelineState()
+} // anon
+
+void Terrain::ModifyEngineInitInfo(const ModifyEngineInitInfoAttribs& Attribs)
 {
-    // Pipeline state object encompasses configuration of all GPU stages
+    SampleBase::ModifyEngineInitInfo(Attribs);
+    // In this tutorial we will be using off-screen depth-stencil buffer, so
+    // we do not need the one in the swap chain.
+    Attribs.SCDesc.DepthBufferFormat = TEX_FORMAT_UNKNOWN;
+}
 
-    GraphicsPipelineStateCreateInfo PSOCreateInfo;
+void Terrain::CreateCubePSO()
+{
+    // Create a shader source stream factory to load shaders from files.
+    RefCntAutoPtr<IShaderSourceInputStreamFactory> pShaderSourceFactory;
+    m_pEngineFactory->CreateDefaultShaderSourceStreamFactory(nullptr, &pShaderSourceFactory);
 
-    // Pipeline state name is used by the engine to report issues.
-    // It is always a good idea to give objects descriptive names.
-    PSOCreateInfo.PSODesc.Name = "Cube PSO";
+    TexturedCube::CreatePSOInfo CubePsoCI;
+    CubePsoCI.pDevice              = m_pDevice;
+    CubePsoCI.RTVFormat            = RenderTargetFormat;
+    CubePsoCI.DSVFormat            = DepthBufferFormat;
+    CubePsoCI.pShaderSourceFactory = pShaderSourceFactory;
+    CubePsoCI.VSFilePath           = "cube.vsh";
+    CubePsoCI.PSFilePath           = "cube.psh";
+    CubePsoCI.Components           = TexturedCube::VERTEX_COMPONENT_FLAG_POS_UV;
 
+    m_pCubePSO = TexturedCube::CreatePipelineState(CubePsoCI);
+
+
+    // Create dynamic uniform buffer that will store our transformation matrix
+    // Dynamic buffers can be frequently updated by the CPU
+    CreateUniformBuffer(m_pDevice, sizeof(float4x4), "VS constants CB", &m_CubeVSConstants);
+
+    // Since we did not explcitly specify the type for 'Constants' variable, default
+    // type (SHADER_RESOURCE_VARIABLE_TYPE_STATIC) will be used. Static variables never
+    // change and are bound directly through the pipeline state object.
+    m_pCubePSO->GetStaticVariableByName(SHADER_TYPE_VERTEX, "Constants")->Set(m_CubeVSConstants);
+
+    // Since we are using mutable variable, we must create a shader resource binding object
+    // http://diligentgraphics.com/2016/03/23/resource-binding-model-in-diligent-engine-2-0/
+    m_pCubePSO->CreateShaderResourceBinding(&m_pCubeSRB, true);
+}
+
+void Terrain::CreateRenderTargetPSO()
+{
+    GraphicsPipelineStateCreateInfo RTPSOCreateInfo;
+
+    // Pipeline state name is used by the engine to report issues
+    // It is always a good idea to give objects descriptive names
+    // clang-format off
+    RTPSOCreateInfo.PSODesc.Name                                  = "Render Target PSO";
     // This is a graphics pipeline
-    PSOCreateInfo.PSODesc.PipelineType = PIPELINE_TYPE_GRAPHICS;
-
+    RTPSOCreateInfo.PSODesc.PipelineType                          = PIPELINE_TYPE_GRAPHICS;
     // This tutorial will render to a single render target
-    PSOCreateInfo.GraphicsPipeline.NumRenderTargets             = 1;
+    RTPSOCreateInfo.GraphicsPipeline.NumRenderTargets             = 1;
     // Set render target format which is the format of the swap chain's color buffer
-    PSOCreateInfo.GraphicsPipeline.RTVFormats[0]                = m_pSwapChain->GetDesc().ColorBufferFormat;
+    RTPSOCreateInfo.GraphicsPipeline.RTVFormats[0]                = m_pSwapChain->GetDesc().ColorBufferFormat;
     // Set depth buffer format which is the format of the swap chain's back buffer
-    PSOCreateInfo.GraphicsPipeline.DSVFormat                    = m_pSwapChain->GetDesc().DepthBufferFormat;
+    RTPSOCreateInfo.GraphicsPipeline.DSVFormat                    = m_pSwapChain->GetDesc().DepthBufferFormat;
     // Primitive topology defines what kind of primitives will be rendered by this pipeline state
-    PSOCreateInfo.GraphicsPipeline.PrimitiveTopology            = PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    RTPSOCreateInfo.GraphicsPipeline.PrimitiveTopology            = PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
     // Cull back faces
-    PSOCreateInfo.GraphicsPipeline.RasterizerDesc.CullMode      = CULL_MODE_BACK;
+    RTPSOCreateInfo.GraphicsPipeline.RasterizerDesc.CullMode      = CULL_MODE_BACK;
     // Enable depth testing
-    PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.DepthEnable = True;
-
-    // Create dynamic uniform buffer that will store shader constants
-    CreateUniformBuffer(m_pDevice, sizeof(float4x4), "VS constants CB", &m_ShaderConstants);
+    RTPSOCreateInfo.GraphicsPipeline.DepthStencilDesc.DepthEnable = False;
+    // clang-format on
 
     ShaderCreateInfo ShaderCI;
     // Tell the system that the shader source code is in HLSL.
@@ -95,154 +128,219 @@ void Terrain::CreatePipelineState()
     // OpenGL backend requires emulated combined HLSL texture samplers (g_Texture + g_Texture_sampler combination)
     ShaderCI.UseCombinedTextureSamplers = true;
 
-    // Create a shader source stream factory to load shaders from files.
+    // In this tutorial, we will load shaders from file. To be able to do that,
+    // we need to create a shader source stream factory
     RefCntAutoPtr<IShaderSourceInputStreamFactory> pShaderSourceFactory;
     m_pEngineFactory->CreateDefaultShaderSourceStreamFactory(nullptr, &pShaderSourceFactory);
     ShaderCI.pShaderSourceStreamFactory = pShaderSourceFactory;
 
     // Create a vertex shader
-    RefCntAutoPtr<IShader> pVS;
+    RefCntAutoPtr<IShader> pRTVS;
     {
         ShaderCI.Desc.ShaderType = SHADER_TYPE_VERTEX;
         ShaderCI.EntryPoint      = "main";
-        ShaderCI.Desc.Name       = "Cube VS";
-        ShaderCI.FilePath        = "cube.vsh";
-        m_pDevice->CreateShader(ShaderCI, &pVS);
+        ShaderCI.Desc.Name       = "Render Target VS";
+        ShaderCI.FilePath        = "rendertarget.vsh";
+        m_pDevice->CreateShader(ShaderCI, &pRTVS);
     }
 
-    // Create a geometry shader
-    RefCntAutoPtr<IShader> pGS;
-    {
-        ShaderCI.Desc.ShaderType = SHADER_TYPE_GEOMETRY;
-        ShaderCI.EntryPoint      = "main";
-        ShaderCI.Desc.Name       = "Cube GS";
-        ShaderCI.FilePath        = "cube.gsh";
-        m_pDevice->CreateShader(ShaderCI, &pGS);
-    }
+
+#if PLATFORM_ANDROID
+    // Vulkan on mobile platforms may require handling surface pre-transforms
+    const bool TransformUVCoords = m_pDevice->GetDeviceInfo().IsVulkanDevice();
+#else
+    constexpr bool TransformUVCoords = false;
+#endif
+
+    ShaderMacroHelper Macros;
+    Macros.AddShaderMacro("TRANSFORM_UV", TransformUVCoords);
+    ShaderCI.Macros = Macros;
 
     // Create a pixel shader
-    RefCntAutoPtr<IShader> pPS;
+    RefCntAutoPtr<IShader> pRTPS;
     {
         ShaderCI.Desc.ShaderType = SHADER_TYPE_PIXEL;
         ShaderCI.EntryPoint      = "main";
-        ShaderCI.Desc.Name       = "Cube PS";
-        ShaderCI.FilePath        = "cube.psh";
-        m_pDevice->CreateShader(ShaderCI, &pPS);
+        ShaderCI.Desc.Name       = "Render Target PS";
+        ShaderCI.FilePath        = "rendertarget.psh";
+
+        m_pDevice->CreateShader(ShaderCI, &pRTPS);
+
+        // Create dynamic uniform buffer that will store our transformation matrix
+        // Dynamic buffers can be frequently updated by the CPU
+        BufferDesc CBDesc;
+        CBDesc.Name           = "RTPS constants CB";
+        CBDesc.Size           = sizeof(float4) + sizeof(float2x2) * 2;
+        CBDesc.Usage          = USAGE_DYNAMIC;
+        CBDesc.BindFlags      = BIND_UNIFORM_BUFFER;
+        CBDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
+        m_pDevice->CreateBuffer(CBDesc, nullptr, &m_RTPSConstants);
     }
 
-    // clang-format off
-    // Define vertex shader input layout
-    LayoutElement LayoutElems[] =
-    {
-        // Attribute 0 - vertex position
-        LayoutElement{0, 0, 3, VT_FLOAT32, False},
-        // Attribute 1 - texture coordinates
-        LayoutElement{1, 0, 2, VT_FLOAT32, False}
-    };
-    // clang-format on
-
-    PSOCreateInfo.pVS = pVS;
-    PSOCreateInfo.pGS = pGS;
-    PSOCreateInfo.pPS = pPS;
-
-    PSOCreateInfo.GraphicsPipeline.InputLayout.LayoutElements = LayoutElems;
-    PSOCreateInfo.GraphicsPipeline.InputLayout.NumElements    = _countof(LayoutElems);
+    RTPSOCreateInfo.pVS = pRTVS;
+    RTPSOCreateInfo.pPS = pRTPS;
 
     // Define variable type that will be used by default
-    PSOCreateInfo.PSODesc.ResourceLayout.DefaultVariableType = SHADER_RESOURCE_VARIABLE_TYPE_STATIC;
+    RTPSOCreateInfo.PSODesc.ResourceLayout.DefaultVariableType = SHADER_RESOURCE_VARIABLE_TYPE_STATIC;
 
-    // clang-format off
     // Shader variables should typically be mutable, which means they are expected
     // to change on a per-instance basis
-    ShaderResourceVariableDesc Vars[] = 
+    ShaderResourceVariableDesc Vars[] =
     {
-        {SHADER_TYPE_PIXEL, "g_Texture", SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE}
+        { SHADER_TYPE_PIXEL, "g_Texture", SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE }
     };
-    // clang-format on
-    PSOCreateInfo.PSODesc.ResourceLayout.Variables    = Vars;
-    PSOCreateInfo.PSODesc.ResourceLayout.NumVariables = _countof(Vars);
 
-    // clang-format off
+    RTPSOCreateInfo.PSODesc.ResourceLayout.Variables    = Vars;
+    RTPSOCreateInfo.PSODesc.ResourceLayout.NumVariables = _countof(Vars);
+
     // Define immutable sampler for g_Texture. Immutable samplers should be used whenever possible
-    SamplerDesc SamLinearClampDesc
+    ImmutableSamplerDesc ImtblSamplers[] =
     {
-        FILTER_TYPE_LINEAR, FILTER_TYPE_LINEAR, FILTER_TYPE_LINEAR, 
-        TEXTURE_ADDRESS_CLAMP, TEXTURE_ADDRESS_CLAMP, TEXTURE_ADDRESS_CLAMP
+        { SHADER_TYPE_PIXEL, "g_Texture", Sam_LinearClamp }
     };
-    ImmutableSamplerDesc ImtblSamplers[] = 
-    {
-        {SHADER_TYPE_PIXEL, "g_Texture", SamLinearClampDesc}
-    };
-    // clang-format on
-    PSOCreateInfo.PSODesc.ResourceLayout.ImmutableSamplers    = ImtblSamplers;
-    PSOCreateInfo.PSODesc.ResourceLayout.NumImmutableSamplers = _countof(ImtblSamplers);
 
-    m_pDevice->CreateGraphicsPipelineState(PSOCreateInfo, &m_pPSO);
+    RTPSOCreateInfo.PSODesc.ResourceLayout.ImmutableSamplers    = ImtblSamplers;
+    RTPSOCreateInfo.PSODesc.ResourceLayout.NumImmutableSamplers = _countof(ImtblSamplers);
 
-    // Since we did not explcitly specify the type for 'Constants' variable, default
-    // type (SHADER_RESOURCE_VARIABLE_TYPE_STATIC) will be used. Static variables
-    // never change and are bound directly through the pipeline state object.
-    //m_pPSO->GetStaticVariableByName(SHADER_TYPE_VERTEX, "Constants")->Set(m_VSConstants);
-    m_pPSO->GetStaticVariableByName(SHADER_TYPE_VERTEX,   "VSConstants")->Set(m_ShaderConstants);
-    m_pPSO->GetStaticVariableByName(SHADER_TYPE_GEOMETRY, "GSConstants")->Set(m_ShaderConstants);
-    m_pPSO->GetStaticVariableByName(SHADER_TYPE_PIXEL,    "PSConstants")->Set(m_ShaderConstants);
+    m_pDevice->CreateGraphicsPipelineState(RTPSOCreateInfo, &m_pRTPSO);
 
-    // Since we are using mutable variable, we must create a shader resource binding object
-    // http://diligentgraphics.com/2016/03/23/resource-binding-model-in-diligent-engine-2-0/
-    m_pPSO->CreateShaderResourceBinding(&m_SRB, true);
+    // Since we did not explcitly specify the type for Constants, default type
+    // (SHADER_RESOURCE_VARIABLE_TYPE_STATIC) will be used. Static variables never change and are bound directly
+    // to the pipeline state object.
+    m_pRTPSO->GetStaticVariableByName(SHADER_TYPE_PIXEL, "Constants")->Set(m_RTPSConstants);
 }
 
 void Terrain::Initialize(const SampleInitInfo& InitInfo)
 {
     SampleBase::Initialize(InitInfo);
 
-    CreatePipelineState();
+    //CreatePipelineState();
+    CreateCubePSO();
+    CreateRenderTargetPSO();
 
     // Load textured cube
     m_CubeVertexBuffer = TexturedCube::CreateVertexBuffer(m_pDevice, TexturedCube::VERTEX_COMPONENT_FLAG_POS_UV);
     m_CubeIndexBuffer  = TexturedCube::CreateIndexBuffer(m_pDevice);
-    m_TextureSRV       = TexturedCube::LoadTexture(m_pDevice, "raccoon.jpg")->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE);
-    m_SRB->GetVariableByName(SHADER_TYPE_PIXEL, "g_Texture")->Set(m_TextureSRV);
+    m_CubeTextureSRV       = TexturedCube::LoadTexture(m_pDevice, "raccoon.jpg")->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE);
+    m_pCubeSRB->GetVariableByName(SHADER_TYPE_PIXEL, "g_Texture")->Set(m_CubeTextureSRV);
+}
+
+void Terrain::WindowResize(Uint32 Width, Uint32 Height)
+{
+    LOG_INFO_MESSAGE("Terrain::WindowResize| size: [", Width, ", ", Height, "]" );
+
+    // Create window-size offscreen render target
+    TextureDesc RTColorDesc;
+    RTColorDesc.Name      = "Offscreen render target";
+    RTColorDesc.Type      = RESOURCE_DIM_TEX_2D;
+    RTColorDesc.Width     = m_pSwapChain->GetDesc().Width;
+    RTColorDesc.Height    = m_pSwapChain->GetDesc().Height;
+    RTColorDesc.MipLevels = 1;
+    RTColorDesc.Format    = RenderTargetFormat;
+    // The render target can be bound as a shader resource and as a render target
+    RTColorDesc.BindFlags = BIND_SHADER_RESOURCE | BIND_RENDER_TARGET;
+    // Define optimal clear value
+    RTColorDesc.ClearValue.Format   = RTColorDesc.Format;
+    RTColorDesc.ClearValue.Color[0] = 0.350f;
+    RTColorDesc.ClearValue.Color[1] = 0.350f;
+    RTColorDesc.ClearValue.Color[2] = 0.350f;
+    RTColorDesc.ClearValue.Color[3] = 1.f;
+    RefCntAutoPtr<ITexture> pRTColor;
+    m_pDevice->CreateTexture(RTColorDesc, nullptr, &pRTColor);
+    // Store the render target view
+    m_pColorRTV = pRTColor->GetDefaultView(TEXTURE_VIEW_RENDER_TARGET);
+
+
+    // Create window-size depth buffer
+    TextureDesc RTDepthDesc = RTColorDesc;
+    RTDepthDesc.Name        = "Offscreen depth buffer";
+    RTDepthDesc.Format      = DepthBufferFormat;
+    RTDepthDesc.BindFlags   = BIND_DEPTH_STENCIL;
+    // Define optimal clear value
+    RTDepthDesc.ClearValue.Format               = RTDepthDesc.Format;
+    RTDepthDesc.ClearValue.DepthStencil.Depth   = 1;
+    RTDepthDesc.ClearValue.DepthStencil.Stencil = 0;
+    RefCntAutoPtr<ITexture> pRTDepth;
+    m_pDevice->CreateTexture(RTDepthDesc, nullptr, &pRTDepth);
+    // Store the depth-stencil view
+    m_pDepthDSV = pRTDepth->GetDefaultView(TEXTURE_VIEW_DEPTH_STENCIL);
+
+    // We need to release and create a new SRB that references new off-screen render target SRV
+    m_pRTSRB.Release();
+    m_pRTPSO->CreateShaderResourceBinding(&m_pRTSRB, true);
+
+    // Set render target color texture SRV in the SRB
+    m_pRTSRB->GetVariableByName(SHADER_TYPE_PIXEL, "g_Texture")->Set(pRTColor->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE));
 }
 
 // Render a frame
 void Terrain::Render()
 {
-    auto* pRTV = m_pSwapChain->GetCurrentBackBufferRTV();
-    auto* pDSV = m_pSwapChain->GetDepthBufferDSV();
-    // Clear the back buffer
+    // Clear the offscreen render target and depth buffer
     const float ClearColor[] = {0.350f, 0.350f, 0.350f, 1.0f};
-    m_pImmediateContext->ClearRenderTarget(pRTV, ClearColor, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
-    m_pImmediateContext->ClearDepthStencil(pDSV, CLEAR_DEPTH_FLAG, 1.f, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+    m_pImmediateContext->SetRenderTargets(1, &m_pColorRTV, m_pDepthDSV, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+    m_pImmediateContext->ClearRenderTarget(m_pColorRTV, ClearColor, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+    m_pImmediateContext->ClearDepthStencil(m_pDepthDSV, CLEAR_DEPTH_FLAG, 1.0f, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 
     {
-        // Map the buffer and write current world-view-projection matrix
-        MapHelper<Constants> Consts(m_pImmediateContext, m_ShaderConstants, MAP_WRITE, MAP_FLAG_DISCARD);
-        Consts->WorldViewProj = m_WorldViewProjMatrix.Transpose();
+        // Map the cube's constant buffer and fill it in with its model-view-projection matrix
+        MapHelper<float4x4> CBConstants(m_pImmediateContext, m_CubeVSConstants, MAP_WRITE, MAP_FLAG_DISCARD);
+        *CBConstants = m_WorldViewProjMatrix.Transpose();
+    }
 
-        const auto& SCDesc   = m_pSwapChain->GetDesc();
-        Consts->ViewportSize = float4(static_cast<float>(SCDesc.Width), static_cast<float>(SCDesc.Height), 1.f / static_cast<float>(SCDesc.Width), 1.f / static_cast<float>(SCDesc.Height));
+    {
+        struct VSConstants
+        {
+            float Time;
+            float Padding0;
+            float Padding1;
+            float Padding2;
 
-        Consts->LineWidth = m_LineWidth;
+            float2x2 UVPreTransform;
+            float2x2 UVPreTransformInv;
+        };
+        // Map the render target PS constant buffer and fill it in with current time
+        MapHelper<VSConstants> CBConstants(m_pImmediateContext, m_RTPSConstants, MAP_WRITE, MAP_FLAG_DISCARD);
+        CBConstants->Time              = m_fCurrentTime;
+        CBConstants->UVPreTransform    = m_UVPreTransformMatrix;
+        CBConstants->UVPreTransformInv = m_UVPreTransformMatrix.Inverse();
     }
 
     // Bind vertex and index buffers
-    IBuffer* pBuffs[] = {m_CubeVertexBuffer};
+    IBuffer* pBuffs[] = { m_CubeVertexBuffer };
     m_pImmediateContext->SetVertexBuffers(0, 1, pBuffs, nullptr, RESOURCE_STATE_TRANSITION_MODE_TRANSITION, SET_VERTEX_BUFFERS_FLAG_RESET);
     m_pImmediateContext->SetIndexBuffer(m_CubeIndexBuffer, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 
-    // Set the pipeline state
-    m_pImmediateContext->SetPipelineState(m_pPSO);
-    // Commit shader resources. RESOURCE_STATE_TRANSITION_MODE_TRANSITION mode
-    // makes sure that resources are transitioned to required states.
-    m_pImmediateContext->CommitShaderResources(m_SRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+    // Set the cube's pipeline state
+    m_pImmediateContext->SetPipelineState(m_pCubePSO);
 
+    // Commit the cube shader's resources
+    m_pImmediateContext->CommitShaderResources(m_pCubeSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+
+    // Draw the cube
     DrawIndexedAttribs DrawAttrs;
     DrawAttrs.IndexType  = VT_UINT32; // Index type
     DrawAttrs.NumIndices = 36;
-    // Verify the state of vertex and index buffers
-    DrawAttrs.Flags = DRAW_FLAG_VERIFY_ALL;
+    DrawAttrs.Flags      = DRAW_FLAG_VERIFY_ALL; // Verify the state of vertex and index buffers
     m_pImmediateContext->DrawIndexed(DrawAttrs);
+
+    auto* pRTV = m_pSwapChain->GetCurrentBackBufferRTV();
+    // Clear the default render target
+    const float Zero[] = {0.0f, 0.0f, 0.0f, 1.0f};
+    m_pImmediateContext->SetRenderTargets(1, &pRTV, m_pSwapChain->GetDepthBufferDSV(), RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+    m_pImmediateContext->ClearRenderTarget(pRTV, Zero, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+
+    // Set the render target pipeline state
+    m_pImmediateContext->SetPipelineState(m_pRTPSO);
+
+    // Commit the render target shader's resources
+    m_pImmediateContext->CommitShaderResources(m_pRTSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+
+    // Draw the render target's vertices
+    DrawAttribs RTDrawAttrs;
+    RTDrawAttrs.NumVertices = 4;
+    RTDrawAttrs.Flags       = DRAW_FLAG_VERIFY_ALL; // Verify the state of vertex and index buffers
+    m_pImmediateContext->Draw(RTDrawAttrs);
 }
 
 void Terrain::UpdateUI()
@@ -250,7 +348,8 @@ void Terrain::UpdateUI()
     ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
     if (ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
     {
-        ImGui::SliderFloat("Line Width", &m_LineWidth, 1.f, 10.f);
+        //ImGui::SliderFloat("Line Width", &m_LineWidth, 1.f, 10.f);
+        ImGui::Text("Hey!");
     }
     ImGui::End();
 }
@@ -260,6 +359,8 @@ void Terrain::Update(double CurrTime, double ElapsedTime)
     SampleBase::Update(CurrTime, ElapsedTime);
     UpdateUI();
 
+    m_fCurrentTime = static_cast<float>(CurrTime);
+
     // Apply rotation
     float4x4 CubeModelTransform = float4x4::RotationY(static_cast<float>(CurrTime) * 1.0f) * float4x4::RotationX(-PI_F * 0.1f);
 
@@ -268,6 +369,8 @@ void Terrain::Update(double CurrTime, double ElapsedTime)
 
     // Get pretransform matrix that rotates the scene according the surface orientation
     auto SrfPreTransform = GetSurfacePretransformMatrix(float3{0, 0, 1});
+    // We will have to transform UV coordinates when performing post-processing
+    m_UVPreTransformMatrix = float2x2{SrfPreTransform.m00, SrfPreTransform.m01, SrfPreTransform.m10, SrfPreTransform.m11};
 
     // Get projection matrix adjusted to the current screen orientation
     auto Proj = GetAdjustedProjectionMatrix(PI_F / 4.0f, 0.1f, 100.f);
@@ -276,4 +379,11 @@ void Terrain::Update(double CurrTime, double ElapsedTime)
     m_WorldViewProjMatrix = CubeModelTransform * View * SrfPreTransform * Proj;
 }
 
-} // namespace Diligent
+namespace Diligent {
+
+SampleBase* CreateSample()
+{
+    return new Terrain();
+}
+
+}

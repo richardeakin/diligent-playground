@@ -1,3 +1,5 @@
+// TODO: remove, not used
+
 #include "structures.fxh"
 
 cbuffer GSConstants

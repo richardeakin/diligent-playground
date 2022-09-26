@@ -17,6 +17,8 @@ set(SHADERS
     assets/cube.gsh
     assets/cube.vsh
     assets/cube.psh
+    assets/rendertarget.vsh
+    assets/rendertarget.psh
     assets/structures.fxh
 )
 

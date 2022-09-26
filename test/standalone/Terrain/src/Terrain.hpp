@@ -36,30 +36,38 @@ namespace Diligent
 class Terrain final : public SampleBase
 {
 public:
+    virtual void ModifyEngineInitInfo(const ModifyEngineInitInfoAttribs& Attribs) override final;
     virtual void Initialize(const SampleInitInfo& InitInfo) override final;
-
+    virtual void WindowResize(Uint32 Width, Uint32 Height) override final;
     virtual void Render() override final;
     virtual void Update(double CurrTime, double ElapsedTime) override final;
-
     virtual const Char* GetSampleName() const override final { return "Terrain (rte)"; }
 
 private:
-    void CreatePipelineState();
+    void CreatePipelineState(); // TODO: remove
+    void CreateCubePSO();
+    void CreateRenderTargetPSO();
+
     void UpdateUI();
 
-    //void CreateVertexBuffer();
-    //void CreateIndexBuffer();
-    //void LoadTexture();
-
-    RefCntAutoPtr<IPipelineState>         m_pPSO;
+    // Cube resources
+    RefCntAutoPtr<IPipelineState>         m_pCubePSO;
+    RefCntAutoPtr<IShaderResourceBinding> m_pCubeSRB;
     RefCntAutoPtr<IBuffer>                m_CubeVertexBuffer;
     RefCntAutoPtr<IBuffer>                m_CubeIndexBuffer;
-    RefCntAutoPtr<IBuffer>                m_ShaderConstants;
-    RefCntAutoPtr<ITextureView>           m_TextureSRV;
-    RefCntAutoPtr<IShaderResourceBinding> m_SRB;
+    RefCntAutoPtr<IBuffer>                m_CubeVSConstants;
+    RefCntAutoPtr<ITextureView>           m_CubeTextureSRV;
 
+    // Offscreen render target and depth-stencil
+    RefCntAutoPtr<ITextureView> m_pColorRTV;
+    RefCntAutoPtr<ITextureView> m_pDepthDSV;
+
+    RefCntAutoPtr<IBuffer>                m_RTPSConstants;
+    RefCntAutoPtr<IPipelineState>         m_pRTPSO;
+    RefCntAutoPtr<IShaderResourceBinding> m_pRTSRB;
     float4x4                              m_WorldViewProjMatrix;
-    float    m_LineWidth = 3.f;
+    float2x2                              m_UVPreTransformMatrix;
+    float                                 m_fCurrentTime = 0.f;
 };
 
 } // namespace Diligent
