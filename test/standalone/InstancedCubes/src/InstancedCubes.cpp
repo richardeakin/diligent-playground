@@ -31,7 +31,7 @@
 #include "MapHelper.hpp"
 #include "GraphicsUtilities.h"
 #include "TextureUtilities.h"
-#include "TexturedCube.hpp"
+#include "../../common/src/TexturedCube.hpp"
 
 #include "imgui.h"
 

@@ -5,12 +5,12 @@ set( APP_TARGET "InstancedCubes" )
 
 set(SOURCE
     src/InstancedCubes.cpp
-    src/TexturedCube.cpp
+    ../common/src/TexturedCube.cpp
 )
 
 set(INCLUDE
     src/InstancedCubes.hpp
-    src/TexturedCube.hpp
+    ../common/src/TexturedCube.hpp
 )
 
 set(SHADERS

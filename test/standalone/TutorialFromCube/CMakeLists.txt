@@ -5,12 +5,12 @@ set( APP_TARGET "TutorialFromCube" )
 
 set(SOURCE
     src/TutorialFromCube.cpp
-    src/TexturedCube.cpp
+    ../common/src/TexturedCube.cpp
 )
 
 set(INCLUDE
     src/TutorialFromCube.hpp
-    src/TexturedCube.hpp
+    ../common/src/TexturedCube.hpp
 )
 
 set(SHADERS

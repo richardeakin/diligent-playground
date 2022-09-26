@@ -25,7 +25,12 @@
  *  of the possibility of such damages.
  */
 
-#include "TutorialFromCube.hpp"
+// TODO Still:
+// - render to buffer
+// - enable MSAA
+// - add tesselated terrain from tut 08
+
+#include "Terrain.hpp"
 #include "MapHelper.hpp"
 #include "GraphicsUtilities.h"
 #include "TextureUtilities.h"
@@ -38,7 +43,7 @@ namespace Diligent
 
 SampleBase* CreateSample()
 {
-    return new TutorialFromCube();
+    return new Terrain();
 }
 
 namespace
@@ -53,7 +58,7 @@ struct Constants
 
 } // namespace
 
-void TutorialFromCube::CreatePipelineState()
+void Terrain::CreatePipelineState()
 {
     // Pipeline state object encompasses configuration of all GPU stages
 
@@ -187,7 +192,7 @@ void TutorialFromCube::CreatePipelineState()
     m_pPSO->CreateShaderResourceBinding(&m_SRB, true);
 }
 
-void TutorialFromCube::Initialize(const SampleInitInfo& InitInfo)
+void Terrain::Initialize(const SampleInitInfo& InitInfo)
 {
     SampleBase::Initialize(InitInfo);
 
@@ -201,7 +206,7 @@ void TutorialFromCube::Initialize(const SampleInitInfo& InitInfo)
 }
 
 // Render a frame
-void TutorialFromCube::Render()
+void Terrain::Render()
 {
     auto* pRTV = m_pSwapChain->GetCurrentBackBufferRTV();
     auto* pDSV = m_pSwapChain->GetDepthBufferDSV();
@@ -240,7 +245,7 @@ void TutorialFromCube::Render()
     m_pImmediateContext->DrawIndexed(DrawAttrs);
 }
 
-void TutorialFromCube::UpdateUI()
+void Terrain::UpdateUI()
 {
     ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
     if (ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
@@ -250,7 +255,7 @@ void TutorialFromCube::UpdateUI()
     ImGui::End();
 }
 
-void TutorialFromCube::Update(double CurrTime, double ElapsedTime)
+void Terrain::Update(double CurrTime, double ElapsedTime)
 {
     SampleBase::Update(CurrTime, ElapsedTime);
     UpdateUI();
