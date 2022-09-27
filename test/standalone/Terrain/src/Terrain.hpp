@@ -72,7 +72,7 @@ private:
     float                                 m_fCurrentTime = 0.f;
 
     // MSAA
-    Uint8  m_SampleCount = 4;
+    Uint8  m_SampleCount = 1;
     Uint32 m_SupportedSampleCounts = 0;
 };
 

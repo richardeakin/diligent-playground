@@ -70,7 +70,7 @@ void Terrain::ModifyEngineInitInfo(const ModifyEngineInitInfoAttribs& Attribs)
 
     // TODO: enable? look where it is used in samples or docs first
     // // - may already be on
-    //Attribs.EngineCI.EnableValidation = true;
+    Attribs.EngineCI.EnableValidation = true;
 
     SampleBase::ModifyEngineInitInfo(Attribs);
     // In this tutorial we will be using off-screen depth-stencil buffer, so
@@ -134,6 +134,7 @@ void Terrain::CreateRenderTargetPSO()
     // - also, where is the related PSO in tut17?
     //    - perhaps I need to set it bc the tut doesn't use a second PSO?
     //RTPSOCreateInfo.GraphicsPipeline.SmplDesc.Count = m_SampleCount; // not yet sure if this is needed.. 
+
 
     ShaderCreateInfo ShaderCI;
     ShaderCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_HLSL;
@@ -324,50 +325,43 @@ void Terrain::WindowResize(Uint32 Width, Uint32 Height)
     CreateMSAARenderTarget();
 }
 
-// TODO NEXT (am): see what settings aren't matching, compared to Tutorial17
-// - are there any other samples that set SampleCount?
 void Terrain::CreateMSAARenderTarget()
 {
     const auto& SCDesc = m_pSwapChain->GetDesc();
 
     // Create window-size offscreen render target
-    TextureDesc RTColorDesc;
-    RTColorDesc.Name      = "Offscreen render target";
-    RTColorDesc.Type      = RESOURCE_DIM_TEX_2D;
-    RTColorDesc.Width     = SCDesc.Width;
-    RTColorDesc.Height    = SCDesc.Height;
-    RTColorDesc.MipLevels = 1;
-    //RTColorDesc.Format    = RenderTargetFormat;
-    RTColorDesc.Format         = SCDesc.ColorBufferFormat;
+    TextureDesc ColorDesc;
+    ColorDesc.Name      = "Offscreen render target (MSAA)";
+    ColorDesc.Type      = RESOURCE_DIM_TEX_2D;
+    ColorDesc.Width     = SCDesc.Width;
+    ColorDesc.Height    = SCDesc.Height;
+    ColorDesc.MipLevels = 1;
+    ColorDesc.Format    = SCDesc.ColorBufferFormat;
 
-    // The render target can be bound as a shader resource and as a render target
-    RTColorDesc.BindFlags = BIND_SHADER_RESOURCE | BIND_RENDER_TARGET;
-    // Set the desired number of samples
-    RTColorDesc.SampleCount = m_SampleCount;
-    // Define optimal clear value
-    RTColorDesc.ClearValue.Format   = RTColorDesc.Format;
-    RTColorDesc.ClearValue.Color[0] = 0.350f;
-    RTColorDesc.ClearValue.Color[1] = 0.350f;
-    RTColorDesc.ClearValue.Color[2] = 0.350f;
-    RTColorDesc.ClearValue.Color[3] = 1.f;
+    ColorDesc.BindFlags = BIND_SHADER_RESOURCE | BIND_RENDER_TARGET;
+    ColorDesc.SampleCount = m_SampleCount; // set MSAA samples
+    ColorDesc.ClearValue.Format   = ColorDesc.Format;
+    ColorDesc.ClearValue.Color[0] = 0.350f;
+    ColorDesc.ClearValue.Color[1] = 0.350f;
+    ColorDesc.ClearValue.Color[2] = 0.350f;
+    ColorDesc.ClearValue.Color[3] = 1.f;
+    // create and store the render target view
     RefCntAutoPtr<ITexture> pRTColor;
-    m_pDevice->CreateTexture(RTColorDesc, nullptr, &pRTColor);
-    // Store the render target view
+    m_pDevice->CreateTexture(ColorDesc, nullptr, &pRTColor); 
     m_pColorRTV = pRTColor->GetDefaultView(TEXTURE_VIEW_RENDER_TARGET);
 
-
     // Create window-size depth buffer
-    TextureDesc RTDepthDesc = RTColorDesc;
-    RTDepthDesc.Name        = "Offscreen depth buffer";
-    RTDepthDesc.Format      = DepthBufferFormat;
-    RTDepthDesc.BindFlags   = BIND_DEPTH_STENCIL;
-    // Define optimal clear value
-    RTDepthDesc.ClearValue.Format               = RTDepthDesc.Format;
-    RTDepthDesc.ClearValue.DepthStencil.Depth   = 1;
-    RTDepthDesc.ClearValue.DepthStencil.Stencil = 0;
+    TextureDesc DepthDesc = ColorDesc;
+    DepthDesc.Name        = "Offscreen depth buffer";
+    DepthDesc.Format      = DepthBufferFormat;
+    DepthDesc.BindFlags   = BIND_DEPTH_STENCIL;
+    DepthDesc.ClearValue.Format               = DepthDesc.Format;
+    DepthDesc.ClearValue.DepthStencil.Depth   = 1;
+    DepthDesc.ClearValue.DepthStencil.Stencil = 0;
+
+    // create and store the depth-stencil view
     RefCntAutoPtr<ITexture> pRTDepth;
-    m_pDevice->CreateTexture(RTDepthDesc, nullptr, &pRTDepth);
-    // Store the depth-stencil view
+    m_pDevice->CreateTexture(DepthDesc, nullptr, &pRTDepth);
     m_pDepthDSV = pRTDepth->GetDefaultView(TEXTURE_VIEW_DEPTH_STENCIL);
 
     // We need to release and create a new SRB that references new off-screen render target SRV
@@ -409,8 +403,9 @@ void Terrain::Update(double CurrTime, double ElapsedTime)
 
 void Terrain::Render()
 {
-    // Clear the offscreen render target and depth buffer
     const float ClearColor[] = {0.350f, 0.350f, 0.350f, 1.0f};
+
+    // Clear the offscreen render target and depth buffer
     m_pImmediateContext->SetRenderTargets(1, &m_pColorRTV, m_pDepthDSV, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
     m_pImmediateContext->ClearRenderTarget(m_pColorRTV, ClearColor, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
     m_pImmediateContext->ClearDepthStencil(m_pDepthDSV, CLEAR_DEPTH_FLAG, 1.0f, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
@@ -457,6 +452,17 @@ void Terrain::Render()
     DrawAttrs.Flags      = DRAW_FLAG_VERIFY_ALL; // Verify the state of vertex and index buffers
     m_pImmediateContext->DrawIndexed(DrawAttrs);
 
+    // resolve MSAA buffer before using
+    if (m_SampleCount > 1) {
+        // Resolve multi-sampled render target into the current swap chain back buffer.
+        auto pCurrentBackBuffer = m_pSwapChain->GetCurrentBackBufferRTV()->GetTexture();
+
+        ResolveTextureSubresourceAttribs ResolveAttribs;
+        ResolveAttribs.SrcTextureTransitionMode = RESOURCE_STATE_TRANSITION_MODE_TRANSITION;
+        ResolveAttribs.DstTextureTransitionMode = RESOURCE_STATE_TRANSITION_MODE_TRANSITION;
+        m_pImmediateContext->ResolveTextureSubresource(m_pColorRTV->GetTexture(), pCurrentBackBuffer, ResolveAttribs);
+    }
+
     auto* pRTV = m_pSwapChain->GetCurrentBackBufferRTV();
     // Clear the default render target
     const float Zero[] = {0.0f, 0.0f, 0.0f, 1.0f};
@@ -474,6 +480,10 @@ void Terrain::Render()
     RTDrawAttrs.NumVertices = 4;
     RTDrawAttrs.Flags       = DRAW_FLAG_VERIFY_ALL; // Verify the state of vertex and index buffers
     m_pImmediateContext->Draw(RTDrawAttrs);
+    /* FIXME: caused by above line:
+    Diligent Engine: ERROR: Debug assertion failed in Diligent::ValidateResourceViewDimension(), file ShaderResourceVariableBase.hpp, line 391:
+    Texture view 'Default SRV of texture 'Offscreen render target (MSAA)'' bound to variable 'g_Texture' is invalid: single-sample texture is expected.
+    */
 }
 
 void Terrain::UpdateUI()
