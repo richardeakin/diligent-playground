@@ -141,16 +141,8 @@ void Terrain::CreateRenderTargetPSO()
         m_pDevice->CreateShader(ShaderCI, &pRTVS);
     }
 
-
-#if PLATFORM_ANDROID
-    // Vulkan on mobile platforms may require handling surface pre-transforms
-    const bool TransformUVCoords = m_pDevice->GetDeviceInfo().IsVulkanDevice();
-#else
-    constexpr bool TransformUVCoords = false;
-#endif
-
     ShaderMacroHelper Macros;
-    Macros.AddShaderMacro("TRANSFORM_UV", TransformUVCoords);
+    //Macros.AddShaderMacro("TRANSFORM_UV", TransformUVCoords);
     ShaderCI.Macros = Macros;
 
     // Create a pixel shader
