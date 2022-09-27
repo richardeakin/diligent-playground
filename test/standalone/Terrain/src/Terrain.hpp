@@ -44,9 +44,9 @@ public:
     virtual const Char* GetSampleName() const override final { return "Terrain (rte)"; }
 
 private:
-    void CreatePipelineState(); // TODO: remove
     void CreateCubePSO();
     void CreateRenderTargetPSO();
+    void CreateMSAARenderTarget();
 
     void WatchShadersDir();
     void ReloadOnAssetsUpdated();
@@ -70,6 +70,10 @@ private:
     float4x4                              m_WorldViewProjMatrix;
     float2x2                              m_UVPreTransformMatrix;
     float                                 m_fCurrentTime = 0.f;
+
+    // MSAA
+    Uint8  m_SampleCount = 4;
+    Uint32 m_SupportedSampleCounts = 0;
 };
 
 } // namespace Diligent

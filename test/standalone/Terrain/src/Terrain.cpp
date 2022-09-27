@@ -201,20 +201,16 @@ void Terrain::Initialize(const SampleInitInfo& InitInfo)
     SampleBase::Initialize(InitInfo);
 
     // MSAA --------------------------
-
-    const auto& ColorFmtInfo = m_pDevice->GetTextureFormatInfoExt(m_pSwapChain->GetDesc().ColorBufferFormat);
-    const auto& DepthFmtInfo = m_pDevice->GetTextureFormatInfoExt(DepthBufferFormat);
-    m_SupportedSampleCounts  = ColorFmtInfo.SampleCounts & DepthFmtInfo.SampleCounts;
-    if (m_SupportedSampleCounts & SAMPLE_COUNT_4)
-        m_SampleCount = 4;
-    else if (m_SupportedSampleCounts & SAMPLE_COUNT_2)
-        m_SampleCount = 2;
-    else {
-        LOG_WARNING_MESSAGE(ColorFmtInfo.Name, " + ", DepthFmtInfo.Name, " pair does not allow multisampling on this device");
-        m_SampleCount = 1;
+    // check it is supported for current device
+    if( m_SampleCount > 1 ) {
+        const auto& ColorFmtInfo = m_pDevice->GetTextureFormatInfoExt(m_pSwapChain->GetDesc().ColorBufferFormat);
+        const auto& DepthFmtInfo = m_pDevice->GetTextureFormatInfoExt(DepthBufferFormat);
+        m_SupportedSampleCounts  = ColorFmtInfo.SampleCounts & DepthFmtInfo.SampleCounts;
+        if( ! (m_SupportedSampleCounts & SAMPLE_COUNT_4) && ! (m_SupportedSampleCounts & SAMPLE_COUNT_2) ) {
+            LOG_WARNING_MESSAGE(ColorFmtInfo.Name, " + ", DepthFmtInfo.Name, " pair does not allow multisampling on this device");
+            m_SampleCount = 1;
+        }
     }
-
-    m_SampleCount = 1; // TEMPORARY: overriding to make sure everything else still works
     // --------------------------------
 
 
