@@ -104,10 +104,6 @@ void Terrain::CreateCubePSO()
 
 void Terrain::CreateRenderTargetPSO()
 {
-    // clear resources that may be reloaded for dev needs
-    m_RTPSConstants.Release();
-    m_pRTPSO.Release();
-
     GraphicsPipelineStateCreateInfo RTPSOCreateInfo;
 
     // Pipeline state name is used by the engine to report issues
@@ -145,7 +141,13 @@ void Terrain::CreateRenderTargetPSO()
         m_pDevice->CreateShader(ShaderCI, &pRTVS);
     }
 
+
+#if PLATFORM_ANDROID
+    // Vulkan on mobile platforms may require handling surface pre-transforms
+    const bool TransformUVCoords = m_pDevice->GetDeviceInfo().IsVulkanDevice();
+#else
     constexpr bool TransformUVCoords = false;
+#endif
 
     ShaderMacroHelper Macros;
     Macros.AddShaderMacro("TRANSFORM_UV", TransformUVCoords);
@@ -160,16 +162,6 @@ void Terrain::CreateRenderTargetPSO()
         ShaderCI.FilePath        = "shaders/rendertarget.psh";
 
         m_pDevice->CreateShader(ShaderCI, &pRTPS);
-
-        // Create dynamic uniform buffer that will store our transformation matrix
-        // Dynamic buffers can be frequently updated by the CPU
-        BufferDesc CBDesc;
-        CBDesc.Name           = "RTPS constants CB";
-        CBDesc.Size           = sizeof(float4) + sizeof(float2x2) * 2;
-        CBDesc.Usage          = USAGE_DYNAMIC;
-        CBDesc.BindFlags      = BIND_UNIFORM_BUFFER;
-        CBDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
-        m_pDevice->CreateBuffer(CBDesc, nullptr, &m_RTPSConstants); // FIXME: previous needs to be destroyed first
     }
 
     RTPSOCreateInfo.pVS = pRTVS;
@@ -209,7 +201,17 @@ void Terrain::Initialize(const SampleInitInfo& InitInfo)
 {
     SampleBase::Initialize(InitInfo);
 
-    WatchShadersDir();
+    // Create dynamic uniform buffer that will store our transformation matrix
+    // Dynamic buffers can be frequently updated by the CPU
+    {
+        BufferDesc CBDesc;
+        CBDesc.Name           = "RTPS constants CB";
+        CBDesc.Size           = sizeof(float4) + sizeof(float2x2) * 2;
+        CBDesc.Usage          = USAGE_DYNAMIC;
+        CBDesc.BindFlags      = BIND_UNIFORM_BUFFER;
+        CBDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
+        m_pDevice->CreateBuffer(CBDesc, nullptr, &m_RTPSConstants); // FIXME: previous needs to be destroyed first
+    }
 
     CreateCubePSO();
     CreateRenderTargetPSO();
@@ -219,6 +221,8 @@ void Terrain::Initialize(const SampleInitInfo& InitInfo)
     m_CubeIndexBuffer  = TexturedCube::CreateIndexBuffer(m_pDevice);
     m_CubeTextureSRV       = TexturedCube::LoadTexture(m_pDevice, "raccoon.jpg")->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE);
     m_pCubeSRB->GetVariableByName(SHADER_TYPE_PIXEL, "g_Texture")->Set(m_CubeTextureSRV);
+
+    WatchShadersDir();
 }
 
 namespace {
@@ -248,7 +252,7 @@ void Terrain::WatchShadersDir()
         try {
             ShadersDirWatchHandle = std::make_unique<filewatch::FileWatch<std::filesystem::path>>( shaderDir,
                 [=](const std::filesystem::path &path, const filewatch::Event change_type ) {
-                    LOG_INFO_MESSAGE( __FUNCTION__, "| \t- file event type: ", watchEventTypeToString( change_type ) , ", path: " , path );
+                    //LOG_INFO_MESSAGE( __FUNCTION__, "| \t- file event type: ", watchEventTypeToString( change_type ) , ", path: " , path );
                     //ReloadOnAssetsUpdated();
 
                     // TODO: filter out repeated events as per
@@ -272,9 +276,11 @@ void Terrain::ReloadOnAssetsUpdated()
 {
     LOG_INFO_MESSAGE( __FUNCTION__, "| boom" );
 
+    // clear resources that may be reloaded for dev needs
+    m_pRTPSO.Release();
+
     //CreateCubePSO();
     CreateRenderTargetPSO();
-
 
     ShaderAssetsMarkedDirty = false;
 }
