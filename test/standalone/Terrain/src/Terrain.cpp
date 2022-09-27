@@ -26,7 +26,6 @@
  */
 
 // TODO Still:
-// - render to buffer
 // - enable MSAA
 // - add tesselated terrain from tut 08
 
@@ -86,11 +85,6 @@ void Terrain::CreateCubePSO()
     CubePsoCI.Components           = TexturedCube::VERTEX_COMPONENT_FLAG_POS_UV;
 
     m_pCubePSO = TexturedCube::CreatePipelineState(CubePsoCI);
-
-
-    // Create dynamic uniform buffer that will store our transformation matrix
-    // Dynamic buffers can be frequently updated by the CPU
-    CreateUniformBuffer(m_pDevice, sizeof(float4x4), "VS constants CB", &m_CubeVSConstants);
 
     // Since we did not explcitly specify the type for 'Constants' variable, default
     // type (SHADER_RESOURCE_VARIABLE_TYPE_STATIC) will be used. Static variables never
@@ -193,6 +187,16 @@ void Terrain::Initialize(const SampleInitInfo& InitInfo)
 {
     SampleBase::Initialize(InitInfo);
 
+    // TexturedCube ------------------
+    // Create dynamic uniform buffer that will store our transformation matrix
+    // Dynamic buffers can be frequently updated by the CPU
+    CreateUniformBuffer(m_pDevice, sizeof(float4x4), "VS constants CB", &m_CubeVSConstants);
+
+    CreateCubePSO();
+
+    // --------------------------------
+    // Render Target ------------------
+ 
     // Create dynamic uniform buffer that will store our transformation matrix
     // Dynamic buffers can be frequently updated by the CPU
     {
@@ -205,8 +209,9 @@ void Terrain::Initialize(const SampleInitInfo& InitInfo)
         m_pDevice->CreateBuffer(CBDesc, nullptr, &m_RTPSConstants); // FIXME: previous needs to be destroyed first
     }
 
-    CreateCubePSO();
     CreateRenderTargetPSO();
+
+    // --------------------------------
 
     // Load textured cube
     m_CubeVertexBuffer = TexturedCube::CreateVertexBuffer(m_pDevice, TexturedCube::VERTEX_COMPONENT_FLAG_POS_UV);
@@ -268,11 +273,13 @@ void Terrain::ReloadOnAssetsUpdated()
 {
     LOG_INFO_MESSAGE( __FUNCTION__, "| boom" );
 
-    // clear resources that may be reloaded for dev needs
-    m_pRTPSO.Release();
+    m_pCubePSO.Release();
+    m_pCubeSRB.Release();
+    CreateCubePSO();
 
-    //CreateCubePSO();
+    m_pRTPSO.Release();
     CreateRenderTargetPSO();
+    m_pCubeSRB->GetVariableByName(SHADER_TYPE_PIXEL, "g_Texture")->Set(m_CubeTextureSRV);
 
     ShaderAssetsMarkedDirty = false;
 }
