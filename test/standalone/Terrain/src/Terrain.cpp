@@ -58,8 +58,8 @@ struct Constants
 static constexpr TEXTURE_FORMAT RenderTargetFormat = TEX_FORMAT_RGBA8_UNORM;
 static constexpr TEXTURE_FORMAT DepthBufferFormat  = TEX_FORMAT_D32_FLOAT;
 
-std::unique_ptr<filewatch::FileWatch<std::filesystem::path>> mWatchScansDir;
-
+std::unique_ptr<filewatch::FileWatch<std::filesystem::path>> ShadersDirWatchHandle;
+bool                                                         ShaderAssetsMarkedDirty = false;
 } // anon
 
 void Terrain::ModifyEngineInitInfo(const ModifyEngineInitInfoAttribs& Attribs)
@@ -81,8 +81,8 @@ void Terrain::CreateCubePSO()
     CubePsoCI.RTVFormat            = RenderTargetFormat;
     CubePsoCI.DSVFormat            = DepthBufferFormat;
     CubePsoCI.pShaderSourceFactory = pShaderSourceFactory;
-    CubePsoCI.VSFilePath           = "cube.vsh";
-    CubePsoCI.PSFilePath           = "cube.psh";
+    CubePsoCI.VSFilePath           = "shaders/cube.vsh";
+    CubePsoCI.PSFilePath           = "shaders/cube.psh";
     CubePsoCI.Components           = TexturedCube::VERTEX_COMPONENT_FLAG_POS_UV;
 
     m_pCubePSO = TexturedCube::CreatePipelineState(CubePsoCI);
@@ -104,38 +104,33 @@ void Terrain::CreateCubePSO()
 
 void Terrain::CreateRenderTargetPSO()
 {
+    // clear resources that may be reloaded for dev needs
+    m_RTPSConstants.Release();
+    m_pRTPSO.Release();
+
     GraphicsPipelineStateCreateInfo RTPSOCreateInfo;
 
     // Pipeline state name is used by the engine to report issues
     // It is always a good idea to give objects descriptive names
     // clang-format off
     RTPSOCreateInfo.PSODesc.Name                                  = "Render Target PSO";
-    // This is a graphics pipeline
     RTPSOCreateInfo.PSODesc.PipelineType                          = PIPELINE_TYPE_GRAPHICS;
-    // This tutorial will render to a single render target
     RTPSOCreateInfo.GraphicsPipeline.NumRenderTargets             = 1;
     // Set render target format which is the format of the swap chain's color buffer
     RTPSOCreateInfo.GraphicsPipeline.RTVFormats[0]                = m_pSwapChain->GetDesc().ColorBufferFormat;
     // Set depth buffer format which is the format of the swap chain's back buffer
     RTPSOCreateInfo.GraphicsPipeline.DSVFormat                    = m_pSwapChain->GetDesc().DepthBufferFormat;
-    // Primitive topology defines what kind of primitives will be rendered by this pipeline state
     RTPSOCreateInfo.GraphicsPipeline.PrimitiveTopology            = PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
-    // Cull back faces
     RTPSOCreateInfo.GraphicsPipeline.RasterizerDesc.CullMode      = CULL_MODE_BACK;
     // Enable depth testing
-    RTPSOCreateInfo.GraphicsPipeline.DepthStencilDesc.DepthEnable = False;
-    // clang-format on
+    RTPSOCreateInfo.GraphicsPipeline.DepthStencilDesc.DepthEnable = False; // TODO: set to true?
+
 
     ShaderCreateInfo ShaderCI;
-    // Tell the system that the shader source code is in HLSL.
-    // For OpenGL, the engine will convert this into GLSL under the hood.
     ShaderCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_HLSL;
-
-    // OpenGL backend requires emulated combined HLSL texture samplers (g_Texture + g_Texture_sampler combination)
     ShaderCI.UseCombinedTextureSamplers = true;
 
-    // In this tutorial, we will load shaders from file. To be able to do that,
-    // we need to create a shader source stream factory
+    // create a shader source stream factory to load shaders from file
     RefCntAutoPtr<IShaderSourceInputStreamFactory> pShaderSourceFactory;
     m_pEngineFactory->CreateDefaultShaderSourceStreamFactory(nullptr, &pShaderSourceFactory);
     ShaderCI.pShaderSourceStreamFactory = pShaderSourceFactory;
@@ -146,17 +141,11 @@ void Terrain::CreateRenderTargetPSO()
         ShaderCI.Desc.ShaderType = SHADER_TYPE_VERTEX;
         ShaderCI.EntryPoint      = "main";
         ShaderCI.Desc.Name       = "Render Target VS";
-        ShaderCI.FilePath        = "rendertarget.vsh";
+        ShaderCI.FilePath        = "shaders/rendertarget.vsh";
         m_pDevice->CreateShader(ShaderCI, &pRTVS);
     }
 
-
-#if PLATFORM_ANDROID
-    // Vulkan on mobile platforms may require handling surface pre-transforms
-    const bool TransformUVCoords = m_pDevice->GetDeviceInfo().IsVulkanDevice();
-#else
     constexpr bool TransformUVCoords = false;
-#endif
 
     ShaderMacroHelper Macros;
     Macros.AddShaderMacro("TRANSFORM_UV", TransformUVCoords);
@@ -168,7 +157,7 @@ void Terrain::CreateRenderTargetPSO()
         ShaderCI.Desc.ShaderType = SHADER_TYPE_PIXEL;
         ShaderCI.EntryPoint      = "main";
         ShaderCI.Desc.Name       = "Render Target PS";
-        ShaderCI.FilePath        = "rendertarget.psh";
+        ShaderCI.FilePath        = "shaders/rendertarget.psh";
 
         m_pDevice->CreateShader(ShaderCI, &pRTPS);
 
@@ -180,7 +169,7 @@ void Terrain::CreateRenderTargetPSO()
         CBDesc.Usage          = USAGE_DYNAMIC;
         CBDesc.BindFlags      = BIND_UNIFORM_BUFFER;
         CBDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
-        m_pDevice->CreateBuffer(CBDesc, nullptr, &m_RTPSConstants);
+        m_pDevice->CreateBuffer(CBDesc, nullptr, &m_RTPSConstants); // FIXME: previous needs to be destroyed first
     }
 
     RTPSOCreateInfo.pVS = pRTVS;
@@ -222,7 +211,6 @@ void Terrain::Initialize(const SampleInitInfo& InitInfo)
 
     WatchShadersDir();
 
-    //CreatePipelineState();
     CreateCubePSO();
     CreateRenderTargetPSO();
 
@@ -253,18 +241,21 @@ const char* watchEventTypeToString( const filewatch::Event change_type )
 void Terrain::WatchShadersDir()
 {
     // watch assets dir for shader changes
-    std::filesystem::path shaderDir("assets");
+    std::filesystem::path shaderDir("shaders");
 
     if( std::filesystem::exists( shaderDir ) ) {
         LOG_INFO_MESSAGE( __FUNCTION__, "| watching assets directory: ", shaderDir );
-
-        // TODO: watch this dir once we know it is correct
-        // watch for file changes within dir
         try {
-            mWatchScansDir = std::make_unique<filewatch::FileWatch<std::filesystem::path>>( shaderDir,
+            ShadersDirWatchHandle = std::make_unique<filewatch::FileWatch<std::filesystem::path>>( shaderDir,
                 [=](const std::filesystem::path &path, const filewatch::Event change_type ) {
                     LOG_INFO_MESSAGE( __FUNCTION__, "| \t- file event type: ", watchEventTypeToString( change_type ) , ", path: " , path );
-                    ReloadOnAssetsUpdated();                    
+                    //ReloadOnAssetsUpdated();
+
+                    // TODO: filter out repeated events as per
+                    // https://github.com/ThomasMonkman/filewatch/issues/27
+                    // - for now will just mark a flag and hope it is fine updating buffers from render loop
+
+                    ShaderAssetsMarkedDirty = true;
                 }
             );
         }
@@ -279,6 +270,13 @@ void Terrain::WatchShadersDir()
 
 void Terrain::ReloadOnAssetsUpdated()
 {
+    LOG_INFO_MESSAGE( __FUNCTION__, "| boom" );
+
+    //CreateCubePSO();
+    CreateRenderTargetPSO();
+
+
+    ShaderAssetsMarkedDirty = false;
 }
 
 void Terrain::WindowResize(Uint32 Width, Uint32 Height)
@@ -329,7 +327,35 @@ void Terrain::WindowResize(Uint32 Width, Uint32 Height)
     m_pRTSRB->GetVariableByName(SHADER_TYPE_PIXEL, "g_Texture")->Set(pRTColor->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE));
 }
 
-// Render a frame
+void Terrain::Update(double CurrTime, double ElapsedTime)
+{
+    SampleBase::Update(CurrTime, ElapsedTime);
+    UpdateUI();
+
+    if(ShaderAssetsMarkedDirty) {
+        ReloadOnAssetsUpdated();
+    }
+
+    m_fCurrentTime = static_cast<float>(CurrTime);
+
+    // Apply rotation
+    float4x4 CubeModelTransform = float4x4::RotationY(static_cast<float>(CurrTime) * 1.0f) * float4x4::RotationX(-PI_F * 0.1f);
+
+    // Camera is at (0, 0, -5) looking along the Z axis
+    float4x4 View = float4x4::Translation(0.f, 0.0f, 5.0f);
+
+    // Get pretransform matrix that rotates the scene according the surface orientation
+    auto SrfPreTransform = GetSurfacePretransformMatrix(float3{0, 0, 1});
+    // We will have to transform UV coordinates when performing post-processing
+    m_UVPreTransformMatrix = float2x2{SrfPreTransform.m00, SrfPreTransform.m01, SrfPreTransform.m10, SrfPreTransform.m11};
+
+    // Get projection matrix adjusted to the current screen orientation
+    auto Proj = GetAdjustedProjectionMatrix(PI_F / 4.0f, 0.1f, 100.f);
+
+    // Compute world-view-projection matrix
+    m_WorldViewProjMatrix = CubeModelTransform * View * SrfPreTransform * Proj;
+}
+
 void Terrain::Render()
 {
     // Clear the offscreen render target and depth buffer
@@ -405,34 +431,9 @@ void Terrain::UpdateUI()
     if (ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
     {
         //ImGui::SliderFloat("Line Width", &m_LineWidth, 1.f, 10.f);
-        ImGui::Text("Hey!");
+        ImGui::Checkbox( "shaders dirty", &ShaderAssetsMarkedDirty );
     }
     ImGui::End();
-}
-
-void Terrain::Update(double CurrTime, double ElapsedTime)
-{
-    SampleBase::Update(CurrTime, ElapsedTime);
-    UpdateUI();
-
-    m_fCurrentTime = static_cast<float>(CurrTime);
-
-    // Apply rotation
-    float4x4 CubeModelTransform = float4x4::RotationY(static_cast<float>(CurrTime) * 1.0f) * float4x4::RotationX(-PI_F * 0.1f);
-
-    // Camera is at (0, 0, -5) looking along the Z axis
-    float4x4 View = float4x4::Translation(0.f, 0.0f, 5.0f);
-
-    // Get pretransform matrix that rotates the scene according the surface orientation
-    auto SrfPreTransform = GetSurfacePretransformMatrix(float3{0, 0, 1});
-    // We will have to transform UV coordinates when performing post-processing
-    m_UVPreTransformMatrix = float2x2{SrfPreTransform.m00, SrfPreTransform.m01, SrfPreTransform.m10, SrfPreTransform.m11};
-
-    // Get projection matrix adjusted to the current screen orientation
-    auto Proj = GetAdjustedProjectionMatrix(PI_F / 4.0f, 0.1f, 100.f);
-
-    // Compute world-view-projection matrix
-    m_WorldViewProjMatrix = CubeModelTransform * View * SrfPreTransform * Proj;
 }
 
 namespace Diligent {
