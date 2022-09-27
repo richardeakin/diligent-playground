@@ -1,19 +1,32 @@
-Texture2DArray  g_Texture;
-SamplerState    g_Texture_sampler;
+#include "structures.fxh"
 
-struct PSInput 
-{ 
-    float4 Pos : SV_POSITION; 
-    float2 UV : TEX_COORD; 
-    float  TexIndex : TEX_ARRAY_INDEX;
-};
+Texture2D    g_Texture;
+SamplerState g_Texture_sampler; // By convention, texture samplers must use the '_sampler' suffix
+
+cbuffer PSConstants
+{
+    Constants g_Constants;
+}
 
 struct PSOutput
 {
     float4 Color : SV_TARGET;
 };
 
-void main(in  PSInput  PSIn, out PSOutput PSOut)
+void main(in  GSOutput PSIn, 
+    out PSOutput PSOut)
 {
-    PSOut.Color = g_Texture.Sample( g_Texture_sampler, float3(PSIn.UV, PSIn.TexIndex) );
+    float4 Color = g_Texture.Sample(g_Texture_sampler, PSIn.VSOut.UV);
+
+    // Compute distance to the closest edge
+    float minDist = min(PSIn.DistToEdges.x, PSIn.DistToEdges.y);
+    minDist = min(minDist, PSIn.DistToEdges.z);
+
+    float lineWidth = g_Constants.LineWidth;
+    float lineIntensity = saturate((lineWidth - minDist) / lineWidth);
+
+    float3 EdgeColor = float3(1.0, 0.5, 0.0);
+    Color.rgb = lerp(Color.rgb, EdgeColor, lineIntensity);
+
+    PSOut.Color = Color;
 }

@@ -33,7 +33,7 @@
 namespace Diligent
 {
 
-class TutorialFromCube final : public SampleBase
+class InstancedCubes final : public SampleBase
 {
 public:
     virtual void Initialize(const SampleInitInfo& InitInfo) override final;
@@ -41,25 +41,36 @@ public:
     virtual void Render() override final;
     virtual void Update(double CurrTime, double ElapsedTime) override final;
 
-    virtual const Char* GetSampleName() const override final { return "TutorialFromCube (rte)"; }
+    virtual const Char* GetSampleName() const override final { return "InstancedCubes (rte)"; }
 
 private:
     void CreatePipelineState();
-    void UpdateUI();
-
     //void CreateVertexBuffer();
     //void CreateIndexBuffer();
-    //void LoadTexture();
 
     RefCntAutoPtr<IPipelineState>         m_pPSO;
     RefCntAutoPtr<IBuffer>                m_CubeVertexBuffer;
     RefCntAutoPtr<IBuffer>                m_CubeIndexBuffer;
-    RefCntAutoPtr<IBuffer>                m_ShaderConstants;
+    RefCntAutoPtr<IBuffer>                m_VSConstants;
+    //float4x4                              m_WorldViewProjMatrix;
+
+    void LoadTextures();
+
     RefCntAutoPtr<ITextureView>           m_TextureSRV;
     RefCntAutoPtr<IShaderResourceBinding> m_SRB;
 
-    float4x4                              m_WorldViewProjMatrix;
-    float    m_LineWidth = 3.f;
+    void CreateInstanceBuffer();
+    void UpdateUI();
+    void PopulateInstanceBuffer();
+
+    RefCntAutoPtr<IBuffer>                m_InstanceBuffer;
+
+    float4x4             m_ViewProjMatrix;
+    float4x4             m_RotationMatrix;
+    int                  m_GridSize   = 5;
+    static constexpr int MaxGridSize  = 32;
+    static constexpr int MaxInstances = MaxGridSize * MaxGridSize * MaxGridSize;
+
 };
 
 } // namespace Diligent
