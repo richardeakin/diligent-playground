@@ -43,7 +43,9 @@
 #include "imgui.h"
 #include "ImGuiUtils.hpp"
 
+//namespace dg = Diligent; // TODO: use this?
 using namespace Diligent;
+namespace im = ImGui;
 
 namespace {
 
@@ -114,8 +116,6 @@ void Terrain::CreateRenderTargetPSO()
     GraphicsPipelineStateCreateInfo RTPSOCreateInfo;
 
     // Pipeline state name is used by the engine to report issues
-    // It is always a good idea to give objects descriptive names
-    // clang-format off
     RTPSOCreateInfo.PSODesc.Name                                  = "Render Target PSO";
     RTPSOCreateInfo.PSODesc.PipelineType                          = PIPELINE_TYPE_GRAPHICS;
     RTPSOCreateInfo.GraphicsPipeline.NumRenderTargets             = 1;
@@ -128,6 +128,12 @@ void Terrain::CreateRenderTargetPSO()
     // Enable depth testing
     RTPSOCreateInfo.GraphicsPipeline.DepthStencilDesc.DepthEnable = False; // TODO: set to true?
 
+
+    // ???: why isn't PSODesc.GraphicsPipeline.SmplDesc.Count = m_SampleCount set here?
+    // - I think because the CubePSO holds pipeline state for all things being drawn with MSAA
+    // - also, where is the related PSO in tut17?
+    //    - perhaps I need to set it bc the tut doesn't use a second PSO?
+    //RTPSOCreateInfo.GraphicsPipeline.SmplDesc.Count = m_SampleCount; // not yet sure if this is needed.. 
 
     ShaderCreateInfo ShaderCI;
     ShaderCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_HLSL;
@@ -217,7 +223,7 @@ void Terrain::Initialize(const SampleInitInfo& InitInfo)
     // TexturedCube ------------------
     // Create dynamic uniform buffer that will store our transformation matrix
     // Dynamic buffers can be frequently updated by the CPU
-    CreateUniformBuffer(m_pDevice, sizeof(float4x4), "VS constants CB", &m_CubeVSConstants);
+    Diligent::CreateUniformBuffer(m_pDevice, sizeof(float4x4), "VS constants CB", &m_CubeVSConstants);
 
     CreateCubePSO();
 
@@ -472,15 +478,13 @@ void Terrain::Render()
 
 void Terrain::UpdateUI()
 {
-    ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
-    if (ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
-    {
-        //ImGui::SliderFloat("Line Width", &m_LineWidth, 1.f, 10.f);
-        ImGui::Checkbox( "shaders dirty", &ShaderAssetsMarkedDirty );
+    im::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
+    if( im::Begin("Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize) ) {
+        //im::SliderFloat("Line Width", &m_LineWidth, 1.f, 10.f);
+        im::Checkbox( "shaders dirty", &ShaderAssetsMarkedDirty );
 
         {
             std::array<std::pair<Uint8, const char*>, 4> ComboItems;
-
             Uint32 NumItems = 0;
 
             ComboItems[NumItems++] = std::make_pair(Uint8{1}, "1");
@@ -490,14 +494,15 @@ void Terrain::UpdateUI()
                 ComboItems[NumItems++] = std::make_pair(Uint8{4}, "4");
             if (m_SupportedSampleCounts & 0x08)
                 ComboItems[NumItems++] = std::make_pair(Uint8{8}, "8");
-            if (ImGui::Combo("Sample count", &m_SampleCount, ComboItems.data(), NumItems)) {
+            if (im::Combo("MSAA samples", &m_SampleCount, ComboItems.data(), NumItems)) {
+                // TODO: check / update this after MSAA works
                 //ReloadOnAssetsUpdated();
                 CreateCubePSO();
                 CreateMSAARenderTarget();
             }
         }
     }
-    ImGui::End();
+    im::End();
 }
 
 namespace Diligent {
