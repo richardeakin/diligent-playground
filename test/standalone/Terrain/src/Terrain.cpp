@@ -41,11 +41,12 @@
 #include "../../common/src/FileWatch.hpp"
 #include "../../common/src/TexturedCube.hpp"
 #include "imgui.h"
-
+#include "ImGuiUtils.hpp"
 
 using namespace Diligent;
 
 namespace {
+
 
 struct Constants
 {
@@ -54,7 +55,7 @@ struct Constants
     float    LineWidth;
 };
 
-static constexpr TEXTURE_FORMAT RenderTargetFormat = TEX_FORMAT_RGBA8_UNORM;
+//static constexpr TEXTURE_FORMAT RenderTargetFormat = TEX_FORMAT_RGBA8_UNORM;
 static constexpr TEXTURE_FORMAT DepthBufferFormat  = TEX_FORMAT_D32_FLOAT;
 
 std::unique_ptr<filewatch::FileWatch<std::filesystem::path>> ShadersDirWatchHandle;
@@ -63,6 +64,12 @@ bool                                                         ShaderAssetsMarkedD
 
 void Terrain::ModifyEngineInitInfo(const ModifyEngineInitInfoAttribs& Attribs)
 {
+    LOG_INFO_MESSAGE( "Diligent Engine API Version: ", Attribs.EngineCI.EngineAPIVersion );
+
+    // TODO: enable? look where it is used in samples or docs first
+    // // - may already be on
+    //Attribs.EngineCI.EnableValidation = true;
+
     SampleBase::ModifyEngineInitInfo(Attribs);
     // In this tutorial we will be using off-screen depth-stencil buffer, so
     // we do not need the one in the swap chain.
@@ -77,12 +84,13 @@ void Terrain::CreateCubePSO()
 
     TexturedCube::CreatePSOInfo CubePsoCI;
     CubePsoCI.pDevice              = m_pDevice;
-    CubePsoCI.RTVFormat            = RenderTargetFormat;
+    CubePsoCI.RTVFormat            = m_pSwapChain->GetDesc().ColorBufferFormat;
     CubePsoCI.DSVFormat            = DepthBufferFormat;
     CubePsoCI.pShaderSourceFactory = pShaderSourceFactory;
     CubePsoCI.VSFilePath           = "shaders/cube.vsh";
     CubePsoCI.PSFilePath           = "shaders/cube.psh";
     CubePsoCI.Components           = TexturedCube::VERTEX_COMPONENT_FLAG_POS_UV;
+    CubePsoCI.SampleCount          = m_SampleCount;
 
     m_pCubePSO = TexturedCube::CreatePipelineState(CubePsoCI);
 
@@ -94,6 +102,11 @@ void Terrain::CreateCubePSO()
     // Since we are using mutable variable, we must create a shader resource binding object
     // http://diligentgraphics.com/2016/03/23/resource-binding-model-in-diligent-engine-2-0/
     m_pCubePSO->CreateShaderResourceBinding(&m_pCubeSRB, true);
+
+    // Set cube texture SRV in the SRB
+    // note: this line is done in Initialize now, so will have to also be done again after a hotload
+    // - it is also reset in ReloadOnAssetsUpdated()
+    //m_pCubeSRB->GetVariableByName(SHADER_TYPE_PIXEL, "g_Texture")->Set(m_CubeTextureSRV);
 }
 
 void Terrain::CreateRenderTargetPSO()
@@ -186,6 +199,24 @@ void Terrain::CreateRenderTargetPSO()
 void Terrain::Initialize(const SampleInitInfo& InitInfo)
 {
     SampleBase::Initialize(InitInfo);
+
+    // MSAA --------------------------
+
+    const auto& ColorFmtInfo = m_pDevice->GetTextureFormatInfoExt(m_pSwapChain->GetDesc().ColorBufferFormat);
+    const auto& DepthFmtInfo = m_pDevice->GetTextureFormatInfoExt(DepthBufferFormat);
+    m_SupportedSampleCounts  = ColorFmtInfo.SampleCounts & DepthFmtInfo.SampleCounts;
+    if (m_SupportedSampleCounts & SAMPLE_COUNT_4)
+        m_SampleCount = 4;
+    else if (m_SupportedSampleCounts & SAMPLE_COUNT_2)
+        m_SampleCount = 2;
+    else {
+        LOG_WARNING_MESSAGE(ColorFmtInfo.Name, " + ", DepthFmtInfo.Name, " pair does not allow multisampling on this device");
+        m_SampleCount = 1;
+    }
+
+    m_SampleCount = 1; // TEMPORARY: overriding to make sure everything else still works
+    // --------------------------------
+
 
     // TexturedCube ------------------
     // Create dynamic uniform buffer that will store our transformation matrix
@@ -288,16 +319,29 @@ void Terrain::WindowResize(Uint32 Width, Uint32 Height)
 {
     LOG_INFO_MESSAGE("Terrain::WindowResize| size: [", Width, ", ", Height, "]" );
 
+    CreateMSAARenderTarget();
+}
+
+// TODO NEXT (am): see what settings aren't matching, compared to Tutorial17
+// - are there any other samples that set SampleCount?
+void Terrain::CreateMSAARenderTarget()
+{
+    const auto& SCDesc = m_pSwapChain->GetDesc();
+
     // Create window-size offscreen render target
     TextureDesc RTColorDesc;
     RTColorDesc.Name      = "Offscreen render target";
     RTColorDesc.Type      = RESOURCE_DIM_TEX_2D;
-    RTColorDesc.Width     = m_pSwapChain->GetDesc().Width;
-    RTColorDesc.Height    = m_pSwapChain->GetDesc().Height;
+    RTColorDesc.Width     = SCDesc.Width;
+    RTColorDesc.Height    = SCDesc.Height;
     RTColorDesc.MipLevels = 1;
-    RTColorDesc.Format    = RenderTargetFormat;
+    //RTColorDesc.Format    = RenderTargetFormat;
+    RTColorDesc.Format         = SCDesc.ColorBufferFormat;
+
     // The render target can be bound as a shader resource and as a render target
     RTColorDesc.BindFlags = BIND_SHADER_RESOURCE | BIND_RENDER_TARGET;
+    // Set the desired number of samples
+    RTColorDesc.SampleCount = m_SampleCount;
     // Define optimal clear value
     RTColorDesc.ClearValue.Format   = RTColorDesc.Format;
     RTColorDesc.ClearValue.Color[0] = 0.350f;
@@ -437,6 +481,25 @@ void Terrain::UpdateUI()
     {
         //ImGui::SliderFloat("Line Width", &m_LineWidth, 1.f, 10.f);
         ImGui::Checkbox( "shaders dirty", &ShaderAssetsMarkedDirty );
+
+        {
+            std::array<std::pair<Uint8, const char*>, 4> ComboItems;
+
+            Uint32 NumItems = 0;
+
+            ComboItems[NumItems++] = std::make_pair(Uint8{1}, "1");
+            if (m_SupportedSampleCounts & 0x02)
+                ComboItems[NumItems++] = std::make_pair(Uint8{2}, "2");
+            if (m_SupportedSampleCounts & 0x04)
+                ComboItems[NumItems++] = std::make_pair(Uint8{4}, "4");
+            if (m_SupportedSampleCounts & 0x08)
+                ComboItems[NumItems++] = std::make_pair(Uint8{8}, "8");
+            if (ImGui::Combo("Sample count", &m_SampleCount, ComboItems.data(), NumItems)) {
+                //ReloadOnAssetsUpdated();
+                CreateCubePSO();
+                CreateMSAARenderTarget();
+            }
+        }
     }
     ImGui::End();
 }
