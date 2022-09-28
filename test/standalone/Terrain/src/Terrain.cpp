@@ -26,6 +26,7 @@
  */
 
 // TODO Still:
+// - get fps cam working
 // - enable MSAA
 // - add tesselated terrain from tut 08
 
@@ -62,6 +63,10 @@ static constexpr TEXTURE_FORMAT DepthBufferFormat  = TEX_FORMAT_D32_FLOAT;
 
 std::unique_ptr<filewatch::FileWatch<std::filesystem::path>> ShadersDirWatchHandle;
 bool                                                         ShaderAssetsMarkedDirty = false;
+
+bool UseFirstPersonCamera = true;
+bool RotateCube = true;
+
 } // anon
 
 void Terrain::ModifyEngineInitInfo(const ModifyEngineInitInfoAttribs& Attribs)
@@ -256,11 +261,19 @@ void Terrain::Initialize(const SampleInitInfo& InitInfo)
     WatchShadersDir();
 
     // Setup camera.
-    m_Camera.SetPos(float3{-73.f, 21.f, 47.f});
-    m_Camera.SetRotation(17.f, -0.27f);
-    m_Camera.SetRotationSpeed(0.005f);
-    m_Camera.SetMoveSpeed(5.f);
-    m_Camera.SetSpeedUpScales(5.f, 10.f);
+    //m_Camera.SetPos(float3{ -73.f, 21.f, 47.f });
+    //m_Camera.SetRotation(17.f, -0.27f);
+    //m_Camera.SetRotationSpeed(0.005f);
+    //m_Camera.SetMoveSpeed(5.f);
+    //m_Camera.SetSpeedUpScales(5.f, 10.f);
+
+    m_Camera.SetPos(float3{ 0, 0, 10 });
+    m_Camera.SetLookAt(float3{ 0, 0, -1 });
+    //m_Camera.SetRotation(17.f, -0.27f);
+    //m_Camera.SetRotationSpeed(0.005f);
+    //m_Camera.SetMoveSpeed(5.f);
+    //m_Camera.SetSpeedUpScales(5.f, 10.f);
+
 }
 
 namespace {
@@ -331,8 +344,7 @@ void Terrain::WindowResize(Uint32 Width, Uint32 Height)
 
     // Update projection matrix.
     float AspectRatio = static_cast<float>(Width) / static_cast<float>(Height);
-    m_Camera.SetProjAttribs(1.f, 1000.f, AspectRatio, PI_F / 4.f,
-        m_pSwapChain->GetDesc().PreTransform, m_pDevice->GetDeviceInfo().IsGLDevice());
+    m_Camera.SetProjAttribs(1.f, 1000.f, AspectRatio, PI_F / 4.f, m_pSwapChain->GetDesc().PreTransform, m_pDevice->GetDeviceInfo().IsGLDevice());
 
 
     CreateMSAARenderTarget();
@@ -400,29 +412,39 @@ void Terrain::Update(double CurrTime, double ElapsedTime)
 
     // Apply rotation
     float4x4 CubeModelTransform = float4x4::RotationY(static_cast<float>(CurrTime) * 1.0f) * float4x4::RotationX(-PI_F * 0.1f);
+    if( ! RotateCube ) {
+        CubeModelTransform = float4x4::Identity();
+    }
 
     // Camera is at (0, 0, -5) looking along the Z axis
     float4x4 View = float4x4::Translation(0.f, 0.0f, 5.0f);
 
     // Get pretransform matrix that rotates the scene according the surface orientation
-    auto SrfPreTransform = GetSurfacePretransformMatrix(float3{0, 0, 1});
+    //auto SrfPreTransform = GetSurfacePretransformMatrix(float3{0, 0, 1});
     // We will have to transform UV coordinates when performing post-processing
-    m_UVPreTransformMatrix = float2x2{SrfPreTransform.m00, SrfPreTransform.m01, SrfPreTransform.m10, SrfPreTransform.m11};
+    //m_UVPreTransformMatrix = float2x2{SrfPreTransform.m00, SrfPreTransform.m01, SrfPreTransform.m10, SrfPreTransform.m11};
 
     // Get projection matrix adjusted to the current screen orientation
     auto Proj = GetAdjustedProjectionMatrix(PI_F / 4.0f, 0.1f, 100.f);
 
     // Compute world-view-projection matrix
-    m_WorldViewProjMatrix = CubeModelTransform * View * SrfPreTransform * Proj;
+    //m_WorldViewProjMatrix = CubeModelTransform * View * SrfPreTransform * Proj;
+
+    m_WorldViewProjMatrix = CubeModelTransform * View * Proj;
 
     // -----
     // TODO: get this working
-    //m_WorldViewProjMatrix = m_Camera.GetWorldMatrix() * m_Camera.GetViewMatrix() * m_Camera.GetProjMatrix();
+    if( UseFirstPersonCamera ) {
+        m_WorldViewProjMatrix = CubeModelTransform * m_Camera.GetViewMatrix() * m_Camera.GetProjMatrix();
+    }
 }
 
 void Terrain::Render()
 {
-    const float ClearColor[] = {0.350f, 0.350f, 0.350f, 1.0f};
+    //const float ClearColor[] = {0.950f, 0.350f, 0.350f, 1.0f};
+
+    const float ClearColor[] = {0.950f, 0.350f, 0.950f, 1.0f};
+
 
     // Clear the offscreen render target and depth buffer
     m_pImmediateContext->SetRenderTargets(1, &m_pColorRTV, m_pDepthDSV, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
@@ -510,6 +532,10 @@ void Terrain::UpdateUI()
     im::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
     if( im::Begin("Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize) ) {
         //im::SliderFloat("Line Width", &m_LineWidth, 1.f, 10.f);
+
+        im::Checkbox( "first person cam", &UseFirstPersonCamera );
+        im::Checkbox( "rotate cube", &RotateCube );
+
         im::Checkbox( "shaders dirty", &ShaderAssetsMarkedDirty );
 
         {
