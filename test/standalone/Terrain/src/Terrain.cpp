@@ -67,6 +67,10 @@ bool                                                         ShaderAssetsMarkedD
 bool UseFirstPersonCamera = true;
 bool RotateCube = true;
 
+float CameraRotationSpeed = 0.005f;
+float CameraMoveSpeed = 8.0f;
+float2 CameraSpeedUp = { 0.2f, 10.0f }; // speed multipliers when {shift, ctrl} is down
+
 } // anon
 
 void Terrain::ModifyEngineInitInfo(const ModifyEngineInitInfoAttribs& Attribs)
@@ -259,8 +263,12 @@ void Terrain::Initialize(const SampleInitInfo& InitInfo)
     m_pCubeSRB->GetVariableByName(SHADER_TYPE_PIXEL, "g_Texture")->Set(m_CubeTextureSRV);
 
     WatchShadersDir();
+    InitCamera();
+}
 
-    // Setup camera.
+void Terrain::InitCamera()
+{
+    // From tut 23
     //m_Camera.SetPos(float3{ -73.f, 21.f, 47.f });
     //m_Camera.SetRotation(17.f, -0.27f);
     //m_Camera.SetRotationSpeed(0.005f);
@@ -269,11 +277,9 @@ void Terrain::Initialize(const SampleInitInfo& InitInfo)
 
     m_Camera.SetPos(float3{ 0, 0, 10 });
     m_Camera.SetLookAt(float3{ 0, 0, -1 });
-    //m_Camera.SetRotation(17.f, -0.27f);
-    //m_Camera.SetRotationSpeed(0.005f);
-    //m_Camera.SetMoveSpeed(5.f);
-    //m_Camera.SetSpeedUpScales(5.f, 10.f);
-
+    m_Camera.SetRotationSpeed(CameraRotationSpeed);
+    m_Camera.SetMoveSpeed(CameraMoveSpeed);
+    m_Camera.SetSpeedUpScales(CameraSpeedUp.x, CameraSpeedUp.y);
 }
 
 namespace {
@@ -533,7 +539,22 @@ void Terrain::UpdateUI()
     if( im::Begin("Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize) ) {
         //im::SliderFloat("Line Width", &m_LineWidth, 1.f, 10.f);
 
-        im::Checkbox( "first person cam", &UseFirstPersonCamera );
+        if( im::CollapsingHeader( "Camera", ImGuiTreeNodeFlags_DefaultOpen ) ) {
+            im::Checkbox( "enabled", &UseFirstPersonCamera );
+            if( im::DragFloat( "move speed", &CameraMoveSpeed) ) {
+                m_Camera.SetMoveSpeed(CameraMoveSpeed);
+            }
+            if( im::DragFloat( "rotate speed", &CameraRotationSpeed) ) {
+                m_Camera.SetRotationSpeed(CameraRotationSpeed);
+            }
+            if( im::DragFloat2( "speed up scale", &CameraSpeedUp.x) ) {
+                m_Camera.SetSpeedUpScales(CameraSpeedUp.x, CameraSpeedUp.y);
+            }
+            if( im::Button("reset") ) {
+                InitCamera();
+            }
+        }
+
         im::Checkbox( "rotate cube", &RotateCube );
 
         im::Checkbox( "shaders dirty", &ShaderAssetsMarkedDirty );

@@ -49,6 +49,7 @@ private:
     void CreateRenderTargetPSO();
     void CreateMSAARenderTarget();
 
+    void InitCamera();
     void WatchShadersDir();
     void ReloadOnAssetsUpdated();
     void UpdateUI();
