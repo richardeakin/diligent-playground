@@ -29,6 +29,7 @@
 
 #include "SampleBase.hpp"
 #include "BasicMath.hpp"
+#include "FirstPersonCamera.hpp"
 
 namespace Diligent
 {
@@ -74,6 +75,8 @@ private:
     // MSAA
     Uint8  m_SampleCount = 1;
     Uint32 m_SupportedSampleCounts = 0;
+
+    FirstPersonCamera m_Camera;
 };
 
 } // namespace Diligent

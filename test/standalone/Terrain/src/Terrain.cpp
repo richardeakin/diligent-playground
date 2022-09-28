@@ -254,6 +254,13 @@ void Terrain::Initialize(const SampleInitInfo& InitInfo)
     m_pCubeSRB->GetVariableByName(SHADER_TYPE_PIXEL, "g_Texture")->Set(m_CubeTextureSRV);
 
     WatchShadersDir();
+
+    // Setup camera.
+    m_Camera.SetPos(float3{-73.f, 21.f, 47.f});
+    m_Camera.SetRotation(17.f, -0.27f);
+    m_Camera.SetRotationSpeed(0.005f);
+    m_Camera.SetMoveSpeed(5.f);
+    m_Camera.SetSpeedUpScales(5.f, 10.f);
 }
 
 namespace {
@@ -322,6 +329,12 @@ void Terrain::WindowResize(Uint32 Width, Uint32 Height)
 {
     LOG_INFO_MESSAGE("Terrain::WindowResize| size: [", Width, ", ", Height, "]" );
 
+    // Update projection matrix.
+    float AspectRatio = static_cast<float>(Width) / static_cast<float>(Height);
+    m_Camera.SetProjAttribs(1.f, 1000.f, AspectRatio, PI_F / 4.f,
+        m_pSwapChain->GetDesc().PreTransform, m_pDevice->GetDeviceInfo().IsGLDevice());
+
+
     CreateMSAARenderTarget();
 }
 
@@ -377,6 +390,8 @@ void Terrain::Update(double CurrTime, double ElapsedTime)
     SampleBase::Update(CurrTime, ElapsedTime);
     UpdateUI();
 
+    m_Camera.Update(m_InputController, float(ElapsedTime));
+
     if(ShaderAssetsMarkedDirty) {
         ReloadOnAssetsUpdated();
     }
@@ -399,6 +414,10 @@ void Terrain::Update(double CurrTime, double ElapsedTime)
 
     // Compute world-view-projection matrix
     m_WorldViewProjMatrix = CubeModelTransform * View * SrfPreTransform * Proj;
+
+    // -----
+    // TODO: get this working
+    //m_WorldViewProjMatrix = m_Camera.GetWorldMatrix() * m_Camera.GetViewMatrix() * m_Camera.GetProjMatrix();
 }
 
 void Terrain::Render()
@@ -424,14 +443,14 @@ void Terrain::Render()
             float Padding1;
             float Padding2;
 
-            float2x2 UVPreTransform;
-            float2x2 UVPreTransformInv;
+            //float2x2 UVPreTransform;
+            //float2x2 UVPreTransformInv;
         };
         // Map the render target PS constant buffer and fill it in with current time
         MapHelper<VSConstants> CBConstants(m_pImmediateContext, m_RTPSConstants, MAP_WRITE, MAP_FLAG_DISCARD);
         CBConstants->Time              = m_fCurrentTime;
-        CBConstants->UVPreTransform    = m_UVPreTransformMatrix;
-        CBConstants->UVPreTransformInv = m_UVPreTransformMatrix.Inverse();
+        //CBConstants->UVPreTransform    = m_UVPreTransformMatrix;
+        //CBConstants->UVPreTransformInv = m_UVPreTransformMatrix.Inverse();
     }
 
     // Bind vertex and index buffers
