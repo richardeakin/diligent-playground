@@ -14,15 +14,15 @@ set(INCLUDE
     ../common/src/FileWatch.hpp
 )
 
-# TODO: glob everything in assets/shaders
-# - also check how more complex samples include many shaders first, may already be a good way to do it
-set(SHADERS
-    assets/shaders/cube.vsh
-    assets/shaders/cube.psh
-    assets/shaders/rendertarget.vsh
-    assets/shaders/rendertarget.psh
-    assets/shaders/structures.fxh
+file(GLOB_RECURSE SHADERS
+    "assets/shaders/*.vsh"
+    "assets/shaders/*.psh"
+    "assets/shaders/*.gsh"
+    "assets/shaders/*.hsh"
+    "assets/shaders/*.dsh"
 )
+
+# ci_log_i( "test/Terrain| SHADERS: ${SHADERS}" )
 
 set(ASSETS
     assets/raccoon.jpg
