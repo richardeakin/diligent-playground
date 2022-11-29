@@ -9,6 +9,7 @@ xcuserdata/
 .DS_Store
 
 build/
+build-*/
 lib/libcinder*.a
 lib/msw/x86/cinder*.lib
 lib/msw/x64/cinder*.lib
