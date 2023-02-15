@@ -24,8 +24,25 @@ set(ASSETS
     assets/wombat.jpg
 )
 
-add_sample_app("InstancedCubes" "test/standalone" "${SOURCE}" "${INCLUDE}" "${SHADERS}" "${ASSETS}")
+add_sample_app( ${APP_TARGET} "test/standalone" "${SOURCE}" "${INCLUDE}" "${SHADERS}" "${ASSETS}" )
+
+
+set( INCLUDE_USER
+    ${LIVEPP_PATH} # set in top level CMakeLists.txt
+)
+
+target_include_directories( ${APP_TARGET} PUBLIC ${INCLUDE_USER} )
+
+# https://liveplusplus.tech/docs/documentation.html#linker_settings
+set( LINK_OPTIONS
+    /FUNCTIONPADMIN
+    /OPT:NOREF
+    /OPT:NOICF
+    /DEBUG:FULL
+)
+
+target_link_options( ${APP_TARGET} PRIVATE "${LINK_OPTIONS}" )
 
 # doesn't appear to be needed, though it was added in Tutorial03_Texturing onward
 # - perhaps it is if you were to run this CMakeLists.txt on its own
-# target_link_libraries(Tutorial04_Instancing PRIVATE Diligent-TextureLoader)
+# target_link_libraries( ${APP_TARGET} PRIVATE Diligent-TextureLoader)

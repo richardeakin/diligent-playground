@@ -35,6 +35,10 @@
 
 #include "imgui.h"
 
+// TODO: move to helper class so windows.h doesn't pollute
+#include <windows.h>
+#include "LPP_API_x64_CPP.h"
+
 namespace Diligent
 {
 
@@ -50,6 +54,19 @@ struct InstanceData
     float4x4 Matrix;
     float    TextureInd = 0;
 };
+
+// TODO: should probably use the synchronized agent as explained here https://liveplusplus.tech/docs/documentation.html#creating_synchronized_agent
+void initLivePP()
+{
+    // G:\code\graphics\diligent\diligent-playground\build-backup\test\standalone\InstancedCubes\Debug\InstancedCubes.exe
+    const wchar_t* lppPath = L"../../../../../tools/LivePP";
+    lpp::LppDefaultAgent lppAgent = lpp::LppCreateDefaultAgent( lppPath );
+    lppAgent.EnableModule( lpp::LppGetCurrentModulePath(), lpp::LPP_MODULES_OPTION_ALL_IMPORT_MODULES );
+
+    // TODO: move to an optional public method
+    // destroy the Live++ agent
+    //lpp::LppDestroyDefaultAgent(&lppAgent);
+}
 
 } // anon
 
@@ -128,6 +145,8 @@ void InstancedCubes::CreateInstanceBuffer()
 
 void InstancedCubes::UpdateUI()
 {
+    // TODO: try live++ updates here
+
     ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
     if (ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
     {
@@ -138,6 +157,7 @@ void InstancedCubes::UpdateUI()
 
         ImGui::Separator();
         ImGui::ColorEdit4( "ClearColor", &ClearColor[0], ImGuiColorEditFlags_Float );
+        ImGui::Text( "Wazzuupp Live++!" );
     }
     ImGui::End();
 }
@@ -244,6 +264,8 @@ void InstancedCubes::Initialize(const SampleInitInfo& InitInfo)
 
     CreateInstanceBuffer();
     LoadTextures();
+
+    initLivePP();
 }
 
 // Render a frame

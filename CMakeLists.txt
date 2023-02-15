@@ -17,6 +17,11 @@ include( cinder/proj/cmake/utilities.cmake )
 get_filename_component( CINDER_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cinder/" ABSOLUTE )
 # message("CINDER_PATH: ${CINDER_PATH}")
 
+# ----
+# wip Live++ support
+
+get_filename_component( LIVEPP_PATH "${CMAKE_CURRENT_SOURCE_DIR}/tools/LivePP/API" ABSOLUTE )
+
 # -------------------------------------------------------------------
 # Diligent
 
