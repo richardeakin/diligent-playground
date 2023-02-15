@@ -29,6 +29,7 @@
 
 #include "SampleBase.hpp"
 #include "BasicMath.hpp"
+#include "FirstPersonCamera.hpp"
 
 namespace Diligent
 {
@@ -44,10 +45,11 @@ public:
     virtual const Char* GetSampleName() const override final { return "Terrain (rte)"; }
 
 private:
-    void CreatePipelineState(); // TODO: remove
     void CreateCubePSO();
     void CreateRenderTargetPSO();
+    void CreateMSAARenderTarget();
 
+    void InitCamera();
     void WatchShadersDir();
     void ReloadOnAssetsUpdated();
     void UpdateUI();
@@ -68,8 +70,14 @@ private:
     RefCntAutoPtr<IPipelineState>         m_pRTPSO;
     RefCntAutoPtr<IShaderResourceBinding> m_pRTSRB;
     float4x4                              m_WorldViewProjMatrix;
-    float2x2                              m_UVPreTransformMatrix;
+    //float2x2                              m_UVPreTransformMatrix;
     float                                 m_fCurrentTime = 0.f;
+
+    // MSAA
+    Uint8  m_SampleCount = 1;
+    Uint32 m_SupportedSampleCounts = 0;
+
+    FirstPersonCamera m_Camera;
 };
 
 } // namespace Diligent

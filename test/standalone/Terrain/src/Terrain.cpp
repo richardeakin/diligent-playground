@@ -26,6 +26,7 @@
  */
 
 // TODO Still:
+// - get fps cam working
 // - enable MSAA
 // - add tesselated terrain from tut 08
 
@@ -41,11 +42,14 @@
 #include "../../common/src/FileWatch.hpp"
 #include "../../common/src/TexturedCube.hpp"
 #include "imgui.h"
+#include "ImGuiUtils.hpp"
 
-
+//namespace dg = Diligent; // TODO: use this?
 using namespace Diligent;
+namespace im = ImGui;
 
 namespace {
+
 
 struct Constants
 {
@@ -54,15 +58,29 @@ struct Constants
     float    LineWidth;
 };
 
-static constexpr TEXTURE_FORMAT RenderTargetFormat = TEX_FORMAT_RGBA8_UNORM;
+//static constexpr TEXTURE_FORMAT RenderTargetFormat = TEX_FORMAT_RGBA8_UNORM;
 static constexpr TEXTURE_FORMAT DepthBufferFormat  = TEX_FORMAT_D32_FLOAT;
 
 std::unique_ptr<filewatch::FileWatch<std::filesystem::path>> ShadersDirWatchHandle;
 bool                                                         ShaderAssetsMarkedDirty = false;
+
+bool UseFirstPersonCamera = true;
+bool RotateCube = true;
+
+float CameraRotationSpeed = 0.005f;
+float CameraMoveSpeed = 8.0f;
+float2 CameraSpeedUp = { 0.2f, 10.0f }; // speed multipliers when {shift, ctrl} is down
+
 } // anon
 
 void Terrain::ModifyEngineInitInfo(const ModifyEngineInitInfoAttribs& Attribs)
 {
+    LOG_INFO_MESSAGE( "Diligent Engine API Version: ", Attribs.EngineCI.EngineAPIVersion );
+
+    // TODO: enable? look where it is used in samples or docs first
+    // // - may already be on
+    Attribs.EngineCI.EnableValidation = true;
+
     SampleBase::ModifyEngineInitInfo(Attribs);
     // In this tutorial we will be using off-screen depth-stencil buffer, so
     // we do not need the one in the swap chain.
@@ -77,12 +95,13 @@ void Terrain::CreateCubePSO()
 
     TexturedCube::CreatePSOInfo CubePsoCI;
     CubePsoCI.pDevice              = m_pDevice;
-    CubePsoCI.RTVFormat            = RenderTargetFormat;
+    CubePsoCI.RTVFormat            = m_pSwapChain->GetDesc().ColorBufferFormat;
     CubePsoCI.DSVFormat            = DepthBufferFormat;
     CubePsoCI.pShaderSourceFactory = pShaderSourceFactory;
     CubePsoCI.VSFilePath           = "shaders/cube.vsh";
     CubePsoCI.PSFilePath           = "shaders/cube.psh";
     CubePsoCI.Components           = TexturedCube::VERTEX_COMPONENT_FLAG_POS_UV;
+    CubePsoCI.SampleCount          = m_SampleCount;
 
     m_pCubePSO = TexturedCube::CreatePipelineState(CubePsoCI);
 
@@ -94,6 +113,11 @@ void Terrain::CreateCubePSO()
     // Since we are using mutable variable, we must create a shader resource binding object
     // http://diligentgraphics.com/2016/03/23/resource-binding-model-in-diligent-engine-2-0/
     m_pCubePSO->CreateShaderResourceBinding(&m_pCubeSRB, true);
+
+    // Set cube texture SRV in the SRB
+    // note: this line is done in Initialize now, so will have to also be done again after a hotload
+    // - it is also reset in ReloadOnAssetsUpdated()
+    //m_pCubeSRB->GetVariableByName(SHADER_TYPE_PIXEL, "g_Texture")->Set(m_CubeTextureSRV);
 }
 
 void Terrain::CreateRenderTargetPSO()
@@ -101,8 +125,6 @@ void Terrain::CreateRenderTargetPSO()
     GraphicsPipelineStateCreateInfo RTPSOCreateInfo;
 
     // Pipeline state name is used by the engine to report issues
-    // It is always a good idea to give objects descriptive names
-    // clang-format off
     RTPSOCreateInfo.PSODesc.Name                                  = "Render Target PSO";
     RTPSOCreateInfo.PSODesc.PipelineType                          = PIPELINE_TYPE_GRAPHICS;
     RTPSOCreateInfo.GraphicsPipeline.NumRenderTargets             = 1;
@@ -114,6 +136,13 @@ void Terrain::CreateRenderTargetPSO()
     RTPSOCreateInfo.GraphicsPipeline.RasterizerDesc.CullMode      = CULL_MODE_BACK;
     // Enable depth testing
     RTPSOCreateInfo.GraphicsPipeline.DepthStencilDesc.DepthEnable = False; // TODO: set to true?
+
+
+    // ???: why isn't PSODesc.GraphicsPipeline.SmplDesc.Count = m_SampleCount set here?
+    // - I think because the CubePSO holds pipeline state for all things being drawn with MSAA
+    // - also, where is the related PSO in tut17?
+    //    - perhaps I need to set it bc the tut doesn't use a second PSO?
+    //RTPSOCreateInfo.GraphicsPipeline.SmplDesc.Count = m_SampleCount; // not yet sure if this is needed.. 
 
 
     ShaderCreateInfo ShaderCI;
@@ -187,10 +216,24 @@ void Terrain::Initialize(const SampleInitInfo& InitInfo)
 {
     SampleBase::Initialize(InitInfo);
 
+    // MSAA --------------------------
+    // check it is supported for current device
+    if( m_SampleCount > 1 ) {
+        const auto& ColorFmtInfo = m_pDevice->GetTextureFormatInfoExt(m_pSwapChain->GetDesc().ColorBufferFormat);
+        const auto& DepthFmtInfo = m_pDevice->GetTextureFormatInfoExt(DepthBufferFormat);
+        m_SupportedSampleCounts  = ColorFmtInfo.SampleCounts & DepthFmtInfo.SampleCounts;
+        if( ! (m_SupportedSampleCounts & SAMPLE_COUNT_4) && ! (m_SupportedSampleCounts & SAMPLE_COUNT_2) ) {
+            LOG_WARNING_MESSAGE(ColorFmtInfo.Name, " + ", DepthFmtInfo.Name, " pair does not allow multisampling on this device");
+            m_SampleCount = 1;
+        }
+    }
+    // --------------------------------
+
+
     // TexturedCube ------------------
     // Create dynamic uniform buffer that will store our transformation matrix
     // Dynamic buffers can be frequently updated by the CPU
-    CreateUniformBuffer(m_pDevice, sizeof(float4x4), "VS constants CB", &m_CubeVSConstants);
+    Diligent::CreateUniformBuffer(m_pDevice, sizeof(float4x4), "VS constants CB", &m_CubeVSConstants);
 
     CreateCubePSO();
 
@@ -220,6 +263,23 @@ void Terrain::Initialize(const SampleInitInfo& InitInfo)
     m_pCubeSRB->GetVariableByName(SHADER_TYPE_PIXEL, "g_Texture")->Set(m_CubeTextureSRV);
 
     WatchShadersDir();
+    InitCamera();
+}
+
+void Terrain::InitCamera()
+{
+    // From tut 23
+    //m_Camera.SetPos(float3{ -73.f, 21.f, 47.f });
+    //m_Camera.SetRotation(17.f, -0.27f);
+    //m_Camera.SetRotationSpeed(0.005f);
+    //m_Camera.SetMoveSpeed(5.f);
+    //m_Camera.SetSpeedUpScales(5.f, 10.f);
+
+    m_Camera.SetPos(float3{ 0, 0, 10 });
+    m_Camera.SetLookAt(float3{ 0, 0, -1 });
+    m_Camera.SetRotationSpeed(CameraRotationSpeed);
+    m_Camera.SetMoveSpeed(CameraMoveSpeed);
+    m_Camera.SetSpeedUpScales(CameraSpeedUp.x, CameraSpeedUp.y);
 }
 
 namespace {
@@ -288,40 +348,51 @@ void Terrain::WindowResize(Uint32 Width, Uint32 Height)
 {
     LOG_INFO_MESSAGE("Terrain::WindowResize| size: [", Width, ", ", Height, "]" );
 
+    // Update projection matrix.
+    float AspectRatio = static_cast<float>(Width) / static_cast<float>(Height);
+    m_Camera.SetProjAttribs(1.f, 1000.f, AspectRatio, PI_F / 4.f, m_pSwapChain->GetDesc().PreTransform, m_pDevice->GetDeviceInfo().IsGLDevice());
+
+
+    CreateMSAARenderTarget();
+}
+
+void Terrain::CreateMSAARenderTarget()
+{
+    const auto& SCDesc = m_pSwapChain->GetDesc();
+
     // Create window-size offscreen render target
-    TextureDesc RTColorDesc;
-    RTColorDesc.Name      = "Offscreen render target";
-    RTColorDesc.Type      = RESOURCE_DIM_TEX_2D;
-    RTColorDesc.Width     = m_pSwapChain->GetDesc().Width;
-    RTColorDesc.Height    = m_pSwapChain->GetDesc().Height;
-    RTColorDesc.MipLevels = 1;
-    RTColorDesc.Format    = RenderTargetFormat;
-    // The render target can be bound as a shader resource and as a render target
-    RTColorDesc.BindFlags = BIND_SHADER_RESOURCE | BIND_RENDER_TARGET;
-    // Define optimal clear value
-    RTColorDesc.ClearValue.Format   = RTColorDesc.Format;
-    RTColorDesc.ClearValue.Color[0] = 0.350f;
-    RTColorDesc.ClearValue.Color[1] = 0.350f;
-    RTColorDesc.ClearValue.Color[2] = 0.350f;
-    RTColorDesc.ClearValue.Color[3] = 1.f;
+    TextureDesc ColorDesc;
+    ColorDesc.Name      = "Offscreen render target (MSAA)";
+    ColorDesc.Type      = RESOURCE_DIM_TEX_2D;
+    ColorDesc.Width     = SCDesc.Width;
+    ColorDesc.Height    = SCDesc.Height;
+    ColorDesc.MipLevels = 1;
+    ColorDesc.Format    = SCDesc.ColorBufferFormat;
+
+    ColorDesc.BindFlags = BIND_SHADER_RESOURCE | BIND_RENDER_TARGET;
+    ColorDesc.SampleCount = m_SampleCount; // set MSAA samples
+    ColorDesc.ClearValue.Format   = ColorDesc.Format;
+    ColorDesc.ClearValue.Color[0] = 0.350f;
+    ColorDesc.ClearValue.Color[1] = 0.350f;
+    ColorDesc.ClearValue.Color[2] = 0.350f;
+    ColorDesc.ClearValue.Color[3] = 1.f;
+    // create and store the render target view
     RefCntAutoPtr<ITexture> pRTColor;
-    m_pDevice->CreateTexture(RTColorDesc, nullptr, &pRTColor);
-    // Store the render target view
+    m_pDevice->CreateTexture(ColorDesc, nullptr, &pRTColor); 
     m_pColorRTV = pRTColor->GetDefaultView(TEXTURE_VIEW_RENDER_TARGET);
 
-
     // Create window-size depth buffer
-    TextureDesc RTDepthDesc = RTColorDesc;
-    RTDepthDesc.Name        = "Offscreen depth buffer";
-    RTDepthDesc.Format      = DepthBufferFormat;
-    RTDepthDesc.BindFlags   = BIND_DEPTH_STENCIL;
-    // Define optimal clear value
-    RTDepthDesc.ClearValue.Format               = RTDepthDesc.Format;
-    RTDepthDesc.ClearValue.DepthStencil.Depth   = 1;
-    RTDepthDesc.ClearValue.DepthStencil.Stencil = 0;
+    TextureDesc DepthDesc = ColorDesc;
+    DepthDesc.Name        = "Offscreen depth buffer";
+    DepthDesc.Format      = DepthBufferFormat;
+    DepthDesc.BindFlags   = BIND_DEPTH_STENCIL;
+    DepthDesc.ClearValue.Format               = DepthDesc.Format;
+    DepthDesc.ClearValue.DepthStencil.Depth   = 1;
+    DepthDesc.ClearValue.DepthStencil.Stencil = 0;
+
+    // create and store the depth-stencil view
     RefCntAutoPtr<ITexture> pRTDepth;
-    m_pDevice->CreateTexture(RTDepthDesc, nullptr, &pRTDepth);
-    // Store the depth-stencil view
+    m_pDevice->CreateTexture(DepthDesc, nullptr, &pRTDepth);
     m_pDepthDSV = pRTDepth->GetDefaultView(TEXTURE_VIEW_DEPTH_STENCIL);
 
     // We need to release and create a new SRB that references new off-screen render target SRV
@@ -337,6 +408,8 @@ void Terrain::Update(double CurrTime, double ElapsedTime)
     SampleBase::Update(CurrTime, ElapsedTime);
     UpdateUI();
 
+    m_Camera.Update(m_InputController, float(ElapsedTime));
+
     if(ShaderAssetsMarkedDirty) {
         ReloadOnAssetsUpdated();
     }
@@ -345,26 +418,41 @@ void Terrain::Update(double CurrTime, double ElapsedTime)
 
     // Apply rotation
     float4x4 CubeModelTransform = float4x4::RotationY(static_cast<float>(CurrTime) * 1.0f) * float4x4::RotationX(-PI_F * 0.1f);
+    if( ! RotateCube ) {
+        CubeModelTransform = float4x4::Identity();
+    }
 
     // Camera is at (0, 0, -5) looking along the Z axis
     float4x4 View = float4x4::Translation(0.f, 0.0f, 5.0f);
 
     // Get pretransform matrix that rotates the scene according the surface orientation
-    auto SrfPreTransform = GetSurfacePretransformMatrix(float3{0, 0, 1});
+    //auto SrfPreTransform = GetSurfacePretransformMatrix(float3{0, 0, 1});
     // We will have to transform UV coordinates when performing post-processing
-    m_UVPreTransformMatrix = float2x2{SrfPreTransform.m00, SrfPreTransform.m01, SrfPreTransform.m10, SrfPreTransform.m11};
+    //m_UVPreTransformMatrix = float2x2{SrfPreTransform.m00, SrfPreTransform.m01, SrfPreTransform.m10, SrfPreTransform.m11};
 
     // Get projection matrix adjusted to the current screen orientation
     auto Proj = GetAdjustedProjectionMatrix(PI_F / 4.0f, 0.1f, 100.f);
 
     // Compute world-view-projection matrix
-    m_WorldViewProjMatrix = CubeModelTransform * View * SrfPreTransform * Proj;
+    //m_WorldViewProjMatrix = CubeModelTransform * View * SrfPreTransform * Proj;
+
+    m_WorldViewProjMatrix = CubeModelTransform * View * Proj;
+
+    // -----
+    // TODO: get this working
+    if( UseFirstPersonCamera ) {
+        m_WorldViewProjMatrix = CubeModelTransform * m_Camera.GetViewMatrix() * m_Camera.GetProjMatrix();
+    }
 }
 
 void Terrain::Render()
 {
+    //const float ClearColor[] = {0.950f, 0.350f, 0.350f, 1.0f};
+
+    const float ClearColor[] = {0.950f, 0.350f, 0.950f, 1.0f};
+
+
     // Clear the offscreen render target and depth buffer
-    const float ClearColor[] = {0.350f, 0.350f, 0.350f, 1.0f};
     m_pImmediateContext->SetRenderTargets(1, &m_pColorRTV, m_pDepthDSV, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
     m_pImmediateContext->ClearRenderTarget(m_pColorRTV, ClearColor, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
     m_pImmediateContext->ClearDepthStencil(m_pDepthDSV, CLEAR_DEPTH_FLAG, 1.0f, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
@@ -383,14 +471,14 @@ void Terrain::Render()
             float Padding1;
             float Padding2;
 
-            float2x2 UVPreTransform;
-            float2x2 UVPreTransformInv;
+            //float2x2 UVPreTransform;
+            //float2x2 UVPreTransformInv;
         };
         // Map the render target PS constant buffer and fill it in with current time
         MapHelper<VSConstants> CBConstants(m_pImmediateContext, m_RTPSConstants, MAP_WRITE, MAP_FLAG_DISCARD);
         CBConstants->Time              = m_fCurrentTime;
-        CBConstants->UVPreTransform    = m_UVPreTransformMatrix;
-        CBConstants->UVPreTransformInv = m_UVPreTransformMatrix.Inverse();
+        //CBConstants->UVPreTransform    = m_UVPreTransformMatrix;
+        //CBConstants->UVPreTransformInv = m_UVPreTransformMatrix.Inverse();
     }
 
     // Bind vertex and index buffers
@@ -411,6 +499,17 @@ void Terrain::Render()
     DrawAttrs.Flags      = DRAW_FLAG_VERIFY_ALL; // Verify the state of vertex and index buffers
     m_pImmediateContext->DrawIndexed(DrawAttrs);
 
+    // resolve MSAA buffer before using
+    if (m_SampleCount > 1) {
+        // Resolve multi-sampled render target into the current swap chain back buffer.
+        auto pCurrentBackBuffer = m_pSwapChain->GetCurrentBackBufferRTV()->GetTexture();
+
+        ResolveTextureSubresourceAttribs ResolveAttribs;
+        ResolveAttribs.SrcTextureTransitionMode = RESOURCE_STATE_TRANSITION_MODE_TRANSITION;
+        ResolveAttribs.DstTextureTransitionMode = RESOURCE_STATE_TRANSITION_MODE_TRANSITION;
+        m_pImmediateContext->ResolveTextureSubresource(m_pColorRTV->GetTexture(), pCurrentBackBuffer, ResolveAttribs);
+    }
+
     auto* pRTV = m_pSwapChain->GetCurrentBackBufferRTV();
     // Clear the default render target
     const float Zero[] = {0.0f, 0.0f, 0.0f, 1.0f};
@@ -428,17 +527,58 @@ void Terrain::Render()
     RTDrawAttrs.NumVertices = 4;
     RTDrawAttrs.Flags       = DRAW_FLAG_VERIFY_ALL; // Verify the state of vertex and index buffers
     m_pImmediateContext->Draw(RTDrawAttrs);
+    /* FIXME: caused by above line:
+    Diligent Engine: ERROR: Debug assertion failed in Diligent::ValidateResourceViewDimension(), file ShaderResourceVariableBase.hpp, line 391:
+    Texture view 'Default SRV of texture 'Offscreen render target (MSAA)'' bound to variable 'g_Texture' is invalid: single-sample texture is expected.
+    */
 }
 
 void Terrain::UpdateUI()
 {
-    ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
-    if (ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
-    {
-        //ImGui::SliderFloat("Line Width", &m_LineWidth, 1.f, 10.f);
-        ImGui::Checkbox( "shaders dirty", &ShaderAssetsMarkedDirty );
+    im::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
+    if( im::Begin("Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize) ) {
+        //im::SliderFloat("Line Width", &m_LineWidth, 1.f, 10.f);
+
+        if( im::CollapsingHeader( "Camera", ImGuiTreeNodeFlags_DefaultOpen ) ) {
+            im::Checkbox( "enabled", &UseFirstPersonCamera );
+            if( im::DragFloat( "move speed", &CameraMoveSpeed) ) {
+                m_Camera.SetMoveSpeed(CameraMoveSpeed);
+            }
+            if( im::DragFloat( "rotate speed", &CameraRotationSpeed) ) {
+                m_Camera.SetRotationSpeed(CameraRotationSpeed);
+            }
+            if( im::DragFloat2( "speed up scale", &CameraSpeedUp.x) ) {
+                m_Camera.SetSpeedUpScales(CameraSpeedUp.x, CameraSpeedUp.y);
+            }
+            if( im::Button("reset") ) {
+                InitCamera();
+            }
+        }
+
+        im::Checkbox( "rotate cube", &RotateCube );
+
+        im::Checkbox( "shaders dirty", &ShaderAssetsMarkedDirty );
+
+        {
+            std::array<std::pair<Uint8, const char*>, 4> ComboItems;
+            Uint32 NumItems = 0;
+
+            ComboItems[NumItems++] = std::make_pair(Uint8{1}, "1");
+            if (m_SupportedSampleCounts & 0x02)
+                ComboItems[NumItems++] = std::make_pair(Uint8{2}, "2");
+            if (m_SupportedSampleCounts & 0x04)
+                ComboItems[NumItems++] = std::make_pair(Uint8{4}, "4");
+            if (m_SupportedSampleCounts & 0x08)
+                ComboItems[NumItems++] = std::make_pair(Uint8{8}, "8");
+            if (im::Combo("MSAA samples", &m_SampleCount, ComboItems.data(), NumItems)) {
+                // TODO: check / update this after MSAA works
+                //ReloadOnAssetsUpdated();
+                CreateCubePSO();
+                CreateMSAARenderTarget();
+            }
+        }
     }
-    ImGui::End();
+    im::End();
 }
 
 namespace Diligent {

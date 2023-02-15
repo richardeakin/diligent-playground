@@ -3,6 +3,10 @@ cmake_minimum_required (VERSION 3.6)
 project(TutorialFromCube CXX)
 set( APP_TARGET "TutorialFromCube" )
 
+set( INCLUDE_USER
+	${LIVEPP_PATH}
+)
+
 set(SOURCE
     src/TutorialFromCube.cpp
     ../common/src/TexturedCube.cpp

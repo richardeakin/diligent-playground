@@ -13,9 +13,14 @@ option(BUILD_GX "Build GX" OFF)
 # used for logging
 include( cinder/proj/cmake/utilities.cmake )
 
-add_subdirectory( cinder )
+# add_subdirectory( cinder )
 get_filename_component( CINDER_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cinder/" ABSOLUTE )
 # message("CINDER_PATH: ${CINDER_PATH}")
+
+# ----
+# wip Live++ support
+
+get_filename_component( LIVEPP_PATH "${CMAKE_CURRENT_SOURCE_DIR}/tools/LivePP/API" ABSOLUTE )
 
 # -------------------------------------------------------------------
 # Diligent
