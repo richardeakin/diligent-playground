@@ -6,7 +6,7 @@ namespace ju {
 
 namespace fs = std::filesystem;
 
-bool initLivePP( const fs::path &lppPath );
-//bool initLivePP( const std::filesystem::path &lppPath );
+//! settingsFile is relative to lppPath
+bool initLivePP( const fs::path &lppPath, const fs::path &settingsFile = "livepp.json" );
 
 } // namespace ju

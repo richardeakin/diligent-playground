@@ -1,5 +1,6 @@
 #include "LivePP.h"
 
+#include "../../Primitives/interface/Errors.hpp"
 
 #include <windows.h>
 #include "LPP_API_x64_CPP.h"
@@ -29,11 +30,28 @@ wstring toWideString( const string &utf8String )
 }
 
 // TODO: should probably use the synchronized agent as explained here https://liveplusplus.tech/docs/documentation.html#creating_synchronized_agent
-bool initLivePP( const fs::path &lppPath )
+bool initLivePP( const fs::path &lppPath, const fs::path &settingsFile )
 {
+	auto exePath = lpp::LppGetCurrentModulePathANSI();
+	LOG_INFO_MESSAGE( string( "current module path: " ) + exePath );
+
 	auto wp = toWideString( lppPath.string() );
-    lpp::LppDefaultAgent lppAgent = lpp::LppCreateDefaultAgent( wp.c_str() );
-    lppAgent.EnableModule( lpp::LppGetCurrentModulePath(), lpp::LPP_MODULES_OPTION_ALL_IMPORT_MODULES );
+	auto prefsFile = fs::path( exePath ).parent_path() / lppPath / settingsFile;
+
+	LOG_INFO_MESSAGE( string( "prefsFile: " ) + prefsFile.string() );
+
+	lpp::LppDefaultAgent agent;
+	if( fs::exists( prefsFile ) ) {
+		LOG_INFO_MESSAGE( "found settings file" );
+		auto wprefs = toWideString( prefsFile.string() );
+		agent = lpp::LppCreateDefaultAgentWithPreferencesFromFile( wp.c_str(), wprefs.c_str() );
+	}
+	else {
+		LOG_ERROR_MESSAGE( "could not find settings file" );
+		agent = lpp::LppCreateDefaultAgent( wp.c_str() );
+	}
+
+	agent.EnableModule( lpp::LppGetCurrentModulePath(), lpp::LPP_MODULES_OPTION_ALL_IMPORT_MODULES );
 
     return true; // TODO: use return from Live++
 }

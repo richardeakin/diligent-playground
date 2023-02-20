@@ -141,7 +141,7 @@ void InstancedCubes::UpdateUI()
 
         ImGui::Separator();
         ImGui::ColorEdit4( "ClearColor", &ClearColor[0], ImGuiColorEditFlags_Float );
-        ImGui::Text( "Wazzuupp Live++!" );
+        ImGui::Text( "Wazzuupp Live++! Good to have you back." );
     }
     ImGui::End();
 }
