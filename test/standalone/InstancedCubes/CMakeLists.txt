@@ -29,7 +29,7 @@ set(ASSETS
 add_sample_app( ${APP_TARGET} "test/standalone" "${SOURCE}" "${INCLUDE}" "${SHADERS}" "${ASSETS}" )
 
 # TODO: move to common helper
-set_target_properties( ${APP_TARGET} PROPERTIES CXX_STANDARD 17 )
+set_target_properties( ${APP_TARGET} PROPERTIES CXX_STANDARD 20 )
 
 set( INCLUDE_USER
     ${LIVEPP_PATH} # set in top level CMakeLists.txt
