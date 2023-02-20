@@ -6,11 +6,13 @@ set( APP_TARGET "InstancedCubes" )
 set(SOURCE
     src/InstancedCubes.cpp
     ../common/src/TexturedCube.cpp
+    ../common/src/LivePP.cpp
 )
 
 set(INCLUDE
     src/InstancedCubes.hpp
     ../common/src/TexturedCube.hpp
+    ../common/src/LivePP.h
 )
 
 set(SHADERS
@@ -26,6 +28,8 @@ set(ASSETS
 
 add_sample_app( ${APP_TARGET} "test/standalone" "${SOURCE}" "${INCLUDE}" "${SHADERS}" "${ASSETS}" )
 
+# TODO: move to common helper
+set_target_properties( ${APP_TARGET} PROPERTIES CXX_STANDARD 17 )
 
 set( INCLUDE_USER
     ${LIVEPP_PATH} # set in top level CMakeLists.txt
