@@ -1,4 +1,4 @@
-// Copyright 2011-2022 Molecular Matters GmbH, all rights reserved.
+// Copyright 2011-2023 Molecular Matters GmbH, all rights reserved.
 
 #pragma once
 
@@ -20,6 +20,12 @@ typedef enum LppReloadBehaviour
 	LPP_RELOAD_BEHAVIOUR_CONTINUE_EXECUTION,
 	LPP_RELOAD_BEHAVIOUR_WAIT_UNTIL_CHANGES_ARE_APPLIED
 } LppReloadBehaviour;
+
+typedef enum LppRestartOption
+{
+	LPP_RESTART_OPTION_CURRENT_PROCESS,
+	LPP_RESTART_OPTION_ALL_PROCESSES
+} LppRestartOption;
 
 typedef enum LppRestartBehaviour
 {

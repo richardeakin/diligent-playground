@@ -1,8 +1,47 @@
-// Copyright 2011-2022 Molecular Matters GmbH, all rights reserved.
+// Copyright 2011-2023 Molecular Matters GmbH, all rights reserved.
 
 #pragma once
 
 #include "LPP_API_Helpers.h"
+
+// users of the API should not be required to include <Windows.h>
+#ifndef _INC_WINDOWS
+	// <Windows.h> was not included, so we provide our own typedefs and function prototypes for the required APIs
+
+	// opaque types
+	struct HINSTANCE__;
+	typedef HINSTANCE__* HINSTANCE;
+	typedef HINSTANCE HMODULE;
+	struct IMAGE_DOS_HEADER;
+
+	// standard types
+	typedef int BOOL;
+	typedef unsigned long DWORD;
+	typedef long long INT_PTR;
+
+	// char string types
+	typedef char CHAR;
+	typedef CHAR* LPSTR;
+	typedef const CHAR* LPCSTR;
+
+	// wchar_t string types
+	typedef wchar_t WCHAR;
+	typedef WCHAR* LPWSTR;
+	typedef const WCHAR* LPCWSTR;
+
+	typedef INT_PTR (__stdcall* FARPROC)();
+
+	// APIs
+	LPP_EXTERN_C __declspec(dllimport) HMODULE __stdcall LoadLibraryA(LPCSTR lpLibFileName);
+	LPP_EXTERN_C __declspec(dllimport) HMODULE __stdcall LoadLibraryW(LPCWSTR lpLibFileName);
+	LPP_EXTERN_C __declspec(dllimport) BOOL __stdcall FreeLibrary(HMODULE hLibModule);
+	LPP_EXTERN_C __declspec(dllimport) FARPROC __stdcall GetProcAddress(HMODULE hModule, LPCSTR lpProcName);
+	LPP_EXTERN_C __declspec(dllimport) DWORD __stdcall GetModuleFileNameA(HMODULE hModule, LPSTR lpFilename, DWORD nSize);
+	LPP_EXTERN_C __declspec(dllimport) DWORD __stdcall GetModuleFileNameW(HMODULE hModule, LPWSTR lpFilename, DWORD nSize);
+
+	// required .lib for the Win32 APIs
+#	pragma comment(lib, "Kernel32.lib")
+#endif
 
 
 // ------------------------------------------------------------------------------------------------
@@ -20,14 +59,22 @@ LPP_NAMESPACE_BEGIN
 typedef HMODULE LppAgentModule;
 
 // Invalid Live++ agent module.
-#define LPP_INVALID_MODULE				LPP_NULL
+#define LPP_INVALID_MODULE					LPP_NULL
 
 LPP_NAMESPACE_END
 
 // Linker pseudo-variable representing the DOS header of the module we're being compiled into.
 // See Raymond Chen's blog ("Accessing the current module's HINSTANCE from a static library"):
 // https://blogs.msdn.microsoft.com/oldnewthing/20041025-00/?p=37483
-EXTERN_C IMAGE_DOS_HEADER __ImageBase;
+#if defined(__clang__)
+	// Clang complains about __ImageBase being a reserved identifier
+#	pragma clang diagnostic push
+#	pragma clang diagnostic ignored "-Wreserved-identifier"
+	LPP_EXTERN_C IMAGE_DOS_HEADER __ImageBase;
+#	pragma clang diagnostic pop
+#else
+	LPP_EXTERN_C IMAGE_DOS_HEADER __ImageBase;
+#endif
 
 
 // ------------------------------------------------------------------------------------------------
@@ -51,30 +98,29 @@ LPP_API void LppPlatformUnloadLibrary(HMODULE module)
 	FreeLibrary(module);
 }
 
-LPP_API FARPROC LppPlatformGetFunctionAddress(HMODULE module, const char* const name)
+LPP_API void* LppPlatformGetFunctionAddress(HMODULE module, const char* const name)
 {
-	return GetProcAddress(module, name);
+	return LPP_REINTERPRET_CAST(void*)(GetProcAddress(module, name));
 }
 
 LPP_API const char* LppPlatformGetCurrentModulePathANSI(void)
 {
-	static char path[MAX_PATH] = { 0 };
-	GetModuleFileNameA(LPP_REINTERPRET_CAST(HMODULE)(&__ImageBase), path, MAX_PATH);
+#define LPP_MAX_PATH 260
+	static char path[LPP_MAX_PATH] = LPP_DEFAULT_INIT('\0');
+	GetModuleFileNameA(LPP_REINTERPRET_CAST(HMODULE)(&__ImageBase), path, LPP_MAX_PATH);
+#undef LPP_MAX_PATH
 
 	return path;
 }
 
 LPP_API const wchar_t* LppPlatformGetCurrentModulePath(void)
 {
-	static wchar_t path[MAX_PATH] = { 0 };
-	GetModuleFileNameW(LPP_REINTERPRET_CAST(HMODULE)(&__ImageBase), path, MAX_PATH);
+#define LPP_MAX_PATH 260
+	static wchar_t path[LPP_MAX_PATH] = LPP_DEFAULT_INIT(L'\0');
+	GetModuleFileNameW(LPP_REINTERPRET_CAST(HMODULE)(&__ImageBase), path, LPP_MAX_PATH);
+#undef LPP_MAX_PATH
 
 	return path;
-}
-
-LPP_API bool LppPlatformIsValidLibrary(HMODULE module)
-{
-	return (module != LPP_NULL);
 }
 
 LPP_NAMESPACE_END

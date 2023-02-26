@@ -1,4 +1,4 @@
-// Copyright 2011-2022 Molecular Matters GmbH, all rights reserved.
+// Copyright 2011-2023 Molecular Matters GmbH, all rights reserved.
 
 #pragma once
 
@@ -24,6 +24,10 @@ typedef struct LppProjectPreferences
 			const wchar_t* workingDirectory;
 			const char* commandLineOptions;
 		} preBuild;
+
+		bool callCompileHooksForHaltedProcesses;
+		bool callLinkHooksForHaltedProcesses;
+		bool callHotReloadHooksForHaltedProcesses;
 	} hotReload;
 
 	struct Compiler
@@ -71,12 +75,6 @@ typedef struct LppProjectPreferences
 		int threshold;
 		bool isEnabled;
 	} unitySplitting;
-
-	struct FASTBuild
-	{
-		const wchar_t* dllPath;
-		bool removeShowIncludes;
-	} fastBuild;
 } LppProjectPreferences;
 
 LPP_NAMESPACE_END
