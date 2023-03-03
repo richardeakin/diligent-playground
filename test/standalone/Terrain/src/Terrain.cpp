@@ -147,7 +147,7 @@ void Terrain::CreateRenderTargetPSO()
 
     ShaderCreateInfo ShaderCI;
     ShaderCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_HLSL;
-    ShaderCI.UseCombinedTextureSamplers = true;
+    ShaderCI.Desc.UseCombinedTextureSamplers = true;
 
     // create a shader source stream factory to load shaders from file
     RefCntAutoPtr<IShaderSourceInputStreamFactory> pShaderSourceFactory;
