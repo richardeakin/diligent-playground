@@ -1,4 +1,4 @@
-// Copyright 2011-2022 Molecular Matters GmbH, all rights reserved.
+// Copyright 2011-2023 Molecular Matters GmbH, all rights reserved.
 
 #pragma once
 
@@ -12,16 +12,22 @@
 #	define LPP_NAMESPACE_BEGIN				namespace lpp {
 #	define LPP_NAMESPACE_END				}
 #	define LPP_API							inline
+#	define LPP_STATIC_CAST(_type)			static_cast<_type>
 #	define LPP_REINTERPRET_CAST(_type)		reinterpret_cast<_type>
 #	define LPP_NULL							nullptr
+#	define LPP_DEFAULT_INIT(_value)			{}
+#	define LPP_EXTERN_C						extern "C"
 #else
 #	include <stdbool.h>						// required for bool in C99
 #	define LPP_NAMESPACE
 #	define LPP_NAMESPACE_BEGIN
 #	define LPP_NAMESPACE_END
 #	define LPP_API							static inline
+#	define LPP_STATIC_CAST(_type)			(_type)
 #	define LPP_REINTERPRET_CAST(_type)		(_type)
 #	define LPP_NULL							NULL
+#	define LPP_DEFAULT_INIT(_value)			{ _value }
+#	define LPP_EXTERN_C						extern
 #endif
 
 // Concatenates two preprocessor tokens, even when the tokens themselves are macros.

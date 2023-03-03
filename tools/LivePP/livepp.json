@@ -1,0 +1,49 @@
+{
+    "Compiler": {
+        "captureEnvironment": true,
+        "commandLineOptions": "",
+        "forcePrecompiledHeaderPDBs": false,
+        "isOverridden": false,
+        "overrideLocation": "",
+        "useOverrideAsFallback": false
+    },
+    "ContinuousCompilation": {
+        "directory": "C:/Users/r/code/graphics/diligent/diligent-playground",
+        "isEnabled": true,
+        "timeout": 100
+    },
+    "ExceptionHandler": {
+        "isEnabled": true,
+        "order": 1
+    },
+    "FASTBuild": {
+        "dllPath": "",
+        "removeShowIncludes": false
+    },
+    "HotReload": {
+        "captureToolchainEnvironmentTimeout": 10000,
+        "libraryFileExtensions": ".lib;.a",
+        "objectFileExtensions": ".obj;.o",
+        "preBuildCommandLineOptions": "",
+        "preBuildExecutable": "",
+        "preBuildIsEnabled": false,
+        "preBuildWorkingDirectory": "./"
+    },
+    "Linker": {
+        "captureEnvironment": true,
+        "commandLineOptions": "",
+        "isOverridden": false,
+        "overrideLocation": "",
+        "useOverrideAsFallback": false
+    },
+    "UnitySplitting": {
+        "fileExtensions": ".cpp;.c;.cc;.c++;.cp;.cxx",
+        "isEnabled": true,
+        "threshold": 3
+    },
+    "VirtualDrive": {
+        "directory": "",
+        "isEnabled": false,
+        "letter": ""
+    }
+}

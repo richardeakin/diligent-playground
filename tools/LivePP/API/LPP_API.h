@@ -1,4 +1,4 @@
-// Copyright 2011-2022 Molecular Matters GmbH, all rights reserved.
+// Copyright 2011-2023 Molecular Matters GmbH, all rights reserved.
 
 #pragma once
 
@@ -41,9 +41,6 @@ typedef void LppEnableModuleFunction(const wchar_t* const relativeOrFullPath, Lp
 typedef void LppEnableModulesFunctionANSI(const char* const* const arrayOfRelativeOrFullPaths, size_t count, LppModulesOption options);
 typedef void LppEnableModulesFunction(const wchar_t* const* const arrayOfRelativeOrFullPaths, size_t count, LppModulesOption options);
 
-typedef void LppEnableFASTBuildModuleFunctionANSI(const char* const relativeOrFullPath, const char* const relativeOrFullDatabasePath, const char* const targetName);
-typedef void LppEnableFASTBuildModuleFunction(const wchar_t* const relativeOrFullPath, const wchar_t* const relativeOrFullDatabasePath, const char* const targetName);
-
 typedef void LppDisableModuleFunctionANSI(const char* const relativeOrFullPath, LppModulesOption options);
 typedef void LppDisableModuleFunction(const wchar_t* const relativeOrFullPath, LppModulesOption options);
 
@@ -55,6 +52,7 @@ typedef void LppScheduleReloadFunction(void);
 typedef void LppCompileAndReloadChangesFunction(LppReloadBehaviour behaviour);
 
 typedef bool LppWantsRestartFunction(void);
+typedef void LppScheduleRestartFunction(LppRestartOption option);
 typedef void LppRestartFunction(LppRestartBehaviour behaviour, unsigned int exitCode);
 
 typedef void LppSetBoolPreferencesFunction(LppBoolPreferences preferences, bool value);
@@ -74,7 +72,7 @@ LPP_NAMESPACE_BEGIN
 typedef struct LppDefaultAgent
 {
 	// Internal platform-specific module. DO NOT USE!
-	LppAgentModule __internalModule__;
+	LppAgentModule internalModuleDoNotUse;
 
 	// Logs a message to the Live++ UI.
 	LppLogMessageFunctionANSI* LogMessageANSI;
@@ -93,10 +91,6 @@ typedef struct LppDefaultAgent
 	LppEnableModulesFunctionANSI* EnableModulesANSI;
 	LppEnableModulesFunction* EnableModules;
 
-	// Enables a module using a FASTBuild database and target.
-	LppEnableFASTBuildModuleFunctionANSI* EnableFASTBuildModuleANSI;
-	LppEnableFASTBuildModuleFunction* EnableFASTBuildModule;
-
 	// Disables a module with the given options.
 	LppDisableModuleFunctionANSI* DisableModuleANSI;
 	LppDisableModuleFunction* DisableModule;
@@ -107,6 +101,9 @@ typedef struct LppDefaultAgent
 
 	// Schedules a hot-reload operation.
 	LppScheduleReloadFunction* ScheduleReload;
+
+	// Schedules a hot-restart operation.
+	LppScheduleRestartFunction* ScheduleRestart;
 
 	// Sets a boolean preference to the given value.
 	LppSetBoolPreferencesFunction* SetBoolPreferences;
@@ -126,7 +123,7 @@ typedef struct LppDefaultAgent
 typedef struct LppSynchronizedAgent
 {
 	// Internal platform-specific module. DO NOT USE!
-	LppAgentModule __internalModule__;
+	LppAgentModule internalModuleDoNotUse;
 
 	// Logs a message to the Live++ UI.
 	LppLogMessageFunctionANSI* LogMessageANSI;
@@ -144,10 +141,6 @@ typedef struct LppSynchronizedAgent
 	// Enables several modules with the given options.
 	LppEnableModulesFunctionANSI* EnableModulesANSI;
 	LppEnableModulesFunction* EnableModules;
-
-	// Enables a module using a FASTBuild database and target.
-	LppEnableFASTBuildModuleFunctionANSI* EnableFASTBuildModuleANSI;
-	LppEnableFASTBuildModuleFunction* EnableFASTBuildModule;
 
 	// Disables a module with the given options.
 	LppDisableModuleFunctionANSI* DisableModuleANSI;
@@ -168,8 +161,11 @@ typedef struct LppSynchronizedAgent
 	LppCompileAndReloadChangesFunction* CompileAndReloadChanges;
 
 	// Returns whether Live++ wants to hot-restart the process.
-	// Returns true once the process has been selected for hot-restart in the Live++ UI.
+	// Returns true once the process has been selected for hot-restart in the Live++ UI, or a manual restart was scheduled.
 	LppWantsRestartFunction* WantsRestart;
+
+	// Schedules a hot-restart operation, making WantsRestart() return true as soon as possible.
+	LppScheduleRestartFunction* ScheduleRestart;
 
 	// Restarts the process, respecting the given behaviour.
 	// Does not return.
@@ -201,7 +197,7 @@ LPP_NAMESPACE_BEGIN
 // Loads the agent from a shared library.
 LPP_API LppAgentModule LppInternalLoadAgentLibraryANSI(const char* const absoluteOrRelativePathWithoutTrailingSlash)
 {
-	char libraryPath[1024u] = { 0 };
+	char libraryPath[1024u] = LPP_DEFAULT_INIT(0);
 	LppHelperMakeLibraryNameANSI(LPP_PLATFORM_LIBRARY_PREFIX_ANSI, absoluteOrRelativePathWithoutTrailingSlash, LPP_PLATFORM_LIBRARY_NAME_ANSI, libraryPath, 1024u);
 
 	return LppPlatformLoadLibraryANSI(libraryPath);
@@ -210,7 +206,7 @@ LPP_API LppAgentModule LppInternalLoadAgentLibraryANSI(const char* const absolut
 // Loads the agent from a shared library.
 LPP_API LppAgentModule LppInternalLoadAgentLibrary(const wchar_t* const absoluteOrRelativePathWithoutTrailingSlash)
 {
-	wchar_t libraryPath[1024u] = { 0 };
+	wchar_t libraryPath[1024u] = LPP_DEFAULT_INIT(0);
 	LppHelperMakeLibraryName(LPP_PLATFORM_LIBRARY_PREFIX, absoluteOrRelativePathWithoutTrailingSlash, LPP_PLATFORM_LIBRARY_NAME, libraryPath, 1024u);
 	
 	return LppPlatformLoadLibrary(libraryPath);
@@ -220,12 +216,12 @@ LPP_API LppAgentModule LppInternalLoadAgentLibrary(const wchar_t* const absolute
 LPP_API void LppInternalCheckVersion(LppAgentModule lppModule)
 {
 	typedef bool LppCheckVersionFunction(const char* const);
-	LppCheckVersionFunction* checkVersion = LPP_REINTERPRET_CAST(LppCheckVersionFunction*)(LPP_REINTERPRET_CAST(uintptr_t)(LppPlatformGetFunctionAddress(lppModule, "LppCheckVersion")));
+	LppCheckVersionFunction* checkVersion = LPP_REINTERPRET_CAST(LppCheckVersionFunction*)(LppPlatformGetFunctionAddress(lppModule, "LppCheckVersion"));
 	if (checkVersion(LPP_VERSION) == false)
 	{
 		// the version of this API and the agent library don't match
 		typedef const char* LppGetVersionFunction(void);
-		LppGetVersionFunction* getVersion = LPP_REINTERPRET_CAST(LppGetVersionFunction*)(LPP_REINTERPRET_CAST(uintptr_t)(LppPlatformGetFunctionAddress(lppModule, "LppGetVersion")));
+		LppGetVersionFunction* getVersion = LPP_REINTERPRET_CAST(LppGetVersionFunction*)(LppPlatformGetFunctionAddress(lppModule, "LppGetVersion"));
 
 		// store both versions in local variables for inspecting them in a debugger
 		const char* const apiVersion = LPP_VERSION;
@@ -240,9 +236,9 @@ LPP_API void LppInternalCheckVersion(LppAgentModule lppModule)
 // Creates a default agent, either loading the project preferences from a file, or passing them along.
 LPP_API LppDefaultAgent LppInternalCreateDefaultAgentANSI(const char* const absoluteOrRelativePathWithoutTrailingSlash, const char* const absoluteOrRelativePathToProjectPreferences, const LppProjectPreferences* const projectPreferences)
 {
-	LppDefaultAgent agent = { LPP_INVALID_MODULE };
+	LppDefaultAgent agent = LPP_DEFAULT_INIT(LPP_INVALID_MODULE);
 	LppAgentModule lppModule = LppInternalLoadAgentLibraryANSI(absoluteOrRelativePathWithoutTrailingSlash);
-	if (!LppPlatformIsValidLibrary(lppModule))
+	if (lppModule == LPP_INVALID_MODULE)
 	{
 		return agent;
 	}
@@ -250,10 +246,10 @@ LPP_API LppDefaultAgent LppInternalCreateDefaultAgentANSI(const char* const abso
 	LppInternalCheckVersion(lppModule);
 
 	// the module is valid, store it in the agent
-	agent.__internalModule__ = lppModule;
+	agent.internalModuleDoNotUse = lppModule;
 
 	typedef void LppStartupFunction(LppDefaultAgent*, const char* const, const LppProjectPreferences* const);
-	LppStartupFunction* startup = LPP_REINTERPRET_CAST(LppStartupFunction*)(LPP_REINTERPRET_CAST(uintptr_t)(LppPlatformGetFunctionAddress(lppModule, "LppStartupDefaultAgentANSI")));
+	LppStartupFunction* startup = LPP_REINTERPRET_CAST(LppStartupFunction*)(LppPlatformGetFunctionAddress(lppModule, "LppStartupDefaultAgentANSI"));
 	startup(&agent, absoluteOrRelativePathToProjectPreferences, projectPreferences);
 
 	return agent;
@@ -262,9 +258,9 @@ LPP_API LppDefaultAgent LppInternalCreateDefaultAgentANSI(const char* const abso
 // Creates a default agent, either loading the project preferences from a file, or passing them along.
 LPP_API LppDefaultAgent LppInternalCreateDefaultAgent(const wchar_t* const absoluteOrRelativePathWithoutTrailingSlash, const wchar_t* const absoluteOrRelativePathToProjectPreferences, const LppProjectPreferences* const projectPreferences)
 {
-	LppDefaultAgent agent = { LPP_INVALID_MODULE };
+	LppDefaultAgent agent = LPP_DEFAULT_INIT(LPP_INVALID_MODULE);
 	LppAgentModule lppModule = LppInternalLoadAgentLibrary(absoluteOrRelativePathWithoutTrailingSlash);
-	if (!LppPlatformIsValidLibrary(lppModule))
+	if (lppModule == LPP_INVALID_MODULE)
 	{
 		return agent;
 	}
@@ -272,10 +268,10 @@ LPP_API LppDefaultAgent LppInternalCreateDefaultAgent(const wchar_t* const absol
 	LppInternalCheckVersion(lppModule);
 
 	// the module is valid, store it in the agent
-	agent.__internalModule__ = lppModule;
+	agent.internalModuleDoNotUse = lppModule;
 
 	typedef void LppStartupFunction(LppDefaultAgent*, const wchar_t* const, const LppProjectPreferences* const);
-	LppStartupFunction* startup = LPP_REINTERPRET_CAST(LppStartupFunction*)(LPP_REINTERPRET_CAST(uintptr_t)(LppPlatformGetFunctionAddress(lppModule, "LppStartupDefaultAgent")));
+	LppStartupFunction* startup = LPP_REINTERPRET_CAST(LppStartupFunction*)(LppPlatformGetFunctionAddress(lppModule, "LppStartupDefaultAgent"));
 	startup(&agent, absoluteOrRelativePathToProjectPreferences, projectPreferences);
 
 	return agent;
@@ -284,9 +280,9 @@ LPP_API LppDefaultAgent LppInternalCreateDefaultAgent(const wchar_t* const absol
 // Creates a synchronized agent, either loading the project preferences from a file, or passing them along.
 LPP_API LppSynchronizedAgent LppInternalCreateSynchronizedAgentANSI(const char* const absoluteOrRelativePathWithoutTrailingSlash, const char* const absoluteOrRelativePathToProjectPreferences, const LppProjectPreferences* const projectPreferences)
 {
-	LppSynchronizedAgent agent = { LPP_INVALID_MODULE };
+	LppSynchronizedAgent agent = LPP_DEFAULT_INIT(LPP_INVALID_MODULE);
 	LppAgentModule lppModule = LppInternalLoadAgentLibraryANSI(absoluteOrRelativePathWithoutTrailingSlash);
-	if (!LppPlatformIsValidLibrary(lppModule))
+	if (lppModule == LPP_INVALID_MODULE)
 	{
 		return agent;
 	}
@@ -294,10 +290,10 @@ LPP_API LppSynchronizedAgent LppInternalCreateSynchronizedAgentANSI(const char* 
 	LppInternalCheckVersion(lppModule);
 
 	// the module is valid, store it in the agent
-	agent.__internalModule__ = lppModule;
+	agent.internalModuleDoNotUse = lppModule;
 
 	typedef void LppStartupFunction(LppSynchronizedAgent*, const char* const, const LppProjectPreferences* const);
-	LppStartupFunction* startup = LPP_REINTERPRET_CAST(LppStartupFunction*)(LPP_REINTERPRET_CAST(uintptr_t)(LppPlatformGetFunctionAddress(lppModule, "LppStartupSynchronizedAgentANSI")));
+	LppStartupFunction* startup = LPP_REINTERPRET_CAST(LppStartupFunction*)(LppPlatformGetFunctionAddress(lppModule, "LppStartupSynchronizedAgentANSI"));
 	startup(&agent, absoluteOrRelativePathToProjectPreferences, projectPreferences);
 
 	return agent;
@@ -306,9 +302,9 @@ LPP_API LppSynchronizedAgent LppInternalCreateSynchronizedAgentANSI(const char* 
 // Creates a synchronized agent, either loading the project preferences from a file, or passing them along.
 LPP_API LppSynchronizedAgent LppInternalCreateSynchronizedAgent(const wchar_t* const absoluteOrRelativePathWithoutTrailingSlash, const wchar_t* const absoluteOrRelativePathToProjectPreferences, const LppProjectPreferences* const projectPreferences)
 {
-	LppSynchronizedAgent agent = { LPP_INVALID_MODULE };
+	LppSynchronizedAgent agent = LPP_DEFAULT_INIT(LPP_INVALID_MODULE);
 	LppAgentModule lppModule = LppInternalLoadAgentLibrary(absoluteOrRelativePathWithoutTrailingSlash);
-	if (!LppPlatformIsValidLibrary(lppModule))
+	if (lppModule == LPP_INVALID_MODULE)
 	{
 		return agent;
 	}
@@ -316,10 +312,10 @@ LPP_API LppSynchronizedAgent LppInternalCreateSynchronizedAgent(const wchar_t* c
 	LppInternalCheckVersion(lppModule);
 
 	// the module is valid, store it in the agent
-	agent.__internalModule__ = lppModule;
+	agent.internalModuleDoNotUse = lppModule;
 
 	typedef void LppStartupFunction(LppSynchronizedAgent*, const wchar_t* const, const LppProjectPreferences* const);
-	LppStartupFunction* startup = LPP_REINTERPRET_CAST(LppStartupFunction*)(LPP_REINTERPRET_CAST(uintptr_t)(LppPlatformGetFunctionAddress(lppModule, "LppStartupSynchronizedAgent")));
+	LppStartupFunction* startup = LPP_REINTERPRET_CAST(LppStartupFunction*)(LppPlatformGetFunctionAddress(lppModule, "LppStartupSynchronizedAgent"));
 	startup(&agent, absoluteOrRelativePathToProjectPreferences, projectPreferences);
 
 	return agent;
@@ -329,7 +325,7 @@ LPP_API LppSynchronizedAgent LppInternalCreateSynchronizedAgent(const wchar_t* c
 LPP_API void LppInternalDestroyAgent(LppAgentModule agentModule)
 {
 	typedef void LppShutdownFunction(void);
-	LppShutdownFunction* shutdown = LPP_REINTERPRET_CAST(LppShutdownFunction*)(LPP_REINTERPRET_CAST(uintptr_t)(LppPlatformGetFunctionAddress(agentModule, "LppShutdown")));
+	LppShutdownFunction* shutdown = LPP_REINTERPRET_CAST(LppShutdownFunction*)(LppPlatformGetFunctionAddress(agentModule, "LppShutdown"));
 	shutdown();
 
 	LppPlatformUnloadLibrary(agentModule);
@@ -356,6 +352,9 @@ LPP_API LppProjectPreferences LppCreateDefaultProjectPreferences(void)
 	prefs.hotReload.preBuild.executable = L"";
 	prefs.hotReload.preBuild.workingDirectory = L"./";
 	prefs.hotReload.preBuild.commandLineOptions = "";
+	prefs.hotReload.callCompileHooksForHaltedProcesses = false;
+	prefs.hotReload.callLinkHooksForHaltedProcesses = false;
+	prefs.hotReload.callHotReloadHooksForHaltedProcesses = false;
 
 	prefs.compiler.overrideLocation = L"";
 	prefs.compiler.commandLineOptions = "";
@@ -385,9 +384,6 @@ LPP_API LppProjectPreferences LppCreateDefaultProjectPreferences(void)
 	prefs.unitySplitting.threshold = 3;
 	prefs.unitySplitting.isEnabled = true;
 
-	prefs.fastBuild.dllPath = L"";
-	prefs.fastBuild.removeShowIncludes = false;
-
 	return prefs;
 }
 
@@ -415,7 +411,7 @@ LPP_NAMESPACE_BEGIN
 // Returns whether the given default agent is valid.
 LPP_API bool LppIsValidDefaultAgent(const LppDefaultAgent* const agent)
 {
-	return LppPlatformIsValidLibrary(agent->__internalModule__);
+	return (agent->internalModuleDoNotUse != LPP_INVALID_MODULE);
 }
 
 
@@ -464,8 +460,11 @@ LPP_API LppDefaultAgent LppCreateDefaultAgentWithPreferencesFromFile(const wchar
 // Destroys the given default agent.
 LPP_API void LppDestroyDefaultAgent(LppDefaultAgent* agent)
 {
-	LppInternalDestroyAgent(agent->__internalModule__);
-	agent->__internalModule__ = LPP_INVALID_MODULE;
+	if (agent->internalModuleDoNotUse != LPP_INVALID_MODULE)
+	{
+		LppInternalDestroyAgent(agent->internalModuleDoNotUse);
+		agent->internalModuleDoNotUse = LPP_INVALID_MODULE;
+	}
 }
 
 LPP_NAMESPACE_END
@@ -480,7 +479,7 @@ LPP_NAMESPACE_BEGIN
 // Returns whether the given synchronized agent is valid.
 LPP_API bool LppIsValidSynchronizedAgent(const LppSynchronizedAgent* const agent)
 {
-	return LppPlatformIsValidLibrary(agent->__internalModule__);
+	return (agent->internalModuleDoNotUse != LPP_INVALID_MODULE);
 }
 
 
@@ -529,8 +528,11 @@ LPP_API LppSynchronizedAgent LppCreateSynchronizedAgentWithPreferencesFromFile(c
 // Destroys the given synchronized agent.
 LPP_API void LppDestroySynchronizedAgent(LppSynchronizedAgent* agent)
 {
-	LppInternalDestroyAgent(agent->__internalModule__);
-	agent->__internalModule__ = LPP_INVALID_MODULE;
+	if (agent->internalModuleDoNotUse != LPP_INVALID_MODULE)
+	{
+		LppInternalDestroyAgent(agent->internalModuleDoNotUse);
+		agent->internalModuleDoNotUse = LPP_INVALID_MODULE;
+	}
 }
 
 LPP_NAMESPACE_END
