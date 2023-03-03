@@ -1,0 +1,1 @@
+Started from DiligentSamples/Tutorials/Tutorial14_ComputeShader
