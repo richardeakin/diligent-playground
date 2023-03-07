@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.6)
+cmake_minimum_required (VERSION 3.13)
 
 project(ComputeParticles CXX)
 set(APP_TARGET "ComputeParticles")
@@ -26,7 +26,11 @@ set(ASSETS)
 add_sample_app( ${APP_TARGET} "test/standalone" "${SOURCE}" "${INCLUDE}" "${SHADERS}" "${ASSETS}" )
 
 # TODO: move below to common helper
-set_target_properties( ${APP_TARGET} PROPERTIES CXX_STANDARD 20 )
+set_target_properties( ${APP_TARGET} PROPERTIES CXX_STANDARD 20 
+
+# TODO: not working yet, look at why (could do with cmake version?)
+# https://stackoverflow.com/a/52264858
+set_target_properties( ${APP_TARGET} PROPERTIES VS_DEBUGGER_COMMAND_ARGUMENTS "--mode d3d12" ) 
 
 set( INCLUDE_USER
     ${LIVEPP_PATH} # set in top level CMakeLists.txt
