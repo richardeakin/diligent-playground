@@ -1,0 +1,2208 @@
+{
+	"folders":
+	[
+		{
+			"path": ".",
+		}
+	],
+	"settings":
+	{
+		"cmake" :
+		{
+            "build_folder": "$folder/build",
+            "windows":
+            {
+                "generator": "Visual Studio 17 2022",
+                "platform": "x64",
+                "toolset": { "host": "x64", },
+            },
+		},
+	},
+	"build_systems":
+	[
+		{
+			"config": "Debug",
+			"env":
+			{
+				"path": "C:\\VulkanSDK\\1.3.224.1\\Bin;C:\\Program Files\\ImageMagick-7.1.0-Q16-HDRI;C:\\Python38\\Scripts\\;C:\\Python38\\;C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v10.2\\bin;C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v10.2\\libnvvp;C:\\Program Files (x86)\\Common Files\\Intel\\Shared Libraries\\redist\\ia32\\compiler;C:\\Program Files (x86)\\Common Files\\Intel\\Shared Libraries\\redist\\intel64\\compiler;C:\\Program Files (x86)\\Intel\\iCLS Client\\;C:\\Program Files\\Intel\\iCLS Client\\;C:\\ProgramData\\Oracle\\Java\\javapath;C:\\Windows\\system32;C:\\Windows;C:\\Windows\\System32\\Wbem;C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\;C:\\Program Files\\Microsoft SQL Server\\110\\Tools\\Binn\\;C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common;C:\\Program Files (x86)\\CMake\\bin;C:\\Program Files\\Microsoft SQL Server\\130\\Tools\\Binn\\;C:\\WINDOWS\\system32\\config\\systemprofile\\.dnx\\bin;C:\\Program Files\\Microsoft DNX\\Dnvm\\;C:\\Program Files (x86)\\Intel\\Intel(R) Management Engine Components\\DAL;C:\\Program Files\\Intel\\Intel(R) Management Engine Components\\DAL;C:\\Program Files (x86)\\Intel\\Intel(R) Management Engine Components\\IPT;C:\\Program Files\\Intel\\Intel(R) Management Engine Components\\IPT;E:\\msw\\applications\\Anaconda3;E:\\msw\\applications\\Anaconda3\\Scripts;E:\\msw\\applications\\Anaconda3\\Library\\bin;C:\\Program Files (x86)\\GtkSharp\\2.12\\bin;C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\;E:\\Dropbox\\code\\scripts;E:\\Dropbox\\code\\scripts\\msw;C:\\WINDOWS\\system32\\config\\systemprofile\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Program Files\\Tundra 2.0\\bin;C:\\Program Files\\Mercurial\\;C:\\Program Files (x86)\\QuickTime\\QTSystem\\;C:\\WINDOWS\\System32\\OpenSSH\\;C:\\Program Files\\Amazon\\AWSCLI\\;C:\\Program Files\\NVIDIA Corporation\\NVIDIA NvDLISR;C:\\ProgramData\\chocolatey\\bin;C:\\Program Files\\LLVM\\bin;C:\\Program Files (x86)\\Subversion\\bin;C:\\Program Files\\TortoiseSVN\\bin;C:\\Program Files (x86)\\Calibre2\\;C:\\Program Files (x86)\\Windows Kits\\10\\Windows Performance Toolkit\\;C:\\Program Files\\Perforce\\;C:\\Program Files\\nodejs\\;C:\\Program Files\\CMake\\bin;C:\\Program Files\\dotnet\\;C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\;C:\\WINDOWS\\System32\\OpenSSH\\;C:\\Program Files\\Git\\cmd;C:\\Users\\r\\.cargo\\bin;f:\\code\\graphics\\g3d\\g3d-svn\\G3D10\\build\\bin;F:\\msw\\bin;C:\\MinGW\\bin;C:\\Users\\r\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Users\\r\\AppData\\Local\\Programs\\Microsoft VS Code\\bin;C:\\Program Files (x86)\\OpenVPN\\bin;C:\\Users\\r\\AppData\\Roaming\\npm;C:\\Users\\r\\.dotnet\\tools;C:\\Users\\r\\AppData\\Roaming\\netlify\\Config\\helper\\bin;C:\\Users\\r\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Users\\r\\AppData\\Local\\GitHubDesktop\\bin"
+			},
+			"generator": "Visual Studio 17 2022",
+			"name": "Debug",
+			"target": "cmake_build",
+			"variants":
+			[
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ComputeParticles",
+					"name": "ComputeParticles"
+				},
+				{
+					"artifact": "test/standalone/ComputeParticles/Debug/ComputeParticles.exe",
+					"build_target": "ComputeParticles",
+					"name": "Run: ComputeParticles",
+					"target": "cmake_run"
+				},
+				{
+					"build_target": "Diligent-Archiver-shared",
+					"name": "Diligent-Archiver-shared"
+				},
+				{
+					"build_target": "Diligent-Archiver-static",
+					"name": "Diligent-Archiver-static"
+				},
+				{
+					"build_target": "Diligent-AssetLoader",
+					"name": "Diligent-AssetLoader"
+				},
+				{
+					"build_target": "Diligent-BasicPlatform",
+					"name": "Diligent-BasicPlatform"
+				},
+				{
+					"build_target": "Diligent-Common",
+					"name": "Diligent-Common"
+				},
+				{
+					"build_target": "Diligent-GraphicsAccessories",
+					"name": "Diligent-GraphicsAccessories"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngine",
+					"name": "Diligent-GraphicsEngine"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngineD3D11-shared",
+					"name": "Diligent-GraphicsEngineD3D11-shared"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngineD3D11-static",
+					"name": "Diligent-GraphicsEngineD3D11-static"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngineD3D12-shared",
+					"name": "Diligent-GraphicsEngineD3D12-shared"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngineD3D12-static",
+					"name": "Diligent-GraphicsEngineD3D12-static"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngineD3DBase",
+					"name": "Diligent-GraphicsEngineD3DBase"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngineNextGenBase",
+					"name": "Diligent-GraphicsEngineNextGenBase"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngineOpenGL-shared",
+					"name": "Diligent-GraphicsEngineOpenGL-shared"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngineOpenGL-static",
+					"name": "Diligent-GraphicsEngineOpenGL-static"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngineVk-shared",
+					"name": "Diligent-GraphicsEngineVk-shared"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngineVk-static",
+					"name": "Diligent-GraphicsEngineVk-static"
+				},
+				{
+					"build_target": "Diligent-GraphicsTools",
+					"name": "Diligent-GraphicsTools"
+				},
+				{
+					"build_target": "Diligent-HLSL2GLSLConverterLib",
+					"name": "Diligent-HLSL2GLSLConverterLib"
+				},
+				{
+					"build_target": "Diligent-Imgui",
+					"name": "Diligent-Imgui"
+				},
+				{
+					"build_target": "Diligent-NativeAppBase",
+					"name": "Diligent-NativeAppBase"
+				},
+				{
+					"build_target": "Diligent-Primitives",
+					"name": "Diligent-Primitives"
+				},
+				{
+					"build_target": "Diligent-RenderStateNotation",
+					"name": "Diligent-RenderStateNotation"
+				},
+				{
+					"build_target": "Diligent-RenderStatePackager",
+					"name": "Diligent-RenderStatePackager"
+				},
+				{
+					"artifact": "deps/DiligentEngine/DiligentTools/RenderStatePackager/Debug/Diligent-RenderStatePackager.exe",
+					"build_target": "Diligent-RenderStatePackager",
+					"name": "Run: Diligent-RenderStatePackager",
+					"target": "cmake_run"
+				},
+				{
+					"build_target": "Diligent-RenderStatePackagerLib",
+					"name": "Diligent-RenderStatePackagerLib"
+				},
+				{
+					"build_target": "Diligent-SampleBase",
+					"name": "Diligent-SampleBase"
+				},
+				{
+					"build_target": "Diligent-ShaderTools",
+					"name": "Diligent-ShaderTools"
+				},
+				{
+					"build_target": "Diligent-TextureLoader",
+					"name": "Diligent-TextureLoader"
+				},
+				{
+					"build_target": "Diligent-Win32Platform",
+					"name": "Diligent-Win32Platform"
+				},
+				{
+					"build_target": "DiligentCore-ValidateFormatting",
+					"name": "DiligentCore-ValidateFormatting"
+				},
+				{
+					"build_target": "DiligentCore-static",
+					"name": "DiligentCore-static"
+				},
+				{
+					"build_target": "DiligentSamples-ValidateFormatting",
+					"name": "DiligentSamples-ValidateFormatting"
+				},
+				{
+					"build_target": "DiligentTools-ValidateFormatting",
+					"name": "DiligentTools-ValidateFormatting"
+				},
+				{
+					"build_target": "DiligentTools-static",
+					"name": "DiligentTools-static"
+				},
+				{
+					"build_target": "GenericCodeGen",
+					"name": "GenericCodeGen"
+				},
+				{
+					"build_target": "HLSL",
+					"name": "HLSL"
+				},
+				{
+					"build_target": "HLSL2GLSLConverter",
+					"name": "HLSL2GLSLConverter"
+				},
+				{
+					"artifact": "deps/DiligentEngine/DiligentTools/HLSL2GLSLConverter/Debug/HLSL2GLSLConverter.exe",
+					"build_target": "HLSL2GLSLConverter",
+					"name": "Run: HLSL2GLSLConverter",
+					"target": "cmake_run"
+				},
+				{
+					"build_target": "InstancedCubes",
+					"name": "InstancedCubes"
+				},
+				{
+					"artifact": "test/standalone/InstancedCubes/Debug/InstancedCubes.exe",
+					"build_target": "InstancedCubes",
+					"name": "Run: InstancedCubes",
+					"target": "cmake_run"
+				},
+				{
+					"build_target": "LibJpeg",
+					"name": "LibJpeg"
+				},
+				{
+					"build_target": "LibTiff",
+					"name": "LibTiff"
+				},
+				{
+					"build_target": "MachineIndependent",
+					"name": "MachineIndependent"
+				},
+				{
+					"build_target": "OGLCompiler",
+					"name": "OGLCompiler"
+				},
+				{
+					"build_target": "OSDependent",
+					"name": "OSDependent"
+				},
+				{
+					"build_target": "SPIRV",
+					"name": "SPIRV"
+				},
+				{
+					"build_target": "SPIRV-Tools-diff",
+					"name": "SPIRV-Tools-diff"
+				},
+				{
+					"build_target": "SPIRV-Tools-link",
+					"name": "SPIRV-Tools-link"
+				},
+				{
+					"build_target": "SPIRV-Tools-lint",
+					"name": "SPIRV-Tools-lint"
+				},
+				{
+					"build_target": "SPIRV-Tools-opt",
+					"name": "SPIRV-Tools-opt"
+				},
+				{
+					"build_target": "SPIRV-Tools-reduce",
+					"name": "SPIRV-Tools-reduce"
+				},
+				{
+					"build_target": "SPIRV-Tools-shared",
+					"name": "SPIRV-Tools-shared"
+				},
+				{
+					"build_target": "SPIRV-Tools-static",
+					"name": "SPIRV-Tools-static"
+				},
+				{
+					"build_target": "Terrain",
+					"name": "Terrain"
+				},
+				{
+					"artifact": "test/standalone/Terrain/Debug/Terrain.exe",
+					"build_target": "Terrain",
+					"name": "Run: Terrain",
+					"target": "cmake_run"
+				},
+				{
+					"build_target": "TutorialFromCube",
+					"name": "TutorialFromCube"
+				},
+				{
+					"artifact": "test/standalone/TutorialFromCube/Debug/TutorialFromCube.exe",
+					"build_target": "TutorialFromCube",
+					"name": "Run: TutorialFromCube",
+					"target": "cmake_run"
+				},
+				{
+					"build_target": "ZERO_CHECK",
+					"name": "ZERO_CHECK"
+				},
+				{
+					"build_target": "ZLib",
+					"name": "ZLib"
+				},
+				{
+					"build_target": "core_tables",
+					"name": "core_tables"
+				},
+				{
+					"build_target": "enum_string_mapping",
+					"name": "enum_string_mapping"
+				},
+				{
+					"build_target": "extinst_tables",
+					"name": "extinst_tables"
+				},
+				{
+					"build_target": "genfiles",
+					"name": "genfiles"
+				},
+				{
+					"build_target": "glew-static",
+					"name": "glew-static"
+				},
+				{
+					"build_target": "glfw",
+					"name": "glfw"
+				},
+				{
+					"build_target": "glslang",
+					"name": "glslang"
+				},
+				{
+					"build_target": "png_static",
+					"name": "png_static"
+				},
+				{
+					"build_target": "spirv-cross-core",
+					"name": "spirv-cross-core"
+				},
+				{
+					"build_target": "spirv-tools-build-version",
+					"name": "spirv-tools-build-version"
+				},
+				{
+					"build_target": "spirv-tools-header-DebugInfo",
+					"name": "spirv-tools-header-DebugInfo"
+				},
+				{
+					"build_target": "spirv-tools-header-NonSemanticShaderDebugInfo100",
+					"name": "spirv-tools-header-NonSemanticShaderDebugInfo100"
+				},
+				{
+					"build_target": "spirv-tools-header-OpenCLDebugInfo100",
+					"name": "spirv-tools-header-OpenCLDebugInfo100"
+				},
+				{
+					"build_target": "spirv-tools-pkg-config",
+					"name": "spirv-tools-pkg-config"
+				},
+				{
+					"build_target": "spirv-tools-shared-pkg-config",
+					"name": "spirv-tools-shared-pkg-config"
+				},
+				{
+					"build_target": "spirv-tools-vimsyntax",
+					"name": "spirv-tools-vimsyntax"
+				},
+				{
+					"build_target": "spv-tools-cldi100",
+					"name": "spv-tools-cldi100"
+				},
+				{
+					"build_target": "spv-tools-clspvreflection",
+					"name": "spv-tools-clspvreflection"
+				},
+				{
+					"build_target": "spv-tools-debuginfo",
+					"name": "spv-tools-debuginfo"
+				},
+				{
+					"build_target": "spv-tools-shdi100",
+					"name": "spv-tools-shdi100"
+				},
+				{
+					"build_target": "spv-tools-spv-amd-gs",
+					"name": "spv-tools-spv-amd-gs"
+				},
+				{
+					"build_target": "spv-tools-spv-amd-sb",
+					"name": "spv-tools-spv-amd-sb"
+				},
+				{
+					"build_target": "spv-tools-spv-amd-sevp",
+					"name": "spv-tools-spv-amd-sevp"
+				},
+				{
+					"build_target": "spv-tools-spv-amd-stm",
+					"name": "spv-tools-spv-amd-stm"
+				},
+				{
+					"build_target": "update_mappings",
+					"name": "update_mappings"
+				},
+				{
+					"build_target": "xxhash",
+					"name": "xxhash"
+				},
+				{
+					"name": "ctest",
+					"target": "ctest_run"
+				}
+			],
+			"working_dir": "$folder/build"
+		},
+		{
+			"config": "Release",
+			"env":
+			{
+				"path": "C:\\VulkanSDK\\1.3.224.1\\Bin;C:\\Program Files\\ImageMagick-7.1.0-Q16-HDRI;C:\\Python38\\Scripts\\;C:\\Python38\\;C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v10.2\\bin;C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v10.2\\libnvvp;C:\\Program Files (x86)\\Common Files\\Intel\\Shared Libraries\\redist\\ia32\\compiler;C:\\Program Files (x86)\\Common Files\\Intel\\Shared Libraries\\redist\\intel64\\compiler;C:\\Program Files (x86)\\Intel\\iCLS Client\\;C:\\Program Files\\Intel\\iCLS Client\\;C:\\ProgramData\\Oracle\\Java\\javapath;C:\\Windows\\system32;C:\\Windows;C:\\Windows\\System32\\Wbem;C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\;C:\\Program Files\\Microsoft SQL Server\\110\\Tools\\Binn\\;C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common;C:\\Program Files (x86)\\CMake\\bin;C:\\Program Files\\Microsoft SQL Server\\130\\Tools\\Binn\\;C:\\WINDOWS\\system32\\config\\systemprofile\\.dnx\\bin;C:\\Program Files\\Microsoft DNX\\Dnvm\\;C:\\Program Files (x86)\\Intel\\Intel(R) Management Engine Components\\DAL;C:\\Program Files\\Intel\\Intel(R) Management Engine Components\\DAL;C:\\Program Files (x86)\\Intel\\Intel(R) Management Engine Components\\IPT;C:\\Program Files\\Intel\\Intel(R) Management Engine Components\\IPT;E:\\msw\\applications\\Anaconda3;E:\\msw\\applications\\Anaconda3\\Scripts;E:\\msw\\applications\\Anaconda3\\Library\\bin;C:\\Program Files (x86)\\GtkSharp\\2.12\\bin;C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\;E:\\Dropbox\\code\\scripts;E:\\Dropbox\\code\\scripts\\msw;C:\\WINDOWS\\system32\\config\\systemprofile\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Program Files\\Tundra 2.0\\bin;C:\\Program Files\\Mercurial\\;C:\\Program Files (x86)\\QuickTime\\QTSystem\\;C:\\WINDOWS\\System32\\OpenSSH\\;C:\\Program Files\\Amazon\\AWSCLI\\;C:\\Program Files\\NVIDIA Corporation\\NVIDIA NvDLISR;C:\\ProgramData\\chocolatey\\bin;C:\\Program Files\\LLVM\\bin;C:\\Program Files (x86)\\Subversion\\bin;C:\\Program Files\\TortoiseSVN\\bin;C:\\Program Files (x86)\\Calibre2\\;C:\\Program Files (x86)\\Windows Kits\\10\\Windows Performance Toolkit\\;C:\\Program Files\\Perforce\\;C:\\Program Files\\nodejs\\;C:\\Program Files\\CMake\\bin;C:\\Program Files\\dotnet\\;C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\;C:\\WINDOWS\\System32\\OpenSSH\\;C:\\Program Files\\Git\\cmd;C:\\Users\\r\\.cargo\\bin;f:\\code\\graphics\\g3d\\g3d-svn\\G3D10\\build\\bin;F:\\msw\\bin;C:\\MinGW\\bin;C:\\Users\\r\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Users\\r\\AppData\\Local\\Programs\\Microsoft VS Code\\bin;C:\\Program Files (x86)\\OpenVPN\\bin;C:\\Users\\r\\AppData\\Roaming\\npm;C:\\Users\\r\\.dotnet\\tools;C:\\Users\\r\\AppData\\Roaming\\netlify\\Config\\helper\\bin;C:\\Users\\r\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Users\\r\\AppData\\Local\\GitHubDesktop\\bin"
+			},
+			"generator": "Visual Studio 17 2022",
+			"name": "Release",
+			"target": "cmake_build",
+			"variants":
+			[
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ComputeParticles",
+					"name": "ComputeParticles"
+				},
+				{
+					"artifact": "test/standalone/ComputeParticles/Release/ComputeParticles.exe",
+					"build_target": "ComputeParticles",
+					"name": "Run: ComputeParticles",
+					"target": "cmake_run"
+				},
+				{
+					"build_target": "Diligent-Archiver-shared",
+					"name": "Diligent-Archiver-shared"
+				},
+				{
+					"build_target": "Diligent-Archiver-static",
+					"name": "Diligent-Archiver-static"
+				},
+				{
+					"build_target": "Diligent-AssetLoader",
+					"name": "Diligent-AssetLoader"
+				},
+				{
+					"build_target": "Diligent-BasicPlatform",
+					"name": "Diligent-BasicPlatform"
+				},
+				{
+					"build_target": "Diligent-Common",
+					"name": "Diligent-Common"
+				},
+				{
+					"build_target": "Diligent-GraphicsAccessories",
+					"name": "Diligent-GraphicsAccessories"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngine",
+					"name": "Diligent-GraphicsEngine"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngineD3D11-shared",
+					"name": "Diligent-GraphicsEngineD3D11-shared"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngineD3D11-static",
+					"name": "Diligent-GraphicsEngineD3D11-static"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngineD3D12-shared",
+					"name": "Diligent-GraphicsEngineD3D12-shared"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngineD3D12-static",
+					"name": "Diligent-GraphicsEngineD3D12-static"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngineD3DBase",
+					"name": "Diligent-GraphicsEngineD3DBase"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngineNextGenBase",
+					"name": "Diligent-GraphicsEngineNextGenBase"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngineOpenGL-shared",
+					"name": "Diligent-GraphicsEngineOpenGL-shared"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngineOpenGL-static",
+					"name": "Diligent-GraphicsEngineOpenGL-static"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngineVk-shared",
+					"name": "Diligent-GraphicsEngineVk-shared"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngineVk-static",
+					"name": "Diligent-GraphicsEngineVk-static"
+				},
+				{
+					"build_target": "Diligent-GraphicsTools",
+					"name": "Diligent-GraphicsTools"
+				},
+				{
+					"build_target": "Diligent-HLSL2GLSLConverterLib",
+					"name": "Diligent-HLSL2GLSLConverterLib"
+				},
+				{
+					"build_target": "Diligent-Imgui",
+					"name": "Diligent-Imgui"
+				},
+				{
+					"build_target": "Diligent-NativeAppBase",
+					"name": "Diligent-NativeAppBase"
+				},
+				{
+					"build_target": "Diligent-Primitives",
+					"name": "Diligent-Primitives"
+				},
+				{
+					"build_target": "Diligent-RenderStateNotation",
+					"name": "Diligent-RenderStateNotation"
+				},
+				{
+					"build_target": "Diligent-RenderStatePackager",
+					"name": "Diligent-RenderStatePackager"
+				},
+				{
+					"artifact": "deps/DiligentEngine/DiligentTools/RenderStatePackager/Release/Diligent-RenderStatePackager.exe",
+					"build_target": "Diligent-RenderStatePackager",
+					"name": "Run: Diligent-RenderStatePackager",
+					"target": "cmake_run"
+				},
+				{
+					"build_target": "Diligent-RenderStatePackagerLib",
+					"name": "Diligent-RenderStatePackagerLib"
+				},
+				{
+					"build_target": "Diligent-SampleBase",
+					"name": "Diligent-SampleBase"
+				},
+				{
+					"build_target": "Diligent-ShaderTools",
+					"name": "Diligent-ShaderTools"
+				},
+				{
+					"build_target": "Diligent-TextureLoader",
+					"name": "Diligent-TextureLoader"
+				},
+				{
+					"build_target": "Diligent-Win32Platform",
+					"name": "Diligent-Win32Platform"
+				},
+				{
+					"build_target": "DiligentCore-ValidateFormatting",
+					"name": "DiligentCore-ValidateFormatting"
+				},
+				{
+					"build_target": "DiligentCore-static",
+					"name": "DiligentCore-static"
+				},
+				{
+					"build_target": "DiligentSamples-ValidateFormatting",
+					"name": "DiligentSamples-ValidateFormatting"
+				},
+				{
+					"build_target": "DiligentTools-ValidateFormatting",
+					"name": "DiligentTools-ValidateFormatting"
+				},
+				{
+					"build_target": "DiligentTools-static",
+					"name": "DiligentTools-static"
+				},
+				{
+					"build_target": "GenericCodeGen",
+					"name": "GenericCodeGen"
+				},
+				{
+					"build_target": "HLSL",
+					"name": "HLSL"
+				},
+				{
+					"build_target": "HLSL2GLSLConverter",
+					"name": "HLSL2GLSLConverter"
+				},
+				{
+					"artifact": "deps/DiligentEngine/DiligentTools/HLSL2GLSLConverter/Release/HLSL2GLSLConverter.exe",
+					"build_target": "HLSL2GLSLConverter",
+					"name": "Run: HLSL2GLSLConverter",
+					"target": "cmake_run"
+				},
+				{
+					"build_target": "InstancedCubes",
+					"name": "InstancedCubes"
+				},
+				{
+					"artifact": "test/standalone/InstancedCubes/Release/InstancedCubes.exe",
+					"build_target": "InstancedCubes",
+					"name": "Run: InstancedCubes",
+					"target": "cmake_run"
+				},
+				{
+					"build_target": "LibJpeg",
+					"name": "LibJpeg"
+				},
+				{
+					"build_target": "LibTiff",
+					"name": "LibTiff"
+				},
+				{
+					"build_target": "MachineIndependent",
+					"name": "MachineIndependent"
+				},
+				{
+					"build_target": "OGLCompiler",
+					"name": "OGLCompiler"
+				},
+				{
+					"build_target": "OSDependent",
+					"name": "OSDependent"
+				},
+				{
+					"build_target": "SPIRV",
+					"name": "SPIRV"
+				},
+				{
+					"build_target": "SPIRV-Tools-diff",
+					"name": "SPIRV-Tools-diff"
+				},
+				{
+					"build_target": "SPIRV-Tools-link",
+					"name": "SPIRV-Tools-link"
+				},
+				{
+					"build_target": "SPIRV-Tools-lint",
+					"name": "SPIRV-Tools-lint"
+				},
+				{
+					"build_target": "SPIRV-Tools-opt",
+					"name": "SPIRV-Tools-opt"
+				},
+				{
+					"build_target": "SPIRV-Tools-reduce",
+					"name": "SPIRV-Tools-reduce"
+				},
+				{
+					"build_target": "SPIRV-Tools-shared",
+					"name": "SPIRV-Tools-shared"
+				},
+				{
+					"build_target": "SPIRV-Tools-static",
+					"name": "SPIRV-Tools-static"
+				},
+				{
+					"build_target": "Terrain",
+					"name": "Terrain"
+				},
+				{
+					"artifact": "test/standalone/Terrain/Release/Terrain.exe",
+					"build_target": "Terrain",
+					"name": "Run: Terrain",
+					"target": "cmake_run"
+				},
+				{
+					"build_target": "TutorialFromCube",
+					"name": "TutorialFromCube"
+				},
+				{
+					"artifact": "test/standalone/TutorialFromCube/Release/TutorialFromCube.exe",
+					"build_target": "TutorialFromCube",
+					"name": "Run: TutorialFromCube",
+					"target": "cmake_run"
+				},
+				{
+					"build_target": "ZERO_CHECK",
+					"name": "ZERO_CHECK"
+				},
+				{
+					"build_target": "ZLib",
+					"name": "ZLib"
+				},
+				{
+					"build_target": "core_tables",
+					"name": "core_tables"
+				},
+				{
+					"build_target": "enum_string_mapping",
+					"name": "enum_string_mapping"
+				},
+				{
+					"build_target": "extinst_tables",
+					"name": "extinst_tables"
+				},
+				{
+					"build_target": "genfiles",
+					"name": "genfiles"
+				},
+				{
+					"build_target": "glew-static",
+					"name": "glew-static"
+				},
+				{
+					"build_target": "glfw",
+					"name": "glfw"
+				},
+				{
+					"build_target": "glslang",
+					"name": "glslang"
+				},
+				{
+					"build_target": "png_static",
+					"name": "png_static"
+				},
+				{
+					"build_target": "spirv-cross-core",
+					"name": "spirv-cross-core"
+				},
+				{
+					"build_target": "spirv-tools-build-version",
+					"name": "spirv-tools-build-version"
+				},
+				{
+					"build_target": "spirv-tools-header-DebugInfo",
+					"name": "spirv-tools-header-DebugInfo"
+				},
+				{
+					"build_target": "spirv-tools-header-NonSemanticShaderDebugInfo100",
+					"name": "spirv-tools-header-NonSemanticShaderDebugInfo100"
+				},
+				{
+					"build_target": "spirv-tools-header-OpenCLDebugInfo100",
+					"name": "spirv-tools-header-OpenCLDebugInfo100"
+				},
+				{
+					"build_target": "spirv-tools-pkg-config",
+					"name": "spirv-tools-pkg-config"
+				},
+				{
+					"build_target": "spirv-tools-shared-pkg-config",
+					"name": "spirv-tools-shared-pkg-config"
+				},
+				{
+					"build_target": "spirv-tools-vimsyntax",
+					"name": "spirv-tools-vimsyntax"
+				},
+				{
+					"build_target": "spv-tools-cldi100",
+					"name": "spv-tools-cldi100"
+				},
+				{
+					"build_target": "spv-tools-clspvreflection",
+					"name": "spv-tools-clspvreflection"
+				},
+				{
+					"build_target": "spv-tools-debuginfo",
+					"name": "spv-tools-debuginfo"
+				},
+				{
+					"build_target": "spv-tools-shdi100",
+					"name": "spv-tools-shdi100"
+				},
+				{
+					"build_target": "spv-tools-spv-amd-gs",
+					"name": "spv-tools-spv-amd-gs"
+				},
+				{
+					"build_target": "spv-tools-spv-amd-sb",
+					"name": "spv-tools-spv-amd-sb"
+				},
+				{
+					"build_target": "spv-tools-spv-amd-sevp",
+					"name": "spv-tools-spv-amd-sevp"
+				},
+				{
+					"build_target": "spv-tools-spv-amd-stm",
+					"name": "spv-tools-spv-amd-stm"
+				},
+				{
+					"build_target": "update_mappings",
+					"name": "update_mappings"
+				},
+				{
+					"build_target": "xxhash",
+					"name": "xxhash"
+				},
+				{
+					"name": "ctest",
+					"target": "ctest_run"
+				}
+			],
+			"working_dir": "$folder/build"
+		},
+		{
+			"config": "MinSizeRel",
+			"env":
+			{
+				"path": "C:\\VulkanSDK\\1.3.224.1\\Bin;C:\\Program Files\\ImageMagick-7.1.0-Q16-HDRI;C:\\Python38\\Scripts\\;C:\\Python38\\;C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v10.2\\bin;C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v10.2\\libnvvp;C:\\Program Files (x86)\\Common Files\\Intel\\Shared Libraries\\redist\\ia32\\compiler;C:\\Program Files (x86)\\Common Files\\Intel\\Shared Libraries\\redist\\intel64\\compiler;C:\\Program Files (x86)\\Intel\\iCLS Client\\;C:\\Program Files\\Intel\\iCLS Client\\;C:\\ProgramData\\Oracle\\Java\\javapath;C:\\Windows\\system32;C:\\Windows;C:\\Windows\\System32\\Wbem;C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\;C:\\Program Files\\Microsoft SQL Server\\110\\Tools\\Binn\\;C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common;C:\\Program Files (x86)\\CMake\\bin;C:\\Program Files\\Microsoft SQL Server\\130\\Tools\\Binn\\;C:\\WINDOWS\\system32\\config\\systemprofile\\.dnx\\bin;C:\\Program Files\\Microsoft DNX\\Dnvm\\;C:\\Program Files (x86)\\Intel\\Intel(R) Management Engine Components\\DAL;C:\\Program Files\\Intel\\Intel(R) Management Engine Components\\DAL;C:\\Program Files (x86)\\Intel\\Intel(R) Management Engine Components\\IPT;C:\\Program Files\\Intel\\Intel(R) Management Engine Components\\IPT;E:\\msw\\applications\\Anaconda3;E:\\msw\\applications\\Anaconda3\\Scripts;E:\\msw\\applications\\Anaconda3\\Library\\bin;C:\\Program Files (x86)\\GtkSharp\\2.12\\bin;C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\;E:\\Dropbox\\code\\scripts;E:\\Dropbox\\code\\scripts\\msw;C:\\WINDOWS\\system32\\config\\systemprofile\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Program Files\\Tundra 2.0\\bin;C:\\Program Files\\Mercurial\\;C:\\Program Files (x86)\\QuickTime\\QTSystem\\;C:\\WINDOWS\\System32\\OpenSSH\\;C:\\Program Files\\Amazon\\AWSCLI\\;C:\\Program Files\\NVIDIA Corporation\\NVIDIA NvDLISR;C:\\ProgramData\\chocolatey\\bin;C:\\Program Files\\LLVM\\bin;C:\\Program Files (x86)\\Subversion\\bin;C:\\Program Files\\TortoiseSVN\\bin;C:\\Program Files (x86)\\Calibre2\\;C:\\Program Files (x86)\\Windows Kits\\10\\Windows Performance Toolkit\\;C:\\Program Files\\Perforce\\;C:\\Program Files\\nodejs\\;C:\\Program Files\\CMake\\bin;C:\\Program Files\\dotnet\\;C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\;C:\\WINDOWS\\System32\\OpenSSH\\;C:\\Program Files\\Git\\cmd;C:\\Users\\r\\.cargo\\bin;f:\\code\\graphics\\g3d\\g3d-svn\\G3D10\\build\\bin;F:\\msw\\bin;C:\\MinGW\\bin;C:\\Users\\r\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Users\\r\\AppData\\Local\\Programs\\Microsoft VS Code\\bin;C:\\Program Files (x86)\\OpenVPN\\bin;C:\\Users\\r\\AppData\\Roaming\\npm;C:\\Users\\r\\.dotnet\\tools;C:\\Users\\r\\AppData\\Roaming\\netlify\\Config\\helper\\bin;C:\\Users\\r\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Users\\r\\AppData\\Local\\GitHubDesktop\\bin"
+			},
+			"generator": "Visual Studio 17 2022",
+			"name": "MinSizeRel",
+			"target": "cmake_build",
+			"variants":
+			[
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ComputeParticles",
+					"name": "ComputeParticles"
+				},
+				{
+					"artifact": "test/standalone/ComputeParticles/MinSizeRel/ComputeParticles.exe",
+					"build_target": "ComputeParticles",
+					"name": "Run: ComputeParticles",
+					"target": "cmake_run"
+				},
+				{
+					"build_target": "Diligent-Archiver-shared",
+					"name": "Diligent-Archiver-shared"
+				},
+				{
+					"build_target": "Diligent-Archiver-static",
+					"name": "Diligent-Archiver-static"
+				},
+				{
+					"build_target": "Diligent-AssetLoader",
+					"name": "Diligent-AssetLoader"
+				},
+				{
+					"build_target": "Diligent-BasicPlatform",
+					"name": "Diligent-BasicPlatform"
+				},
+				{
+					"build_target": "Diligent-Common",
+					"name": "Diligent-Common"
+				},
+				{
+					"build_target": "Diligent-GraphicsAccessories",
+					"name": "Diligent-GraphicsAccessories"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngine",
+					"name": "Diligent-GraphicsEngine"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngineD3D11-shared",
+					"name": "Diligent-GraphicsEngineD3D11-shared"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngineD3D11-static",
+					"name": "Diligent-GraphicsEngineD3D11-static"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngineD3D12-shared",
+					"name": "Diligent-GraphicsEngineD3D12-shared"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngineD3D12-static",
+					"name": "Diligent-GraphicsEngineD3D12-static"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngineD3DBase",
+					"name": "Diligent-GraphicsEngineD3DBase"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngineNextGenBase",
+					"name": "Diligent-GraphicsEngineNextGenBase"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngineOpenGL-shared",
+					"name": "Diligent-GraphicsEngineOpenGL-shared"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngineOpenGL-static",
+					"name": "Diligent-GraphicsEngineOpenGL-static"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngineVk-shared",
+					"name": "Diligent-GraphicsEngineVk-shared"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngineVk-static",
+					"name": "Diligent-GraphicsEngineVk-static"
+				},
+				{
+					"build_target": "Diligent-GraphicsTools",
+					"name": "Diligent-GraphicsTools"
+				},
+				{
+					"build_target": "Diligent-HLSL2GLSLConverterLib",
+					"name": "Diligent-HLSL2GLSLConverterLib"
+				},
+				{
+					"build_target": "Diligent-Imgui",
+					"name": "Diligent-Imgui"
+				},
+				{
+					"build_target": "Diligent-NativeAppBase",
+					"name": "Diligent-NativeAppBase"
+				},
+				{
+					"build_target": "Diligent-Primitives",
+					"name": "Diligent-Primitives"
+				},
+				{
+					"build_target": "Diligent-RenderStateNotation",
+					"name": "Diligent-RenderStateNotation"
+				},
+				{
+					"build_target": "Diligent-RenderStatePackager",
+					"name": "Diligent-RenderStatePackager"
+				},
+				{
+					"artifact": "deps/DiligentEngine/DiligentTools/RenderStatePackager/MinSizeRel/Diligent-RenderStatePackager.exe",
+					"build_target": "Diligent-RenderStatePackager",
+					"name": "Run: Diligent-RenderStatePackager",
+					"target": "cmake_run"
+				},
+				{
+					"build_target": "Diligent-RenderStatePackagerLib",
+					"name": "Diligent-RenderStatePackagerLib"
+				},
+				{
+					"build_target": "Diligent-SampleBase",
+					"name": "Diligent-SampleBase"
+				},
+				{
+					"build_target": "Diligent-ShaderTools",
+					"name": "Diligent-ShaderTools"
+				},
+				{
+					"build_target": "Diligent-TextureLoader",
+					"name": "Diligent-TextureLoader"
+				},
+				{
+					"build_target": "Diligent-Win32Platform",
+					"name": "Diligent-Win32Platform"
+				},
+				{
+					"build_target": "DiligentCore-ValidateFormatting",
+					"name": "DiligentCore-ValidateFormatting"
+				},
+				{
+					"build_target": "DiligentCore-static",
+					"name": "DiligentCore-static"
+				},
+				{
+					"build_target": "DiligentSamples-ValidateFormatting",
+					"name": "DiligentSamples-ValidateFormatting"
+				},
+				{
+					"build_target": "DiligentTools-ValidateFormatting",
+					"name": "DiligentTools-ValidateFormatting"
+				},
+				{
+					"build_target": "DiligentTools-static",
+					"name": "DiligentTools-static"
+				},
+				{
+					"build_target": "GenericCodeGen",
+					"name": "GenericCodeGen"
+				},
+				{
+					"build_target": "HLSL",
+					"name": "HLSL"
+				},
+				{
+					"build_target": "HLSL2GLSLConverter",
+					"name": "HLSL2GLSLConverter"
+				},
+				{
+					"artifact": "deps/DiligentEngine/DiligentTools/HLSL2GLSLConverter/MinSizeRel/HLSL2GLSLConverter.exe",
+					"build_target": "HLSL2GLSLConverter",
+					"name": "Run: HLSL2GLSLConverter",
+					"target": "cmake_run"
+				},
+				{
+					"build_target": "InstancedCubes",
+					"name": "InstancedCubes"
+				},
+				{
+					"artifact": "test/standalone/InstancedCubes/MinSizeRel/InstancedCubes.exe",
+					"build_target": "InstancedCubes",
+					"name": "Run: InstancedCubes",
+					"target": "cmake_run"
+				},
+				{
+					"build_target": "LibJpeg",
+					"name": "LibJpeg"
+				},
+				{
+					"build_target": "LibTiff",
+					"name": "LibTiff"
+				},
+				{
+					"build_target": "MachineIndependent",
+					"name": "MachineIndependent"
+				},
+				{
+					"build_target": "OGLCompiler",
+					"name": "OGLCompiler"
+				},
+				{
+					"build_target": "OSDependent",
+					"name": "OSDependent"
+				},
+				{
+					"build_target": "SPIRV",
+					"name": "SPIRV"
+				},
+				{
+					"build_target": "SPIRV-Tools-diff",
+					"name": "SPIRV-Tools-diff"
+				},
+				{
+					"build_target": "SPIRV-Tools-link",
+					"name": "SPIRV-Tools-link"
+				},
+				{
+					"build_target": "SPIRV-Tools-lint",
+					"name": "SPIRV-Tools-lint"
+				},
+				{
+					"build_target": "SPIRV-Tools-opt",
+					"name": "SPIRV-Tools-opt"
+				},
+				{
+					"build_target": "SPIRV-Tools-reduce",
+					"name": "SPIRV-Tools-reduce"
+				},
+				{
+					"build_target": "SPIRV-Tools-shared",
+					"name": "SPIRV-Tools-shared"
+				},
+				{
+					"build_target": "SPIRV-Tools-static",
+					"name": "SPIRV-Tools-static"
+				},
+				{
+					"build_target": "Terrain",
+					"name": "Terrain"
+				},
+				{
+					"artifact": "test/standalone/Terrain/MinSizeRel/Terrain.exe",
+					"build_target": "Terrain",
+					"name": "Run: Terrain",
+					"target": "cmake_run"
+				},
+				{
+					"build_target": "TutorialFromCube",
+					"name": "TutorialFromCube"
+				},
+				{
+					"artifact": "test/standalone/TutorialFromCube/MinSizeRel/TutorialFromCube.exe",
+					"build_target": "TutorialFromCube",
+					"name": "Run: TutorialFromCube",
+					"target": "cmake_run"
+				},
+				{
+					"build_target": "ZERO_CHECK",
+					"name": "ZERO_CHECK"
+				},
+				{
+					"build_target": "ZLib",
+					"name": "ZLib"
+				},
+				{
+					"build_target": "core_tables",
+					"name": "core_tables"
+				},
+				{
+					"build_target": "enum_string_mapping",
+					"name": "enum_string_mapping"
+				},
+				{
+					"build_target": "extinst_tables",
+					"name": "extinst_tables"
+				},
+				{
+					"build_target": "genfiles",
+					"name": "genfiles"
+				},
+				{
+					"build_target": "glew-static",
+					"name": "glew-static"
+				},
+				{
+					"build_target": "glfw",
+					"name": "glfw"
+				},
+				{
+					"build_target": "glslang",
+					"name": "glslang"
+				},
+				{
+					"build_target": "png_static",
+					"name": "png_static"
+				},
+				{
+					"build_target": "spirv-cross-core",
+					"name": "spirv-cross-core"
+				},
+				{
+					"build_target": "spirv-tools-build-version",
+					"name": "spirv-tools-build-version"
+				},
+				{
+					"build_target": "spirv-tools-header-DebugInfo",
+					"name": "spirv-tools-header-DebugInfo"
+				},
+				{
+					"build_target": "spirv-tools-header-NonSemanticShaderDebugInfo100",
+					"name": "spirv-tools-header-NonSemanticShaderDebugInfo100"
+				},
+				{
+					"build_target": "spirv-tools-header-OpenCLDebugInfo100",
+					"name": "spirv-tools-header-OpenCLDebugInfo100"
+				},
+				{
+					"build_target": "spirv-tools-pkg-config",
+					"name": "spirv-tools-pkg-config"
+				},
+				{
+					"build_target": "spirv-tools-shared-pkg-config",
+					"name": "spirv-tools-shared-pkg-config"
+				},
+				{
+					"build_target": "spirv-tools-vimsyntax",
+					"name": "spirv-tools-vimsyntax"
+				},
+				{
+					"build_target": "spv-tools-cldi100",
+					"name": "spv-tools-cldi100"
+				},
+				{
+					"build_target": "spv-tools-clspvreflection",
+					"name": "spv-tools-clspvreflection"
+				},
+				{
+					"build_target": "spv-tools-debuginfo",
+					"name": "spv-tools-debuginfo"
+				},
+				{
+					"build_target": "spv-tools-shdi100",
+					"name": "spv-tools-shdi100"
+				},
+				{
+					"build_target": "spv-tools-spv-amd-gs",
+					"name": "spv-tools-spv-amd-gs"
+				},
+				{
+					"build_target": "spv-tools-spv-amd-sb",
+					"name": "spv-tools-spv-amd-sb"
+				},
+				{
+					"build_target": "spv-tools-spv-amd-sevp",
+					"name": "spv-tools-spv-amd-sevp"
+				},
+				{
+					"build_target": "spv-tools-spv-amd-stm",
+					"name": "spv-tools-spv-amd-stm"
+				},
+				{
+					"build_target": "update_mappings",
+					"name": "update_mappings"
+				},
+				{
+					"build_target": "xxhash",
+					"name": "xxhash"
+				},
+				{
+					"name": "ctest",
+					"target": "ctest_run"
+				}
+			],
+			"working_dir": "$folder/build"
+		},
+		{
+			"config": "RelWithDebInfo",
+			"env":
+			{
+				"path": "C:\\VulkanSDK\\1.3.224.1\\Bin;C:\\Program Files\\ImageMagick-7.1.0-Q16-HDRI;C:\\Python38\\Scripts\\;C:\\Python38\\;C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v10.2\\bin;C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v10.2\\libnvvp;C:\\Program Files (x86)\\Common Files\\Intel\\Shared Libraries\\redist\\ia32\\compiler;C:\\Program Files (x86)\\Common Files\\Intel\\Shared Libraries\\redist\\intel64\\compiler;C:\\Program Files (x86)\\Intel\\iCLS Client\\;C:\\Program Files\\Intel\\iCLS Client\\;C:\\ProgramData\\Oracle\\Java\\javapath;C:\\Windows\\system32;C:\\Windows;C:\\Windows\\System32\\Wbem;C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\;C:\\Program Files\\Microsoft SQL Server\\110\\Tools\\Binn\\;C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common;C:\\Program Files (x86)\\CMake\\bin;C:\\Program Files\\Microsoft SQL Server\\130\\Tools\\Binn\\;C:\\WINDOWS\\system32\\config\\systemprofile\\.dnx\\bin;C:\\Program Files\\Microsoft DNX\\Dnvm\\;C:\\Program Files (x86)\\Intel\\Intel(R) Management Engine Components\\DAL;C:\\Program Files\\Intel\\Intel(R) Management Engine Components\\DAL;C:\\Program Files (x86)\\Intel\\Intel(R) Management Engine Components\\IPT;C:\\Program Files\\Intel\\Intel(R) Management Engine Components\\IPT;E:\\msw\\applications\\Anaconda3;E:\\msw\\applications\\Anaconda3\\Scripts;E:\\msw\\applications\\Anaconda3\\Library\\bin;C:\\Program Files (x86)\\GtkSharp\\2.12\\bin;C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\;E:\\Dropbox\\code\\scripts;E:\\Dropbox\\code\\scripts\\msw;C:\\WINDOWS\\system32\\config\\systemprofile\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Program Files\\Tundra 2.0\\bin;C:\\Program Files\\Mercurial\\;C:\\Program Files (x86)\\QuickTime\\QTSystem\\;C:\\WINDOWS\\System32\\OpenSSH\\;C:\\Program Files\\Amazon\\AWSCLI\\;C:\\Program Files\\NVIDIA Corporation\\NVIDIA NvDLISR;C:\\ProgramData\\chocolatey\\bin;C:\\Program Files\\LLVM\\bin;C:\\Program Files (x86)\\Subversion\\bin;C:\\Program Files\\TortoiseSVN\\bin;C:\\Program Files (x86)\\Calibre2\\;C:\\Program Files (x86)\\Windows Kits\\10\\Windows Performance Toolkit\\;C:\\Program Files\\Perforce\\;C:\\Program Files\\nodejs\\;C:\\Program Files\\CMake\\bin;C:\\Program Files\\dotnet\\;C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\;C:\\WINDOWS\\System32\\OpenSSH\\;C:\\Program Files\\Git\\cmd;C:\\Users\\r\\.cargo\\bin;f:\\code\\graphics\\g3d\\g3d-svn\\G3D10\\build\\bin;F:\\msw\\bin;C:\\MinGW\\bin;C:\\Users\\r\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Users\\r\\AppData\\Local\\Programs\\Microsoft VS Code\\bin;C:\\Program Files (x86)\\OpenVPN\\bin;C:\\Users\\r\\AppData\\Roaming\\npm;C:\\Users\\r\\.dotnet\\tools;C:\\Users\\r\\AppData\\Roaming\\netlify\\Config\\helper\\bin;C:\\Users\\r\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Users\\r\\AppData\\Local\\GitHubDesktop\\bin"
+			},
+			"generator": "Visual Studio 17 2022",
+			"name": "RelWithDebInfo",
+			"target": "cmake_build",
+			"variants":
+			[
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ALL_BUILD",
+					"name": "ALL_BUILD"
+				},
+				{
+					"build_target": "ComputeParticles",
+					"name": "ComputeParticles"
+				},
+				{
+					"artifact": "test/standalone/ComputeParticles/RelWithDebInfo/ComputeParticles.exe",
+					"build_target": "ComputeParticles",
+					"name": "Run: ComputeParticles",
+					"target": "cmake_run"
+				},
+				{
+					"build_target": "Diligent-Archiver-shared",
+					"name": "Diligent-Archiver-shared"
+				},
+				{
+					"build_target": "Diligent-Archiver-static",
+					"name": "Diligent-Archiver-static"
+				},
+				{
+					"build_target": "Diligent-AssetLoader",
+					"name": "Diligent-AssetLoader"
+				},
+				{
+					"build_target": "Diligent-BasicPlatform",
+					"name": "Diligent-BasicPlatform"
+				},
+				{
+					"build_target": "Diligent-Common",
+					"name": "Diligent-Common"
+				},
+				{
+					"build_target": "Diligent-GraphicsAccessories",
+					"name": "Diligent-GraphicsAccessories"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngine",
+					"name": "Diligent-GraphicsEngine"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngineD3D11-shared",
+					"name": "Diligent-GraphicsEngineD3D11-shared"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngineD3D11-static",
+					"name": "Diligent-GraphicsEngineD3D11-static"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngineD3D12-shared",
+					"name": "Diligent-GraphicsEngineD3D12-shared"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngineD3D12-static",
+					"name": "Diligent-GraphicsEngineD3D12-static"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngineD3DBase",
+					"name": "Diligent-GraphicsEngineD3DBase"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngineNextGenBase",
+					"name": "Diligent-GraphicsEngineNextGenBase"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngineOpenGL-shared",
+					"name": "Diligent-GraphicsEngineOpenGL-shared"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngineOpenGL-static",
+					"name": "Diligent-GraphicsEngineOpenGL-static"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngineVk-shared",
+					"name": "Diligent-GraphicsEngineVk-shared"
+				},
+				{
+					"build_target": "Diligent-GraphicsEngineVk-static",
+					"name": "Diligent-GraphicsEngineVk-static"
+				},
+				{
+					"build_target": "Diligent-GraphicsTools",
+					"name": "Diligent-GraphicsTools"
+				},
+				{
+					"build_target": "Diligent-HLSL2GLSLConverterLib",
+					"name": "Diligent-HLSL2GLSLConverterLib"
+				},
+				{
+					"build_target": "Diligent-Imgui",
+					"name": "Diligent-Imgui"
+				},
+				{
+					"build_target": "Diligent-NativeAppBase",
+					"name": "Diligent-NativeAppBase"
+				},
+				{
+					"build_target": "Diligent-Primitives",
+					"name": "Diligent-Primitives"
+				},
+				{
+					"build_target": "Diligent-RenderStateNotation",
+					"name": "Diligent-RenderStateNotation"
+				},
+				{
+					"build_target": "Diligent-RenderStatePackager",
+					"name": "Diligent-RenderStatePackager"
+				},
+				{
+					"artifact": "deps/DiligentEngine/DiligentTools/RenderStatePackager/RelWithDebInfo/Diligent-RenderStatePackager.exe",
+					"build_target": "Diligent-RenderStatePackager",
+					"name": "Run: Diligent-RenderStatePackager",
+					"target": "cmake_run"
+				},
+				{
+					"build_target": "Diligent-RenderStatePackagerLib",
+					"name": "Diligent-RenderStatePackagerLib"
+				},
+				{
+					"build_target": "Diligent-SampleBase",
+					"name": "Diligent-SampleBase"
+				},
+				{
+					"build_target": "Diligent-ShaderTools",
+					"name": "Diligent-ShaderTools"
+				},
+				{
+					"build_target": "Diligent-TextureLoader",
+					"name": "Diligent-TextureLoader"
+				},
+				{
+					"build_target": "Diligent-Win32Platform",
+					"name": "Diligent-Win32Platform"
+				},
+				{
+					"build_target": "DiligentCore-ValidateFormatting",
+					"name": "DiligentCore-ValidateFormatting"
+				},
+				{
+					"build_target": "DiligentCore-static",
+					"name": "DiligentCore-static"
+				},
+				{
+					"build_target": "DiligentSamples-ValidateFormatting",
+					"name": "DiligentSamples-ValidateFormatting"
+				},
+				{
+					"build_target": "DiligentTools-ValidateFormatting",
+					"name": "DiligentTools-ValidateFormatting"
+				},
+				{
+					"build_target": "DiligentTools-static",
+					"name": "DiligentTools-static"
+				},
+				{
+					"build_target": "GenericCodeGen",
+					"name": "GenericCodeGen"
+				},
+				{
+					"build_target": "HLSL",
+					"name": "HLSL"
+				},
+				{
+					"build_target": "HLSL2GLSLConverter",
+					"name": "HLSL2GLSLConverter"
+				},
+				{
+					"artifact": "deps/DiligentEngine/DiligentTools/HLSL2GLSLConverter/RelWithDebInfo/HLSL2GLSLConverter.exe",
+					"build_target": "HLSL2GLSLConverter",
+					"name": "Run: HLSL2GLSLConverter",
+					"target": "cmake_run"
+				},
+				{
+					"build_target": "InstancedCubes",
+					"name": "InstancedCubes"
+				},
+				{
+					"artifact": "test/standalone/InstancedCubes/RelWithDebInfo/InstancedCubes.exe",
+					"build_target": "InstancedCubes",
+					"name": "Run: InstancedCubes",
+					"target": "cmake_run"
+				},
+				{
+					"build_target": "LibJpeg",
+					"name": "LibJpeg"
+				},
+				{
+					"build_target": "LibTiff",
+					"name": "LibTiff"
+				},
+				{
+					"build_target": "MachineIndependent",
+					"name": "MachineIndependent"
+				},
+				{
+					"build_target": "OGLCompiler",
+					"name": "OGLCompiler"
+				},
+				{
+					"build_target": "OSDependent",
+					"name": "OSDependent"
+				},
+				{
+					"build_target": "SPIRV",
+					"name": "SPIRV"
+				},
+				{
+					"build_target": "SPIRV-Tools-diff",
+					"name": "SPIRV-Tools-diff"
+				},
+				{
+					"build_target": "SPIRV-Tools-link",
+					"name": "SPIRV-Tools-link"
+				},
+				{
+					"build_target": "SPIRV-Tools-lint",
+					"name": "SPIRV-Tools-lint"
+				},
+				{
+					"build_target": "SPIRV-Tools-opt",
+					"name": "SPIRV-Tools-opt"
+				},
+				{
+					"build_target": "SPIRV-Tools-reduce",
+					"name": "SPIRV-Tools-reduce"
+				},
+				{
+					"build_target": "SPIRV-Tools-shared",
+					"name": "SPIRV-Tools-shared"
+				},
+				{
+					"build_target": "SPIRV-Tools-static",
+					"name": "SPIRV-Tools-static"
+				},
+				{
+					"build_target": "Terrain",
+					"name": "Terrain"
+				},
+				{
+					"artifact": "test/standalone/Terrain/RelWithDebInfo/Terrain.exe",
+					"build_target": "Terrain",
+					"name": "Run: Terrain",
+					"target": "cmake_run"
+				},
+				{
+					"build_target": "TutorialFromCube",
+					"name": "TutorialFromCube"
+				},
+				{
+					"artifact": "test/standalone/TutorialFromCube/RelWithDebInfo/TutorialFromCube.exe",
+					"build_target": "TutorialFromCube",
+					"name": "Run: TutorialFromCube",
+					"target": "cmake_run"
+				},
+				{
+					"build_target": "ZERO_CHECK",
+					"name": "ZERO_CHECK"
+				},
+				{
+					"build_target": "ZLib",
+					"name": "ZLib"
+				},
+				{
+					"build_target": "core_tables",
+					"name": "core_tables"
+				},
+				{
+					"build_target": "enum_string_mapping",
+					"name": "enum_string_mapping"
+				},
+				{
+					"build_target": "extinst_tables",
+					"name": "extinst_tables"
+				},
+				{
+					"build_target": "genfiles",
+					"name": "genfiles"
+				},
+				{
+					"build_target": "glew-static",
+					"name": "glew-static"
+				},
+				{
+					"build_target": "glfw",
+					"name": "glfw"
+				},
+				{
+					"build_target": "glslang",
+					"name": "glslang"
+				},
+				{
+					"build_target": "png_static",
+					"name": "png_static"
+				},
+				{
+					"build_target": "spirv-cross-core",
+					"name": "spirv-cross-core"
+				},
+				{
+					"build_target": "spirv-tools-build-version",
+					"name": "spirv-tools-build-version"
+				},
+				{
+					"build_target": "spirv-tools-header-DebugInfo",
+					"name": "spirv-tools-header-DebugInfo"
+				},
+				{
+					"build_target": "spirv-tools-header-NonSemanticShaderDebugInfo100",
+					"name": "spirv-tools-header-NonSemanticShaderDebugInfo100"
+				},
+				{
+					"build_target": "spirv-tools-header-OpenCLDebugInfo100",
+					"name": "spirv-tools-header-OpenCLDebugInfo100"
+				},
+				{
+					"build_target": "spirv-tools-pkg-config",
+					"name": "spirv-tools-pkg-config"
+				},
+				{
+					"build_target": "spirv-tools-shared-pkg-config",
+					"name": "spirv-tools-shared-pkg-config"
+				},
+				{
+					"build_target": "spirv-tools-vimsyntax",
+					"name": "spirv-tools-vimsyntax"
+				},
+				{
+					"build_target": "spv-tools-cldi100",
+					"name": "spv-tools-cldi100"
+				},
+				{
+					"build_target": "spv-tools-clspvreflection",
+					"name": "spv-tools-clspvreflection"
+				},
+				{
+					"build_target": "spv-tools-debuginfo",
+					"name": "spv-tools-debuginfo"
+				},
+				{
+					"build_target": "spv-tools-shdi100",
+					"name": "spv-tools-shdi100"
+				},
+				{
+					"build_target": "spv-tools-spv-amd-gs",
+					"name": "spv-tools-spv-amd-gs"
+				},
+				{
+					"build_target": "spv-tools-spv-amd-sb",
+					"name": "spv-tools-spv-amd-sb"
+				},
+				{
+					"build_target": "spv-tools-spv-amd-sevp",
+					"name": "spv-tools-spv-amd-sevp"
+				},
+				{
+					"build_target": "spv-tools-spv-amd-stm",
+					"name": "spv-tools-spv-amd-stm"
+				},
+				{
+					"build_target": "update_mappings",
+					"name": "update_mappings"
+				},
+				{
+					"build_target": "xxhash",
+					"name": "xxhash"
+				},
+				{
+					"name": "ctest",
+					"target": "ctest_run"
+				}
+			],
+			"working_dir": "$folder/build"
+		}
+	],
+}

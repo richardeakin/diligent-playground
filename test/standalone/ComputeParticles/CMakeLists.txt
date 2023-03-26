@@ -26,7 +26,7 @@ set(ASSETS)
 add_sample_app( ${APP_TARGET} "test/standalone" "${SOURCE}" "${INCLUDE}" "${SHADERS}" "${ASSETS}" )
 
 # TODO: move below to common helper
-set_target_properties( ${APP_TARGET} PROPERTIES CXX_STANDARD 20 
+set_target_properties( ${APP_TARGET} PROPERTIES CXX_STANDARD 20 )
 
 # TODO: not working yet, look at why (could do with cmake version?)
 # https://stackoverflow.com/a/52264858
