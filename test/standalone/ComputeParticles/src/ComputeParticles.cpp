@@ -6,10 +6,9 @@
 #include "imgui.h"
 #include "ShaderMacroHelper.hpp"
 
-namespace Diligent
-{
+using namespace Diligent;
 
-SampleBase* CreateSample()
+Diligent::SampleBase* Diligent::CreateSample()
 {
     return new ComputeParticles();
 }
@@ -401,5 +400,3 @@ void ComputeParticles::Update(double CurrTime, double ElapsedTime)
 
     m_fTimeDelta = static_cast<float>(ElapsedTime);
 }
-
-} // namespace Diligent
