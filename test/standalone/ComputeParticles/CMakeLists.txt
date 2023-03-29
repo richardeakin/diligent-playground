@@ -5,13 +5,17 @@ set(APP_TARGET "ComputeParticles")
 
 set(SOURCE
     src/ComputeParticles.cpp
+    src/Cube.cpp
 )
 
 set(INCLUDE
     src/ComputeParticles.hpp
+    src/Cube.h
 )
 
 set(SHADERS
+    assets/cube.psh
+    assets/cube.vsh
     assets/particle.psh
     assets/particle.vsh
     assets/structures.fxh

@@ -4,6 +4,8 @@
 #include "ResourceMapping.h"
 #include "BasicMath.hpp"
 
+#include "Cube.h"
+
 namespace dg = Diligent;
 
 class ComputeParticles final : public dg::SampleBase {
@@ -44,4 +46,10 @@ private:
 
     float m_fTimeDelta       = 0;
     float m_fSimulationSpeed = 1;
+
+    std::unique_ptr<ju::Cube>   mCube;
+
+    void renderCube();
+
+    float4x4                              m_WorldViewProjMatrix; // TODO: use proper camera instead
 };

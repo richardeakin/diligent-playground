@@ -32,6 +32,26 @@ struct ParticleAttribs
 
 } // namespace
 
+void ComputeParticles::Initialize(const SampleInitInfo& InitInfo)
+{
+    SampleBase::Initialize(InitInfo);
+
+    CreateConsantBuffer();
+    CreateRenderParticlePSO();
+    CreateUpdateParticlePSO();
+    CreateParticleBuffers();
+
+    ju::Cube::AppCreateInfo createInfo;
+    createInfo.renderDevice = m_pDevice;
+    createInfo.swapChainImageDesc = &m_pSwapChain->GetDesc();
+
+    RefCntAutoPtr<IShaderSourceInputStreamFactory> shaderSourceFactory;
+    m_pEngineFactory->CreateDefaultShaderSourceStreamFactory(nullptr, &shaderSourceFactory);
+    createInfo.shaderSourceFactory = shaderSourceFactory;
+
+    mCube = std::make_unique<ju::Cube>( createInfo );
+}
+
 void ComputeParticles::CreateRenderParticlePSO()
 {
     GraphicsPipelineStateCreateInfo PSOCreateInfo;
@@ -319,14 +339,12 @@ void ComputeParticles::ModifyEngineInitInfo(const ModifyEngineInitInfoAttribs& A
     Attribs.EngineCI.Features.ComputeShaders = DEVICE_FEATURE_STATE_ENABLED;
 }
 
-void ComputeParticles::Initialize(const SampleInitInfo& InitInfo)
+void ComputeParticles::Update(double CurrTime, double ElapsedTime)
 {
-    SampleBase::Initialize(InitInfo);
+    SampleBase::Update(CurrTime, ElapsedTime);
+    UpdateUI();
 
-    CreateConsantBuffer();
-    CreateRenderParticlePSO();
-    CreateUpdateParticlePSO();
-    CreateParticleBuffers();
+    m_fTimeDelta = static_cast<float>(ElapsedTime);
 }
 
 // Render a frame
@@ -391,12 +409,14 @@ void ComputeParticles::Render()
     drawAttrs.NumVertices  = 4;
     drawAttrs.NumInstances = static_cast<Uint32>(m_NumParticles);
     m_pImmediateContext->Draw(drawAttrs);
+
+    render3D();
 }
 
-void ComputeParticles::Update(double CurrTime, double ElapsedTime)
+void ComputeParticles::render3D()
 {
-    SampleBase::Update(CurrTime, ElapsedTime);
-    UpdateUI();
-
-    m_fTimeDelta = static_cast<float>(ElapsedTime);
+    if( ! mCube ) {
+        return;
+    }
 }
+

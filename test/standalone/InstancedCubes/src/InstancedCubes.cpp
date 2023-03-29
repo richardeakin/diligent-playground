@@ -31,7 +31,7 @@
 #include "MapHelper.hpp"
 #include "GraphicsUtilities.h"
 #include "TextureUtilities.h"
-#include "../../common/src/TexturedCube.hpp" // TODO: dd common/src to include path
+#include "../../common/src/TexturedCube.hpp" // TODO: add common/src to include path
 #include "../../common/src/LivePP.h"
 
 #define LPP_PATH "../../../../../tools/LivePP"
