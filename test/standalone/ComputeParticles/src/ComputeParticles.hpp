@@ -49,7 +49,7 @@ private:
 
     std::unique_ptr<ju::Cube>   mCube;
 
-    void renderCube();
+    dg::float4x4                m_WorldViewProjMatrix; // TODO: use proper camera instead, use Cube's model transform and multiply before drawing
 
-    float4x4                              m_WorldViewProjMatrix; // TODO: use proper camera instead
+    void render3D();
 };

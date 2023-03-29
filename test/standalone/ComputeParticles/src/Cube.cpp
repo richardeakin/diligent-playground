@@ -1,7 +1,7 @@
 // Based on Tutorial02_Cube.cpp
 
 #include "Cube.h"
-#include "BasicMath.hpp"
+#include "MapHelper.hpp"
 
 using namespace Diligent;
 
@@ -25,29 +25,18 @@ void Cube::initPipelineState( const AppCreateInfo &createInfo )
     PSOCreateInfo.PSODesc.PipelineType = PIPELINE_TYPE_GRAPHICS;
 
     PSOCreateInfo.GraphicsPipeline.NumRenderTargets             = 1;
-    // Set render target format which is the format of the swap chain's color buffer
     PSOCreateInfo.GraphicsPipeline.RTVFormats[0]                = createInfo.swapChainImageDesc->ColorBufferFormat;
-    // Set depth buffer format which is the format of the swap chain's back buffer
     PSOCreateInfo.GraphicsPipeline.DSVFormat                    = createInfo.swapChainImageDesc->DepthBufferFormat;
-    // Primitive topology defines what kind of primitives will be rendered by this pipeline state
     PSOCreateInfo.GraphicsPipeline.PrimitiveTopology            = PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-    // Cull back faces
     PSOCreateInfo.GraphicsPipeline.RasterizerDesc.CullMode      = CULL_MODE_BACK;
-    // Enable depth testing
     PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.DepthEnable = True;
-    // clang-format on
 
     ShaderCreateInfo ShaderCI;
     ShaderCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_HLSL;
     ShaderCI.Desc.UseCombinedTextureSamplers = true;
     ShaderCI.pShaderSourceStreamFactory = createInfo.shaderSourceFactory;
 
-    // In this tutorial, we will load shaders from file. To be able to do that,
-    // we need to create a shader source stream factory
-    //RefCntAutoPtr<IShaderSourceInputStreamFactory> pShaderSourceFactory;
-    //m_pEngineFactory->CreateDefaultShaderSourceStreamFactory(nullptr, &pShaderSourceFactory);
-    //ShaderCI.pShaderSourceStreamFactory = pShaderSourceFactory;
-    // Create a vertex shader
+    // load shaders
     RefCntAutoPtr<IShader> pVS;
     {
         ShaderCI.Desc.ShaderType = SHADER_TYPE_VERTEX;
@@ -76,16 +65,10 @@ void Cube::initPipelineState( const AppCreateInfo &createInfo )
         createInfo.renderDevice->CreateShader(ShaderCI, &pPS);
     }
 
-    // clang-format off
-    // Define vertex shader input layout
-    LayoutElement LayoutElems[] =
-    {
-        // Attribute 0 - vertex position
-        LayoutElement{0, 0, 3, VT_FLOAT32, False},
-        // Attribute 1 - vertex color
-        LayoutElement{1, 0, 4, VT_FLOAT32, False}
+    LayoutElement LayoutElems[] = {
+        LayoutElement{0, 0, 3, VT_FLOAT32, False}, // Attrib 0 - vertex position
+        LayoutElement{1, 0, 4, VT_FLOAT32, False}  // Attrib 1 - vertex color
     };
-    // clang-format on
     PSOCreateInfo.GraphicsPipeline.InputLayout.LayoutElements = LayoutElems;
     PSOCreateInfo.GraphicsPipeline.InputLayout.NumElements    = _countof(LayoutElems);
 
@@ -145,8 +128,7 @@ void Cube::initVertexBuffer( const AppCreateInfo &createInfo )
 
 void Cube::initIndexBuffer( const AppCreateInfo &createInfo )
 {
-    Uint32 Indices[] =
-    {
+    Uint32 Indices[] = {
         2,0,1, 2,3,0,
         4,6,5, 4,7,6,
         0,7,4, 0,3,7,
@@ -154,7 +136,6 @@ void Cube::initIndexBuffer( const AppCreateInfo &createInfo )
         1,5,2, 5,6,2,
         3,6,7, 3,2,6
     };
-    // clang-format on
 
     BufferDesc IndBuffDesc;
     IndBuffDesc.Name      = "Cube index buffer";
@@ -167,9 +148,32 @@ void Cube::initIndexBuffer( const AppCreateInfo &createInfo )
     createInfo.renderDevice->CreateBuffer(IndBuffDesc, &IBData, &m_CubeIndexBuffer);
 }
 
-void Cube::render()
+void Cube::render( IDeviceContext* context, const float4x4 &mvp )
 {
-	
+    // Map the buffer and write current world-view-projection matrix
+    {
+        MapHelper<float4x4> CBConstants( context, m_VSConstants, MAP_WRITE, MAP_FLAG_DISCARD );
+        *CBConstants = mvp.Transpose();
+    }
+
+    // Bind vertex and index buffers
+    const Uint64 offset   = 0;
+    IBuffer*     pBuffs[] = {m_CubeVertexBuffer};
+    context->SetVertexBuffers(0, 1, pBuffs, &offset, RESOURCE_STATE_TRANSITION_MODE_TRANSITION, SET_VERTEX_BUFFERS_FLAG_RESET);
+    context->SetIndexBuffer(m_CubeIndexBuffer, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+
+    // Set the pipeline state
+    context->SetPipelineState(m_pPSO);
+    // Commit shader resources. RESOURCE_STATE_TRANSITION_MODE_TRANSITION mode
+    // makes sure that resources are transitioned to required states.
+    context->CommitShaderResources( m_SRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+
+    DrawIndexedAttribs DrawAttrs;     // This is an indexed draw call
+    DrawAttrs.IndexType  = VT_UINT32; // Index type
+    DrawAttrs.NumIndices = 36;
+    // Verify the state of vertex and index buffers
+    DrawAttrs.Flags = DRAW_FLAG_VERIFY_ALL;
+    context->DrawIndexed(DrawAttrs);
 }
 
 

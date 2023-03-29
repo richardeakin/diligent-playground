@@ -5,6 +5,8 @@
 #include "RefCntAutoPtr.hpp"
 #include "Buffer.h"
 #include "Image.h"
+#include "DeviceContext.h"
+#include "BasicMath.hpp"
 
 namespace ju {
 
@@ -21,7 +23,7 @@ public:
 
 	Cube( const AppCreateInfo &createInfo );
 
-	void render();
+	void render( dg::IDeviceContext* context, const dg::float4x4 &mvp );
 
 private:
 	void initPipelineState( const AppCreateInfo &createInfo );
@@ -33,6 +35,8 @@ private:
 	dg::RefCntAutoPtr<dg::IBuffer>                m_CubeIndexBuffer;
 	dg::RefCntAutoPtr<dg::IBuffer>                m_VSConstants;
 	dg::RefCntAutoPtr<dg::IShaderResourceBinding> m_SRB;
+
+	dg::float4x4	mTransform; // TODO: use this to rotate the cube from main app
 };
 
 } // namespace ju
