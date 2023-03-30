@@ -34,7 +34,7 @@ set_target_properties( ${APP_TARGET} PROPERTIES CXX_STANDARD 20 )
 
 # TODO: not working yet, look at why (could do with cmake version?)
 # https://stackoverflow.com/a/52264858
-set_target_properties( ${APP_TARGET} PROPERTIES VS_DEBUGGER_COMMAND_ARGUMENTS "--mode d3d12" ) 
+set_target_properties( ${APP_TARGET} PROPERTIES VS_DEBUGGER_COMMAND_ARGUMENTS "--mode d3d12 --adapters_dialog false" ) 
 
 set( INCLUDE_USER
     ${LIVEPP_PATH} # set in top level CMakeLists.txt
