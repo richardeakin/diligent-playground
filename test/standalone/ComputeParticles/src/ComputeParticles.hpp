@@ -3,6 +3,7 @@
 #include "SampleBase.hpp"
 #include "ResourceMapping.h"
 #include "BasicMath.hpp"
+#include "FirstPersonCamera.hpp"
 
 #include "Cube.h"
 
@@ -13,9 +14,9 @@ public:
     virtual void ModifyEngineInitInfo(const ModifyEngineInitInfoAttribs& Attribs) override final;
 
     virtual void Initialize(const dg::SampleInitInfo& InitInfo) override final;
-
-    virtual void Render() override final;
+    virtual void WindowResize(dg::Uint32 Width, dg::Uint32 Height) override final;
     virtual void Update(double CurrTime, double ElapsedTime) override final;
+    virtual void Render() override final;
 
     virtual const dg::Char* GetSampleName() const override final { return "ComputeParticles Blarg"; }
 
@@ -49,7 +50,11 @@ private:
 
     std::unique_ptr<ju::Cube>   mCube;
 
-    dg::float4x4                m_WorldViewProjMatrix; // TODO: use proper camera instead, use Cube's model transform and multiply before drawing
+    dg::float4x4                m_WorldViewProjMatrix; // TODO: break out world transform and store in Cube as a separate const?
+
+    dg::FirstPersonCamera mCamera;
+
+    void initCamera();
 
     void render3D();
 };

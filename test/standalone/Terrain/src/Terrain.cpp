@@ -44,7 +44,6 @@
 #include "imgui.h"
 #include "ImGuiUtils.hpp"
 
-//namespace dg = Diligent; // TODO: use this?
 using namespace Diligent;
 namespace im = ImGui;
 
@@ -438,8 +437,6 @@ void Terrain::Update(double CurrTime, double ElapsedTime)
 
     m_WorldViewProjMatrix = CubeModelTransform * View * Proj;
 
-    // -----
-    // TODO: get this working
     if( UseFirstPersonCamera ) {
         m_WorldViewProjMatrix = CubeModelTransform * m_Camera.GetViewMatrix() * m_Camera.GetProjMatrix();
     }

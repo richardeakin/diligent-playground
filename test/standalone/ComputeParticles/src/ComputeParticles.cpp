@@ -7,17 +7,16 @@
 #include "ShaderMacroHelper.hpp"
 
 using namespace Diligent;
+namespace im = ImGui;
 
 Diligent::SampleBase* Diligent::CreateSample()
 {
     return new ComputeParticles();
 }
 
-namespace
-{
+namespace {
 
-struct ParticleAttribs
-{
+struct ParticleAttribs {
     float2 f2Pos;
     float2 f2NewPos;
 
@@ -30,7 +29,14 @@ struct ParticleAttribs
     float fPadding0      = 0;
 };
 
-} // namespace
+bool UseFirstPersonCamera = true;
+bool RotateCube = true;
+
+float CameraRotationSpeed = 0.005f;
+float CameraMoveSpeed = 8.0f;
+float2 CameraSpeedUp = { 0.2f, 10.0f }; // speed multipliers when {shift, ctrl} is down
+
+} // anon
 
 void ComputeParticles::Initialize(const SampleInitInfo& InitInfo)
 {
@@ -317,6 +323,15 @@ void ComputeParticles::CreateConsantBuffer()
     m_pDevice->CreateBuffer(BuffDesc, nullptr, &m_Constants);
 }
 
+void ComputeParticles::initCamera()
+{
+    mCamera.SetPos( float3{ 0, 0, 10 } );
+    mCamera.SetLookAt( float3{ 0, 0, -1 } );
+    mCamera.SetRotationSpeed( CameraRotationSpeed );
+    mCamera.SetMoveSpeed( CameraMoveSpeed );
+    mCamera.SetSpeedUpScales( CameraSpeedUp.x, CameraSpeedUp.y );
+}
+
 void ComputeParticles::UpdateUI()
 {
     ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
@@ -328,6 +343,22 @@ void ComputeParticles::UpdateUI()
             CreateParticleBuffers();
         }
         ImGui::SliderFloat("Simulation Speed", &m_fSimulationSpeed, 0.1f, 5.f);
+
+        if( im::CollapsingHeader( "Camera", ImGuiTreeNodeFlags_DefaultOpen ) ) {
+            im::Checkbox( "enabled", &UseFirstPersonCamera );
+            if( im::DragFloat( "move speed", &CameraMoveSpeed) ) {
+                mCamera.SetMoveSpeed(CameraMoveSpeed);
+            }
+            if( im::DragFloat( "rotate speed", &CameraRotationSpeed) ) {
+                mCamera.SetRotationSpeed(CameraRotationSpeed);
+            }
+            if( im::DragFloat2( "speed up scale", &CameraSpeedUp.x) ) {
+                mCamera.SetSpeedUpScales(CameraSpeedUp.x, CameraSpeedUp.y);
+            }
+            if( im::Button("reset") ) {
+                initCamera();
+            }
+        }
     }
     ImGui::End();
 }
@@ -339,11 +370,21 @@ void ComputeParticles::ModifyEngineInitInfo(const ModifyEngineInitInfoAttribs& A
     Attribs.EngineCI.Features.ComputeShaders = DEVICE_FEATURE_STATE_ENABLED;
 }
 
+void ComputeParticles::WindowResize(Uint32 Width, Uint32 Height)
+{
+    LOG_INFO_MESSAGE("Terrain::WindowResize| size: [", Width, ", ", Height, "]" );
+
+    // Update projection matrix.
+    float AspectRatio = static_cast<float>(Width) / static_cast<float>(Height);
+    mCamera.SetProjAttribs(1.f, 1000.f, AspectRatio, PI_F / 4.f, m_pSwapChain->GetDesc().PreTransform, m_pDevice->GetDeviceInfo().IsGLDevice());
+}
+
 void ComputeParticles::Update(double CurrTime, double ElapsedTime)
 {
     SampleBase::Update(CurrTime, ElapsedTime);
     UpdateUI();
 
+    mCamera.Update(m_InputController, float(ElapsedTime));
     m_fTimeDelta = static_cast<float>(ElapsedTime);
 
     // TODO: use proper camera
@@ -362,6 +403,14 @@ void ComputeParticles::Update(double CurrTime, double ElapsedTime)
 
         // Compute world-view-projection matrix
         m_WorldViewProjMatrix = CubeModelTransform * View * SrfPreTransform * Proj;
+
+        // FIXME: not yet working
+        if( UseFirstPersonCamera ) {
+            m_WorldViewProjMatrix = CubeModelTransform * mCamera.GetViewMatrix() * mCamera.GetProjMatrix();
+
+            // Terrain app didn't use this..
+            //m_WorldViewProjMatrix = CubeModelTransform * mCamera.GetViewMatrix() * SrfPreTransform * mCamera.GetProjMatrix();
+        }
     }
 }
 
