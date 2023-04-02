@@ -4,3 +4,6 @@
 [submodule "deps/cinder"]
 	path = deps/cinder
 	url = https://github.com/cinder/Cinder.git
+[submodule "deps/Cinder-Gx"]
+	path = deps/Cinder-Gx
+	url = https://github.com/simongeilfus/Cinder-Gx.git
