@@ -1,6 +1,3 @@
-[submodule "cinder"]
-	path = cinder
-	url = https://github.com/cinder/Cinder.git
 [submodule "blocks/Cinder-Gx"]
 	path = blocks/Cinder-Gx
 	url = https://github.com/simongeilfus/Cinder-Gx.git
