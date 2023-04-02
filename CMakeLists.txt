@@ -11,7 +11,7 @@ option(BUILD_GX "Build GX" OFF)
 # variable_watch(CINDER_LIB_DIRECTORY)
 
 # used for logging
-include( cinder/proj/cmake/utilities.cmake )
+include( deps/cinder/proj/cmake/utilities.cmake )
 
 # add_subdirectory( cinder )
 get_filename_component( CINDER_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cinder/" ABSOLUTE )

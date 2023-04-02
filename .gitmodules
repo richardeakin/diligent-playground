@@ -4,3 +4,6 @@
 [submodule "deps/DiligentEngine"]
 	path = deps/DiligentEngine
 	url = https://github.com/DiligentGraphics/DiligentEngine.git
+[submodule "deps/cinder"]
+	path = deps/cinder
+	url = https://github.com/cinder/Cinder.git
