@@ -56,6 +56,7 @@ void ComputeParticles::Initialize(const SampleInitInfo& InitInfo)
     createInfo.shaderSourceFactory = shaderSourceFactory;
 
     mCube = std::make_unique<ju::Cube>( createInfo );
+    initCamera();
 }
 
 void ComputeParticles::CreateRenderParticlePSO()
