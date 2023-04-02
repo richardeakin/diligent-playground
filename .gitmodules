@@ -1,6 +1,9 @@
-[submodule "blocks/Cinder-Gx"]
-	path = blocks/Cinder-Gx
-	url = https://github.com/simongeilfus/Cinder-Gx.git
 [submodule "deps/DiligentEngine"]
 	path = deps/DiligentEngine
 	url = https://github.com/DiligentGraphics/DiligentEngine.git
+[submodule "deps/cinder"]
+	path = deps/cinder
+	url = https://github.com/cinder/Cinder.git
+[submodule "deps/Cinder-Gx"]
+	path = deps/Cinder-Gx
+	url = https://github.com/simongeilfus/Cinder-Gx.git
