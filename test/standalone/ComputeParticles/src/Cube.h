@@ -12,9 +12,28 @@ namespace ju {
 
 namespace dg = Diligent;
 
+enum VERTEX_COMPONENT_FLAGS : int
+{
+	VERTEX_COMPONENT_FLAG_NONE     = 0x00,
+	VERTEX_COMPONENT_FLAG_POSITION = 0x01,
+	VERTEX_COMPONENT_FLAG_NORMAL   = 0x02,
+	VERTEX_COMPONENT_FLAG_TEXCOORD = 0x04,
+
+	VERTEX_COMPONENT_FLAG_POS_UV =
+	VERTEX_COMPONENT_FLAG_POSITION |
+	VERTEX_COMPONENT_FLAG_TEXCOORD,
+
+	VERTEX_COMPONENT_FLAG_POS_NORM_UV =
+	VERTEX_COMPONENT_FLAG_POSITION |
+	VERTEX_COMPONENT_FLAG_NORMAL |
+	VERTEX_COMPONENT_FLAG_TEXCOORD
+};
+DEFINE_FLAG_ENUM_OPERATORS(VERTEX_COMPONENT_FLAGS);
+
 class Cube {
 public:
-	Cube();
+
+	Cube( VERTEX_COMPONENT_FLAGS components = VERTEX_COMPONENT_FLAG_POS_UV );
 
 	void update( double deltaSeconds );
 	void render( dg::IDeviceContext* context, const dg::float4x4 &mvp );
@@ -32,6 +51,8 @@ private:
 	dg::RefCntAutoPtr<dg::IBuffer>                m_CubeIndexBuffer;
 	dg::RefCntAutoPtr<dg::IBuffer>                m_VSConstants;
 	dg::RefCntAutoPtr<dg::IShaderResourceBinding> m_SRB;
+
+	VERTEX_COMPONENT_FLAGS mComponents;
 
 	dg::float4x4	mTransform; // TODO: use this to rotate the cube from main app
 };

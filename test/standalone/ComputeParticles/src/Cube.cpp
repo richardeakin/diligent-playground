@@ -19,7 +19,8 @@ bool                                                         ShaderAssetsMarkedD
 
 } // anon
 
-Cube::Cube()
+Cube::Cube( VERTEX_COMPONENT_FLAGS components )
+    : mComponents( components )
 {
     initPipelineState();
     initVertexBuffer();
@@ -102,13 +103,13 @@ void Cube::initPipelineState()
 void Cube::initVertexBuffer()
 {
     // Layout of this structure matches the one we defined in the pipeline state
+    // TODO NEXT: bring over pos + texcoord + normals from TexturedCube class
     struct Vertex
     {
         float3 pos;
         float4 color;
     };
 
-    // clang-format off
     Vertex CubeVerts[8] =
     {
         {float3(-1,-1,-1), float4(1,0,0,1)},
@@ -121,7 +122,6 @@ void Cube::initVertexBuffer()
         {float3(+1,+1,+1), float4(1,0,1,1)},
         {float3(+1,-1,+1), float4(0.2f,0.2f,0.2f,1)},
     };
-    // clang-format on
 
     // Create a vertex buffer that stores cube vertices
     BufferDesc VertBuffDesc;
