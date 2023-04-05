@@ -6,11 +6,13 @@ set(APP_TARGET "ComputeParticles")
 set(SOURCE
     src/ComputeParticles.cpp
     src/Cube.cpp
+    src/AppGlobal.cpp
 )
 
 set(INCLUDE
     src/ComputeParticles.hpp
     src/Cube.h
+    src/AppGlobal.h
 )
 
 set(SHADERS

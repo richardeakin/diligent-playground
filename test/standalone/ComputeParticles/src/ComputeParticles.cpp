@@ -1,10 +1,15 @@
-#include <random>
 
 #include "ComputeParticles.hpp"
 #include "BasicMath.hpp"
 #include "MapHelper.hpp"
 #include "imgui.h"
 #include "ShaderMacroHelper.hpp"
+
+#include "AppGlobal.h"
+#include "../../common/src/FileWatch.hpp"
+
+#include <filesystem>
+#include <random>
 
 using namespace Diligent;
 namespace im = ImGui;
@@ -36,6 +41,9 @@ float CameraRotationSpeed = 0.005f;
 float CameraMoveSpeed = 8.0f;
 float2 CameraSpeedUp = { 0.2f, 10.0f }; // speed multipliers when {shift, ctrl} is down
 
+std::unique_ptr<filewatch::FileWatch<std::filesystem::path>> ShadersDirWatchHandle;
+bool                                                         ShaderAssetsMarkedDirty = false;
+
 } // anon
 
 void ComputeParticles::Initialize(const SampleInitInfo& InitInfo)
@@ -47,15 +55,15 @@ void ComputeParticles::Initialize(const SampleInitInfo& InitInfo)
     CreateUpdateParticlePSO();
     CreateParticleBuffers();
 
-    ju::Cube::AppCreateInfo createInfo;
-    createInfo.renderDevice = m_pDevice;
-    createInfo.swapChainImageDesc = &m_pSwapChain->GetDesc();
+    auto global = app::global();
+    global->renderDevice = m_pDevice;
+    global->swapChainImageDesc = &m_pSwapChain->GetDesc();
 
     RefCntAutoPtr<IShaderSourceInputStreamFactory> shaderSourceFactory;
     m_pEngineFactory->CreateDefaultShaderSourceStreamFactory(nullptr, &shaderSourceFactory);
-    createInfo.shaderSourceFactory = shaderSourceFactory;
+    global->shaderSourceFactory = shaderSourceFactory;
 
-    mCube = std::make_unique<ju::Cube>( createInfo );
+    mCube = std::make_unique<ju::Cube>();
     initCamera();
 }
 

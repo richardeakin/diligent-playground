@@ -1,7 +1,11 @@
 // Based on Tutorial02_Cube.cpp
 
 #include "Cube.h"
+#include "AppGlobal.h"
 #include "MapHelper.hpp"
+
+#include "../../common/src/FileWatch.hpp"
+#include <filesystem>
 
 using namespace Diligent;
 
@@ -9,24 +13,29 @@ namespace ju {
 
 namespace {
 
+std::unique_ptr<filewatch::FileWatch<std::filesystem::path>> ShadersDirWatchHandle;
+bool                                                         ShaderAssetsMarkedDirty = false;
+
 } // anon
 
-Cube::Cube( const AppCreateInfo &createInfo )
+Cube::Cube()
 {
-    initPipelineState( createInfo );
-    initVertexBuffer( createInfo );
-    initIndexBuffer( createInfo );
+    initPipelineState();
+    initVertexBuffer();
+    initIndexBuffer();
 }
 
-void Cube::initPipelineState( const AppCreateInfo &createInfo )
+void Cube::initPipelineState()
 {
+    auto global = app::global();
+
     GraphicsPipelineStateCreateInfo PSOCreateInfo;
     PSOCreateInfo.PSODesc.Name = "Cube PSO";
     PSOCreateInfo.PSODesc.PipelineType = PIPELINE_TYPE_GRAPHICS;
 
     PSOCreateInfo.GraphicsPipeline.NumRenderTargets             = 1;
-    PSOCreateInfo.GraphicsPipeline.RTVFormats[0]                = createInfo.swapChainImageDesc->ColorBufferFormat;
-    PSOCreateInfo.GraphicsPipeline.DSVFormat                    = createInfo.swapChainImageDesc->DepthBufferFormat;
+    PSOCreateInfo.GraphicsPipeline.RTVFormats[0]                = global->swapChainImageDesc->ColorBufferFormat;
+    PSOCreateInfo.GraphicsPipeline.DSVFormat                    = global->swapChainImageDesc->DepthBufferFormat;
     PSOCreateInfo.GraphicsPipeline.PrimitiveTopology            = PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     PSOCreateInfo.GraphicsPipeline.RasterizerDesc.CullMode      = CULL_MODE_BACK;
     PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.DepthEnable = True;
@@ -34,7 +43,7 @@ void Cube::initPipelineState( const AppCreateInfo &createInfo )
     ShaderCreateInfo ShaderCI;
     ShaderCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_HLSL;
     ShaderCI.Desc.UseCombinedTextureSamplers = true;
-    ShaderCI.pShaderSourceStreamFactory = createInfo.shaderSourceFactory;
+    ShaderCI.pShaderSourceStreamFactory = global->shaderSourceFactory;
 
     // load shaders
     RefCntAutoPtr<IShader> pVS;
@@ -43,7 +52,7 @@ void Cube::initPipelineState( const AppCreateInfo &createInfo )
         ShaderCI.EntryPoint      = "main";
         ShaderCI.Desc.Name       = "Cube VS";
         ShaderCI.FilePath        = "cube.vsh";
-        createInfo.renderDevice->CreateShader(ShaderCI, &pVS);
+        global->renderDevice->CreateShader(ShaderCI, &pVS);
         // Create dynamic uniform buffer that will store our transformation matrix
         // Dynamic buffers can be frequently updated by the CPU
         BufferDesc CBDesc;
@@ -52,7 +61,7 @@ void Cube::initPipelineState( const AppCreateInfo &createInfo )
         CBDesc.Usage          = USAGE_DYNAMIC;
         CBDesc.BindFlags      = BIND_UNIFORM_BUFFER;
         CBDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
-        createInfo.renderDevice->CreateBuffer(CBDesc, nullptr, &m_VSConstants);
+        global->renderDevice->CreateBuffer(CBDesc, nullptr, &m_VSConstants);
     }
 
     // Create a pixel shader
@@ -62,7 +71,7 @@ void Cube::initPipelineState( const AppCreateInfo &createInfo )
         ShaderCI.EntryPoint      = "main";
         ShaderCI.Desc.Name       = "Cube PS";
         ShaderCI.FilePath        = "cube.psh";
-        createInfo.renderDevice->CreateShader(ShaderCI, &pPS);
+        global->renderDevice->CreateShader(ShaderCI, &pPS);
     }
 
     LayoutElement LayoutElems[] = {
@@ -78,7 +87,7 @@ void Cube::initPipelineState( const AppCreateInfo &createInfo )
     // Define variable type that will be used by default
     PSOCreateInfo.PSODesc.ResourceLayout.DefaultVariableType = SHADER_RESOURCE_VARIABLE_TYPE_STATIC;
 
-    createInfo.renderDevice->CreateGraphicsPipelineState(PSOCreateInfo, &m_pPSO);
+    global->renderDevice->CreateGraphicsPipelineState(PSOCreateInfo, &m_pPSO);
 
     // Since we did not explcitly specify the type for 'Constants' variable, default
     // type (SHADER_RESOURCE_VARIABLE_TYPE_STATIC) will be used. Static variables never
@@ -89,7 +98,7 @@ void Cube::initPipelineState( const AppCreateInfo &createInfo )
     m_pPSO->CreateShaderResourceBinding( &m_SRB, true );
 }
 
-void Cube::initVertexBuffer( const AppCreateInfo &createInfo )
+void Cube::initVertexBuffer()
 {
     // Layout of this structure matches the one we defined in the pipeline state
     struct Vertex
@@ -122,11 +131,11 @@ void Cube::initVertexBuffer( const AppCreateInfo &createInfo )
     BufferData VBData;
     VBData.pData    = CubeVerts;
     VBData.DataSize = sizeof(CubeVerts);
-    createInfo.renderDevice->CreateBuffer(VertBuffDesc, &VBData, &m_CubeVertexBuffer);
 
+    app::global()->renderDevice->CreateBuffer(VertBuffDesc, &VBData, &m_CubeVertexBuffer);
 }
 
-void Cube::initIndexBuffer( const AppCreateInfo &createInfo )
+void Cube::initIndexBuffer()
 {
     Uint32 Indices[] = {
         2,0,1, 2,3,0,
@@ -145,7 +154,25 @@ void Cube::initIndexBuffer( const AppCreateInfo &createInfo )
     BufferData IBData;
     IBData.pData    = Indices;
     IBData.DataSize = sizeof(Indices);
-    createInfo.renderDevice->CreateBuffer(IndBuffDesc, &IBData, &m_CubeIndexBuffer);
+    app::global()->renderDevice->CreateBuffer(IndBuffDesc, &IBData, &m_CubeIndexBuffer);
+}
+
+void Cube::reloadOnAssetsUpdated()
+{
+    LOG_INFO_MESSAGE( __FUNCTION__, "| boom" );
+
+    m_pPSO.Release();
+    m_SRB.Release();
+    initPipelineState();
+
+    ShaderAssetsMarkedDirty = false;
+}
+
+void Cube::update( double deltaSeconds )
+{
+    if(ShaderAssetsMarkedDirty) {
+        reloadOnAssetsUpdated();
+    }
 }
 
 void Cube::render( IDeviceContext* context, const float4x4 &mvp )
