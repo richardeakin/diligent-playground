@@ -15,5 +15,7 @@ struct PSOutput
 void main(in  PSInput  PSIn,
           out PSOutput PSOut)
 {
-    PSOut.Color = PSIn.Color; 
+    // TODO NEXT: lambert shading
+    PSOut.Color = PSIn.Color;
+    PSOut.Color.r = 0.0;
 }

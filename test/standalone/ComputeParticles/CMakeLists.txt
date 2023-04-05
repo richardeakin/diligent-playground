@@ -16,8 +16,6 @@ set(INCLUDE
 )
 
 set(SHADERS
-    assets/cube.psh
-    assets/cube.vsh
     assets/particle.psh
     assets/particle.vsh
     assets/structures.fxh
@@ -25,6 +23,8 @@ set(SHADERS
     assets/collide_particles.csh
     assets/move_particles.csh
     assets/particles.fxh
+    assets/shaders/cube/cube.vsh
+    assets/shaders/cube/cube.psh
 )
 
 set(ASSETS)

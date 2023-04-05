@@ -24,6 +24,7 @@ private:
 	void initVertexBuffer();
 	void initIndexBuffer();
 
+	void watchShadersDir();
 	void reloadOnAssetsUpdated();
 
 	dg::RefCntAutoPtr<dg::IPipelineState>         m_pPSO;

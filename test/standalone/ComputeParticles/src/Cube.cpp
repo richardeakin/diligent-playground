@@ -1,11 +1,12 @@
 // Based on Tutorial02_Cube.cpp
 
+#include <filesystem>
+
 #include "Cube.h"
 #include "AppGlobal.h"
 #include "MapHelper.hpp"
 
 #include "../../common/src/FileWatch.hpp"
-#include <filesystem>
 
 using namespace Diligent;
 
@@ -51,7 +52,7 @@ void Cube::initPipelineState()
         ShaderCI.Desc.ShaderType = SHADER_TYPE_VERTEX;
         ShaderCI.EntryPoint      = "main";
         ShaderCI.Desc.Name       = "Cube VS";
-        ShaderCI.FilePath        = "cube.vsh";
+        ShaderCI.FilePath        = "shaders/cube/cube.vsh";
         global->renderDevice->CreateShader(ShaderCI, &pVS);
         // Create dynamic uniform buffer that will store our transformation matrix
         // Dynamic buffers can be frequently updated by the CPU
@@ -61,7 +62,7 @@ void Cube::initPipelineState()
         CBDesc.Usage          = USAGE_DYNAMIC;
         CBDesc.BindFlags      = BIND_UNIFORM_BUFFER;
         CBDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
-        global->renderDevice->CreateBuffer(CBDesc, nullptr, &m_VSConstants);
+        global->renderDevice->CreateBuffer(CBDesc, nullptr, &m_VSConstants); // TODO: move to separate (non-hotloadable) method
     }
 
     // Create a pixel shader
@@ -70,7 +71,7 @@ void Cube::initPipelineState()
         ShaderCI.Desc.ShaderType = SHADER_TYPE_PIXEL;
         ShaderCI.EntryPoint      = "main";
         ShaderCI.Desc.Name       = "Cube PS";
-        ShaderCI.FilePath        = "cube.psh";
+        ShaderCI.FilePath        = "shaders/cube/cube.psh";
         global->renderDevice->CreateShader(ShaderCI, &pPS);
     }
 
@@ -155,6 +156,37 @@ void Cube::initIndexBuffer()
     IBData.pData    = Indices;
     IBData.DataSize = sizeof(Indices);
     app::global()->renderDevice->CreateBuffer(IndBuffDesc, &IBData, &m_CubeIndexBuffer);
+
+    watchShadersDir();
+}
+
+void Cube::watchShadersDir()
+{
+    std::filesystem::path shaderDir( "shaders/cube" );
+
+    if( std::filesystem::exists( shaderDir ) ) {
+        LOG_INFO_MESSAGE( __FUNCTION__, "| watching assets directory: ", shaderDir );
+        try {
+            ShadersDirWatchHandle = std::make_unique<filewatch::FileWatch<std::filesystem::path>>( shaderDir,
+                [=](const std::filesystem::path &path, const filewatch::Event change_type ) {
+                    //LOG_INFO_MESSAGE( __FUNCTION__, "| \t- file event type: ", watchEventTypeToString( change_type ) , ", path: " , path );
+                    //ReloadOnAssetsUpdated();
+
+                    // TODO: filter out repeated events as per
+                    // https://github.com/ThomasMonkman/filewatch/issues/27
+                    // - for now will just mark a flag and hope it is fine updating buffers from render loop
+
+                    ShaderAssetsMarkedDirty = true;
+                }
+            );
+        }
+        catch( std::system_error &exc ) {
+            LOG_ERROR_MESSAGE( __FUNCTION__, "| exception caught attempting to watch directory (assets): ", shaderDir, ", what: ", exc.what() );
+        }
+    }
+    else {
+        LOG_WARNING_MESSAGE( __FUNCTION__, "| shader directory couldn't be found (not watching): ", shaderDir );
+    }
 }
 
 void Cube::reloadOnAssetsUpdated()
@@ -163,6 +195,7 @@ void Cube::reloadOnAssetsUpdated()
 
     m_pPSO.Release();
     m_SRB.Release();
+    m_VSConstants.Release();
     initPipelineState();
 
     ShaderAssetsMarkedDirty = false;

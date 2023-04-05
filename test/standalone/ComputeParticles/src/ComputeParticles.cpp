@@ -59,9 +59,11 @@ void ComputeParticles::Initialize(const SampleInitInfo& InitInfo)
     global->renderDevice = m_pDevice;
     global->swapChainImageDesc = &m_pSwapChain->GetDesc();
 
-    RefCntAutoPtr<IShaderSourceInputStreamFactory> shaderSourceFactory;
-    m_pEngineFactory->CreateDefaultShaderSourceStreamFactory(nullptr, &shaderSourceFactory);
-    global->shaderSourceFactory = shaderSourceFactory;
+    //RefCntAutoPtr<IShaderSourceInputStreamFactory> shaderSourceFactory;
+    //m_pEngineFactory->CreateDefaultShaderSourceStreamFactory(nullptr, &shaderSourceFactory);
+    //global->shaderSourceFactory = shaderSourceFactory;
+
+    m_pEngineFactory->CreateDefaultShaderSourceStreamFactory(nullptr, &global->shaderSourceFactory);
 
     mCube = std::make_unique<ju::Cube>();
     initCamera();
@@ -396,6 +398,10 @@ void ComputeParticles::Update(double CurrTime, double ElapsedTime)
     mCamera.Update(m_InputController, float(ElapsedTime));
     m_fTimeDelta = static_cast<float>(ElapsedTime);
 
+    if( mCube ) {
+        mCube->update( ElapsedTime );
+    }
+
     // TODO: use proper camera
     {
         // Apply rotation
@@ -405,6 +411,7 @@ void ComputeParticles::Update(double CurrTime, double ElapsedTime)
         float4x4 View = float4x4::Translation(0.f, 0.0f, 5.0f);
 
         // Get pretransform matrix that rotates the scene according the surface orientation
+        // TODO: understand when this is needed, not using with the FPS cam
         auto SrfPreTransform = GetSurfacePretransformMatrix(float3{0, 0, 1});
 
         // Get projection matrix adjusted to the current screen orientation
@@ -413,12 +420,8 @@ void ComputeParticles::Update(double CurrTime, double ElapsedTime)
         // Compute world-view-projection matrix
         m_WorldViewProjMatrix = CubeModelTransform * View * SrfPreTransform * Proj;
 
-        // FIXME: not yet working
         if( UseFirstPersonCamera ) {
             m_WorldViewProjMatrix = CubeModelTransform * mCamera.GetViewMatrix() * mCamera.GetProjMatrix();
-
-            // Terrain app didn't use this..
-            //m_WorldViewProjMatrix = CubeModelTransform * mCamera.GetViewMatrix() * SrfPreTransform * mCamera.GetProjMatrix();
         }
     }
 }
