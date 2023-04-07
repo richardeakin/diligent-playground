@@ -5,6 +5,7 @@
 #include "Cube.h"
 #include "AppGlobal.h"
 #include "MapHelper.hpp"
+#include "GraphicsTypesX.hpp"
 
 #include "../../common/src/FileWatch.hpp"
 
@@ -17,6 +18,61 @@ namespace {
 std::unique_ptr<filewatch::FileWatch<std::filesystem::path>> ShadersDirWatchHandle;
 bool                                                         ShaderAssetsMarkedDirty = false;
 
+
+//      (-1,+1,+1)________________(+1,+1,+1)                  Z
+//               /|              /|                           |      Y
+//              / |             / |                           |     /
+//             /  |            /  |                           |    /
+//            /   |           /   |                           |   /
+//(-1,-1,+1) /____|__________/(+1,-1,+1)                      |  /
+//           |    |__________|____|                           | /
+//           |   /(-1,+1,-1) |    /(+1,+1,-1)                 |----------------> X
+//           |  /            |   /
+//           | /             |  /
+//           |/              | /
+//           /_______________|/
+//        (-1,-1,-1)       (+1,-1,-1)
+//
+
+const Uint32 NumVertices = 4 * 6;
+const Uint32 NumIndices  = 3 * 2 * 6;
+
+const std::array<float3, NumVertices> Positions = {
+    float3{-1, -1, -1}, float3{-1, +1, -1}, float3{+1, +1, -1}, float3{+1, -1, -1}, // Bottom
+    float3{-1, -1, -1}, float3{-1, -1, +1}, float3{+1, -1, +1}, float3{+1, -1, -1}, // Front
+    float3{+1, -1, -1}, float3{+1, -1, +1}, float3{+1, +1, +1}, float3{+1, +1, -1}, // Right
+    float3{+1, +1, -1}, float3{+1, +1, +1}, float3{-1, +1, +1}, float3{-1, +1, -1}, // Back
+    float3{-1, +1, -1}, float3{-1, +1, +1}, float3{-1, -1, +1}, float3{-1, -1, -1}, // Left
+    float3{-1, -1, +1}, float3{+1, -1, +1}, float3{+1, +1, +1}, float3{-1, +1, +1}  // Top
+};
+
+const std::array<float2, NumVertices> Texcoords = {
+    float2{0, 1}, float2{0, 0}, float2{1, 0}, float2{1, 1}, // Bottom
+    float2{0, 1}, float2{0, 0}, float2{1, 0}, float2{1, 1}, // Front
+    float2{0, 1}, float2{1, 1}, float2{1, 0}, float2{0, 0}, // Right
+    float2{0, 1}, float2{0, 0}, float2{1, 0}, float2{1, 1}, // Back
+    float2{1, 0}, float2{0, 0}, float2{0, 1}, float2{1, 1}, // Left
+    float2{1, 1}, float2{0, 1}, float2{0, 0}, float2{1, 0}  // Top
+};
+
+const std::array<float3, NumVertices> Normals = {
+    float3{0, 0, -1}, float3{0, 0, -1}, float3{0, 0, -1}, float3{0, 0, -1}, // Bottom
+    float3{0, -1, 0}, float3{0, -1, 0}, float3{0, -1, 0}, float3{0, -1, 0}, // Front
+    float3{+1, 0, 0}, float3{+1, 0, 0}, float3{+1, 0, 0}, float3{+1, 0, 0}, // Right
+    float3{0, +1, 0}, float3{0, +1, 0}, float3{0, +1, 0}, float3{0, +1, 0}, // Back
+    float3{-1, 0, 0}, float3{-1, 0, 0}, float3{-1, 0, 0}, float3{-1, 0, 0}, // Left
+    float3{0, 0, +1}, float3{0, 0, +1}, float3{0, 0, +1}, float3{0, 0, +1}  // Top
+};
+
+const std::array<Uint32, NumIndices> Indices =
+{
+    2,0,1,    2,3,0,
+    4,6,5,    4,7,6,
+    8,10,9,   8,11,10,
+    12,14,13, 12,15,14,
+    16,18,17, 16,19,18,
+    20,21,22, 20,22,23
+};
 } // anon
 
 Cube::Cube( VERTEX_COMPONENT_FLAGS components )
@@ -25,6 +81,7 @@ Cube::Cube( VERTEX_COMPONENT_FLAGS components )
     initPipelineState();
     initVertexBuffer();
     initIndexBuffer();
+    watchShadersDir();
 }
 
 void Cube::initPipelineState()
@@ -55,15 +112,17 @@ void Cube::initPipelineState()
         ShaderCI.Desc.Name       = "Cube VS";
         ShaderCI.FilePath        = "shaders/cube/cube.vsh";
         global->renderDevice->CreateShader(ShaderCI, &pVS);
+
         // Create dynamic uniform buffer that will store our transformation matrix
         // Dynamic buffers can be frequently updated by the CPU
+        // TODO: move to separate (non-hotloadable) method
         BufferDesc CBDesc;
         CBDesc.Name           = "VS constants CB";
         CBDesc.Size           = sizeof(float4x4);
         CBDesc.Usage          = USAGE_DYNAMIC;
         CBDesc.BindFlags      = BIND_UNIFORM_BUFFER;
         CBDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
-        global->renderDevice->CreateBuffer(CBDesc, nullptr, &m_VSConstants); // TODO: move to separate (non-hotloadable) method
+        global->renderDevice->CreateBuffer(CBDesc, nullptr, &m_VSConstants);
     }
 
     // Create a pixel shader
@@ -76,12 +135,19 @@ void Cube::initPipelineState()
         global->renderDevice->CreateShader(ShaderCI, &pPS);
     }
 
-    LayoutElement LayoutElems[] = {
-        LayoutElement{0, 0, 3, VT_FLOAT32, False}, // Attrib 0 - vertex position
-        LayoutElement{1, 0, 4, VT_FLOAT32, False}  // Attrib 1 - vertex color
-    };
-    PSOCreateInfo.GraphicsPipeline.InputLayout.LayoutElements = LayoutElems;
-    PSOCreateInfo.GraphicsPipeline.InputLayout.NumElements    = _countof(LayoutElems);
+    InputLayoutDescX InputLayout;     
+    Uint32 Attrib = 0;
+    if( mComponents & VERTEX_COMPONENT_FLAG_POSITION ) {
+        InputLayout.Add(Attrib++, 0u, 3u, VT_FLOAT32, False);
+    }
+    if( mComponents & VERTEX_COMPONENT_FLAG_NORMAL ) {
+        InputLayout.Add(Attrib++, 0u, 3u, VT_FLOAT32, False);
+    }
+    if( mComponents & VERTEX_COMPONENT_FLAG_TEXCOORD ) {
+        InputLayout.Add(Attrib++, 0u, 2u, VT_FLOAT32, False);
+    }
+
+    PSOCreateInfo.GraphicsPipeline.InputLayout = InputLayout;
 
     PSOCreateInfo.pVS = pVS;
     PSOCreateInfo.pPS = pPS;
@@ -102,62 +168,62 @@ void Cube::initPipelineState()
 
 void Cube::initVertexBuffer()
 {
-    // Layout of this structure matches the one we defined in the pipeline state
-    // TODO NEXT: bring over pos + texcoord + normals from TexturedCube class
-    struct Vertex
-    {
-        float3 pos;
-        float4 color;
-    };
+    VERIFY_EXPR( mComponents != VERTEX_COMPONENT_FLAG_NONE );
+    const Uint32 TotalVertexComponents =
+        ( (mComponents & VERTEX_COMPONENT_FLAG_POSITION) ? 3 : 0 ) +
+        ( (mComponents & VERTEX_COMPONENT_FLAG_NORMAL) ? 3 : 0 ) +
+        ( (mComponents & VERTEX_COMPONENT_FLAG_TEXCOORD) ? 2 : 0 );
 
-    Vertex CubeVerts[8] =
-    {
-        {float3(-1,-1,-1), float4(1,0,0,1)},
-        {float3(-1,+1,-1), float4(0,1,0,1)},
-        {float3(+1,+1,-1), float4(0,0,1,1)},
-        {float3(+1,-1,-1), float4(1,1,1,1)},
+    std::vector<float> VertexData(size_t{TotalVertexComponents} * NumVertices);
 
-        {float3(-1,-1,+1), float4(1,1,0,1)},
-        {float3(-1,+1,+1), float4(0,1,1,1)},
-        {float3(+1,+1,+1), float4(1,0,1,1)},
-        {float3(+1,-1,+1), float4(0.2f,0.2f,0.2f,1)},
-    };
+    auto it = VertexData.begin();
+    for( Uint32 v = 0; v < NumVertices; ++v ) {
+        if( mComponents & VERTEX_COMPONENT_FLAG_POSITION ) {
+            const auto& Pos{Positions[v]};
+            *(it++) = Pos.x;
+            *(it++) = Pos.y;
+            *(it++) = Pos.z;
+        }
+        if( mComponents & VERTEX_COMPONENT_FLAG_NORMAL ) {
+            const auto& N{Normals[v]};
+            *(it++) = N.x;
+            *(it++) = N.y;
+            *(it++) = N.z;
+        }
+        if( mComponents & VERTEX_COMPONENT_FLAG_TEXCOORD ) {
+            const auto& UV{Texcoords[v]};
+            *(it++) = UV.x;
+            *(it++) = UV.y;
+        }
+    }
+    VERIFY_EXPR(it == VertexData.end());
 
     // Create a vertex buffer that stores cube vertices
     BufferDesc VertBuffDesc;
     VertBuffDesc.Name      = "Cube vertex buffer";
     VertBuffDesc.Usage     = USAGE_IMMUTABLE;
     VertBuffDesc.BindFlags = BIND_VERTEX_BUFFER;
-    VertBuffDesc.Size      = sizeof(CubeVerts);
+    VertBuffDesc.Size      = static_cast<Uint64>(VertexData.size() * sizeof(VertexData[0]));
+
     BufferData VBData;
-    VBData.pData    = CubeVerts;
-    VBData.DataSize = sizeof(CubeVerts);
+    VBData.pData    = VertexData.data();
+    VBData.DataSize = VertBuffDesc.Size;
 
     app::global()->renderDevice->CreateBuffer(VertBuffDesc, &VBData, &m_CubeVertexBuffer);
 }
 
 void Cube::initIndexBuffer()
 {
-    Uint32 Indices[] = {
-        2,0,1, 2,3,0,
-        4,6,5, 4,7,6,
-        0,7,4, 0,3,7,
-        1,0,4, 1,4,5,
-        1,5,2, 5,6,2,
-        3,6,7, 3,2,6
-    };
-
     BufferDesc IndBuffDesc;
     IndBuffDesc.Name      = "Cube index buffer";
     IndBuffDesc.Usage     = USAGE_IMMUTABLE;
     IndBuffDesc.BindFlags = BIND_INDEX_BUFFER;
     IndBuffDesc.Size      = sizeof(Indices);
-    BufferData IBData;
-    IBData.pData    = Indices;
-    IBData.DataSize = sizeof(Indices);
-    app::global()->renderDevice->CreateBuffer(IndBuffDesc, &IBData, &m_CubeIndexBuffer);
 
-    watchShadersDir();
+    BufferData IBData;
+    IBData.pData    = Indices.data();
+    IBData.DataSize = NumIndices * sizeof(Indices[0]);
+    app::global()->renderDevice->CreateBuffer(IndBuffDesc, &IBData, &m_CubeIndexBuffer);
 }
 
 void Cube::watchShadersDir()

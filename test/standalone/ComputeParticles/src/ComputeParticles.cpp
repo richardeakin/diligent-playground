@@ -65,7 +65,8 @@ void ComputeParticles::Initialize(const SampleInitInfo& InitInfo)
 
     m_pEngineFactory->CreateDefaultShaderSourceStreamFactory(nullptr, &global->shaderSourceFactory);
 
-    mCube = std::make_unique<ju::Cube>( ju::VERTEX_COMPONENT_FLAG_POS_NORM_UV );
+    mCube = std::make_unique<ju::Cube>();
+    //mCube = std::make_unique<ju::Cube>( ju::VERTEX_COMPONENT_FLAG_POS_NORM_UV );
     initCamera();
 }
 
