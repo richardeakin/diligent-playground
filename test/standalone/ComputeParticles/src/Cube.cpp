@@ -118,7 +118,7 @@ void Cube::initPipelineState()
         // TODO: move to separate (non-hotloadable) method
         BufferDesc CBDesc;
         CBDesc.Name           = "VS constants CB";
-        CBDesc.Size           = sizeof(float4x4);
+        CBDesc.Size           = sizeof(float4x4) * 2 + sizeof(float4);
         CBDesc.Usage          = USAGE_DYNAMIC;
         CBDesc.BindFlags      = BIND_UNIFORM_BUFFER;
         CBDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
@@ -277,10 +277,29 @@ void Cube::update( double deltaSeconds )
 void Cube::render( IDeviceContext* context, const float4x4 &mvp )
 {
     // Map the buffer and write current world-view-projection matrix
+    //{
+    //    MapHelper<float4x4> CBConstants( context, m_VSConstants, MAP_WRITE, MAP_FLAG_DISCARD );
+    //    *CBConstants = mvp.Transpose();
+    //}
+
+    // Update constant buffer
     {
-        MapHelper<float4x4> CBConstants( context, m_VSConstants, MAP_WRITE, MAP_FLAG_DISCARD );
-        *CBConstants = mvp.Transpose();
+        struct Constants
+        {
+            float4x4 WorldViewProj;
+            float4x4 NormalTranform;
+            float4   LightDirection;
+        };
+        // Map the buffer and write current world-view-projection matrix
+        MapHelper<Constants> CBConstants( context, m_VSConstants, MAP_WRITE, MAP_FLAG_DISCARD);
+        CBConstants->WorldViewProj = mvp.Transpose();
+        auto NormalMatrix          = mTransform.RemoveTranslation().Inverse();
+        // We need to do inverse-transpose, but we also need to transpose the matrix
+        // before writing it to the buffer
+        CBConstants->NormalTranform = NormalMatrix;
+        CBConstants->LightDirection = m_LightDirection;
     }
+
 
     // Bind vertex and index buffers
     const Uint64 offset   = 0;

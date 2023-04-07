@@ -58,15 +58,10 @@ void ComputeParticles::Initialize(const SampleInitInfo& InitInfo)
     auto global = app::global();
     global->renderDevice = m_pDevice;
     global->swapChainImageDesc = &m_pSwapChain->GetDesc();
-
-    //RefCntAutoPtr<IShaderSourceInputStreamFactory> shaderSourceFactory;
-    //m_pEngineFactory->CreateDefaultShaderSourceStreamFactory(nullptr, &shaderSourceFactory);
-    //global->shaderSourceFactory = shaderSourceFactory;
-
     m_pEngineFactory->CreateDefaultShaderSourceStreamFactory(nullptr, &global->shaderSourceFactory);
 
-    mCube = std::make_unique<ju::Cube>();
-    //mCube = std::make_unique<ju::Cube>( ju::VERTEX_COMPONENT_FLAG_POS_NORM_UV );
+    //mCube = std::make_unique<ju::Cube>();
+    mCube = std::make_unique<ju::Cube>( ju::VERTEX_COMPONENT_FLAG_POS_NORM_UV );
     initCamera();
 }
 
@@ -399,31 +394,31 @@ void ComputeParticles::Update(double CurrTime, double ElapsedTime)
     mCamera.Update(m_InputController, float(ElapsedTime));
     m_fTimeDelta = static_cast<float>(ElapsedTime);
 
-    if( mCube ) {
-        mCube->update( ElapsedTime );
+    if( ! mCube ) {
+        return;
     }
 
-    // TODO: use proper camera
-    {
-        // Apply rotation
-        float4x4 CubeModelTransform = float4x4::RotationY(static_cast<float>(CurrTime) * 1.0f) * float4x4::RotationX(-PI_F * 0.1f);
+    mCube->update( ElapsedTime );
 
-        // Camera is at (0, 0, -5) looking along the Z axis
-        float4x4 View = float4x4::Translation(0.f, 0.0f, 5.0f);
+    // Apply rotation
+    float4x4 CubeModelTransform = float4x4::RotationY(static_cast<float>(CurrTime) * 1.0f) * float4x4::RotationX(-PI_F * 0.1f);
+    mCube->setTransform( CubeModelTransform );
 
-        // Get pretransform matrix that rotates the scene according the surface orientation
-        // TODO: understand when this is needed, not using with the FPS cam
-        auto SrfPreTransform = GetSurfacePretransformMatrix(float3{0, 0, 1});
+    // Camera is at (0, 0, -5) looking along the Z axis
+    float4x4 View = float4x4::Translation(0.f, 0.0f, 5.0f);
 
-        // Get projection matrix adjusted to the current screen orientation
-        auto Proj = GetAdjustedProjectionMatrix(PI_F / 4.0f, 0.1f, 100.f);
+    // Get pretransform matrix that rotates the scene according the surface orientation
+    // TODO: understand when this is needed, not using with the FPS cam
+    auto SrfPreTransform = GetSurfacePretransformMatrix(float3{0, 0, 1});
 
-        // Compute world-view-projection matrix
-        m_WorldViewProjMatrix = CubeModelTransform * View * SrfPreTransform * Proj;
+    // Get projection matrix adjusted to the current screen orientation
+    auto Proj = GetAdjustedProjectionMatrix(PI_F / 4.0f, 0.1f, 100.f);
 
-        if( UseFirstPersonCamera ) {
-            m_WorldViewProjMatrix = CubeModelTransform * mCamera.GetViewMatrix() * mCamera.GetProjMatrix();
-        }
+    // Compute world-view-projection matrix
+    m_WorldViewProjMatrix = CubeModelTransform * View * SrfPreTransform * Proj;
+
+    if( UseFirstPersonCamera ) {
+        m_WorldViewProjMatrix = CubeModelTransform * mCamera.GetViewMatrix() * mCamera.GetProjMatrix();
     }
 }
 

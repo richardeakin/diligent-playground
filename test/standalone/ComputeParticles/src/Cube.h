@@ -38,6 +38,8 @@ public:
 	void update( double deltaSeconds );
 	void render( dg::IDeviceContext* context, const dg::float4x4 &mvp );
 
+	void setTransform( const dg::float4x4 &m )	{ mTransform = m; }
+
 private:
 	void initPipelineState();
 	void initVertexBuffer();
@@ -54,7 +56,8 @@ private:
 
 	VERTEX_COMPONENT_FLAGS mComponents;
 
-	dg::float4x4	mTransform; // TODO: use this to rotate the cube from main app
+	dg::float3      m_LightDirection  = normalize(dg::float3(-0.49f, -0.60f, 0.64f)); // TODO: define and set externally
+	dg::float4x4	mTransform;
 };
 
 } // namespace ju
