@@ -5,10 +5,11 @@
         "forcePrecompiledHeaderPDBs": false,
         "isOverridden": false,
         "overrideLocation": "",
+        "removeShowIncludes": false,
         "useOverrideAsFallback": false
     },
     "ContinuousCompilation": {
-        "directory": "C:/Users/r/code/graphics/diligent/diligent-playground",
+        "directory": "../../../test",
         "isEnabled": true,
         "timeout": 100
     },
@@ -16,11 +17,10 @@
         "isEnabled": true,
         "order": 1
     },
-    "FASTBuild": {
-        "dllPath": "",
-        "removeShowIncludes": false
-    },
     "HotReload": {
+        "callCompileHooksForHaltedProcesses": false,
+        "callHotReloadHooksForHaltedProcesses": false,
+        "callLinkHooksForHaltedProcesses": false,
         "captureToolchainEnvironmentTimeout": 10000,
         "libraryFileExtensions": ".lib;.a",
         "objectFileExtensions": ".obj;.o",
@@ -34,6 +34,7 @@
         "commandLineOptions": "",
         "isOverridden": false,
         "overrideLocation": "",
+        "suppressCreationOfImportLibrary": true,
         "useOverrideAsFallback": false
     },
     "UnitySplitting": {

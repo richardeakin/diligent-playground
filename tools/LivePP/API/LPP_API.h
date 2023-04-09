@@ -362,12 +362,14 @@ LPP_API LppProjectPreferences LppCreateDefaultProjectPreferences(void)
 	prefs.compiler.isOverridden = false;
 	prefs.compiler.useOverrideAsFallback = false;
 	prefs.compiler.forcePrecompiledHeaderPDBs = false;
+	prefs.compiler.removeShowIncludes = false;
 
 	prefs.linker.overrideLocation = L"";
 	prefs.linker.commandLineOptions = "";
 	prefs.linker.captureEnvironment = true;
 	prefs.linker.isOverridden = false;
 	prefs.linker.useOverrideAsFallback = false;
+	prefs.linker.suppressCreationOfImportLibrary = true;
 
 	prefs.exceptionHandler.isEnabled = true;
 	prefs.exceptionHandler.order = 1;

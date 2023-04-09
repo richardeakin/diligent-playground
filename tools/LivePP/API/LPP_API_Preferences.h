@@ -38,6 +38,7 @@ typedef struct LppProjectPreferences
 		bool isOverridden;
 		bool useOverrideAsFallback;
 		bool forcePrecompiledHeaderPDBs;
+		bool removeShowIncludes;
 	} compiler;
 
 	struct Linker
@@ -47,6 +48,7 @@ typedef struct LppProjectPreferences
 		bool captureEnvironment;
 		bool isOverridden;
 		bool useOverrideAsFallback;
+		bool suppressCreationOfImportLibrary;
 	} linker;
 
 	struct ExceptionHandler
