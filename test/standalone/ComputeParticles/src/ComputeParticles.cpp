@@ -3,6 +3,7 @@
 #include "BasicMath.hpp"
 #include "MapHelper.hpp"
 #include "imgui.h"
+#include "imGuIZMO.h"
 #include "ShaderMacroHelper.hpp"
 
 #include "AppGlobal.h"
@@ -43,6 +44,8 @@ bool RotateCube = true;
 float CameraRotationSpeed = 0.005f;
 float CameraMoveSpeed = 8.0f;
 float2 CameraSpeedUp = { 0.2f, 10.0f }; // speed multipliers when {shift, ctrl} is down
+
+dg::float3      LightDir  = normalize( float3( 1, -0.5f, -0.1f ) );
 
 std::unique_ptr<filewatch::FileWatch<std::filesystem::path>> ShadersDirWatchHandle;
 bool                                                         ShaderAssetsMarkedDirty = false;
@@ -371,6 +374,11 @@ void ComputeParticles::UpdateUI()
                 initCamera();
             }
         }
+
+        if( im::CollapsingHeader( "World", ImGuiTreeNodeFlags_DefaultOpen ) ) {
+            im::Text( "light dir: [%0.02f, %0.02f, %0.02f]", LightDir.x, LightDir.y, LightDir.z );
+            im::gizmo3D("##LightDirection", LightDir, ImGui::GetTextLineHeight() * 10);
+        }
     }
     ImGui::End();
 }
@@ -402,7 +410,7 @@ void ComputeParticles::Update(double CurrTime, double ElapsedTime)
     if( ! mCube ) {
         return;
     }
-
+    mCube->setLightDir( LightDir );
     mCube->update( ElapsedTime );
 
     // Apply rotation

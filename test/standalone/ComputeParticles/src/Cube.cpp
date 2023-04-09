@@ -297,7 +297,7 @@ void Cube::render( IDeviceContext* context, const float4x4 &mvp )
         // We need to do inverse-transpose, but we also need to transpose the matrix
         // before writing it to the buffer
         CBConstants->NormalTranform = NormalMatrix;
-        CBConstants->LightDirection = m_LightDirection;
+        CBConstants->LightDirection = mLightDirection;
     }
 
 

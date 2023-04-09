@@ -40,6 +40,8 @@ public:
 
 	void setTransform( const dg::float4x4 &m )	{ mTransform = m; }
 
+	void setLightDir( const dg::float3 &dir )	{ mLightDirection = dir; }
+
 private:
 	void initPipelineState();
 	void initVertexBuffer();
@@ -56,7 +58,7 @@ private:
 
 	VERTEX_COMPONENT_FLAGS mComponents;
 
-	dg::float3      m_LightDirection  = normalize(dg::float3(-0.49f, -0.60f, 0.64f)); // TODO: define and set externally
+	dg::float3      mLightDirection  = dg::float3(0, 1, 0); // TODO: this should be part of a global constants buffer
 	dg::float4x4	mTransform;
 };
 
