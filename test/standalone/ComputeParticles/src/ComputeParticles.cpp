@@ -66,6 +66,10 @@ void ComputeParticles::Initialize(const SampleInitInfo& InitInfo)
     global->swapChainImageDesc = &m_pSwapChain->GetDesc();
     m_pEngineFactory->CreateDefaultShaderSourceStreamFactory(nullptr, &global->shaderSourceFactory);
 
+    // TODO: do we already have a size here?
+    // TODO: call set size in resize function
+    mBackgroundCanvas = std::make_unique<ju::Canvas>();
+
     //mCube = std::make_unique<ju::Cube>();
     mCube = std::make_unique<ju::Cube>( ju::VERTEX_COMPONENT_FLAG_POS_NORM_UV );
     initCamera();

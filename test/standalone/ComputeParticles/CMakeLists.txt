@@ -7,6 +7,7 @@ set(SOURCE
     src/ComputeParticles.cpp
     src/Cube.cpp
     src/AppGlobal.cpp
+    ../common/src/Canvas.cpp
     ../common/src/LivePP.cpp
 )
 
@@ -14,6 +15,7 @@ set(INCLUDE
     src/ComputeParticles.hpp
     src/Cube.h
     src/AppGlobal.h
+    ../common/src/Canvas.h
     ../common/src/LivePP.h
 )
 
@@ -42,6 +44,7 @@ set_target_properties( ${APP_TARGET} PROPERTIES CXX_STANDARD 17 )
 set_target_properties( ${APP_TARGET} PROPERTIES VS_DEBUGGER_COMMAND_ARGUMENTS "--mode d3d12 --adapters_dialog false" ) 
 
 set( INCLUDE_USER
+    "../" # access to common/src
     ${LIVEPP_PATH} # set in top level CMakeLists.txt
 )
 

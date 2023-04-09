@@ -5,6 +5,7 @@
 #include "BasicMath.hpp"
 #include "FirstPersonCamera.hpp"
 
+#include "common/src/Canvas.h"
 #include "Cube.h"
 
 namespace dg = Diligent;
@@ -48,6 +49,7 @@ private:
     float m_fTimeDelta       = 0;
     float m_fSimulationSpeed = 1;
 
+    std::unique_ptr<ju::Canvas> mBackgroundCanvas;
     std::unique_ptr<ju::Cube>   mCube;
 
     dg::float4x4                m_WorldViewProjMatrix; // TODO: break out world transform and store in Cube as a separate const?
