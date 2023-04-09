@@ -7,6 +7,9 @@
 
 #include "AppGlobal.h"
 #include "../../common/src/FileWatch.hpp"
+#include "../../common/src/LivePP.h"
+
+#define LPP_PATH "../../../../../tools/LivePP"
 
 #include <filesystem>
 #include <random>
@@ -63,6 +66,8 @@ void ComputeParticles::Initialize(const SampleInitInfo& InitInfo)
     //mCube = std::make_unique<ju::Cube>();
     mCube = std::make_unique<ju::Cube>( ju::VERTEX_COMPONENT_FLAG_POS_NORM_UV );
     initCamera();
+
+    ju::initLivePP( LPP_PATH );
 }
 
 void ComputeParticles::CreateRenderParticlePSO()

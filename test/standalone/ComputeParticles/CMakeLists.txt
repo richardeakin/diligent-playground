@@ -7,12 +7,14 @@ set(SOURCE
     src/ComputeParticles.cpp
     src/Cube.cpp
     src/AppGlobal.cpp
+    ../common/src/LivePP.cpp
 )
 
 set(INCLUDE
     src/ComputeParticles.hpp
     src/Cube.h
     src/AppGlobal.h
+    ../common/src/LivePP.h
 )
 
 set(SHADERS
