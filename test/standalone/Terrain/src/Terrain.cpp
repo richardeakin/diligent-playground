@@ -133,8 +133,7 @@ void Terrain::CreateRenderTargetPSO()
     RTPSOCreateInfo.GraphicsPipeline.DSVFormat                    = m_pSwapChain->GetDesc().DepthBufferFormat;
     RTPSOCreateInfo.GraphicsPipeline.PrimitiveTopology            = PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
     RTPSOCreateInfo.GraphicsPipeline.RasterizerDesc.CullMode      = CULL_MODE_BACK;
-    // Enable depth testing
-    RTPSOCreateInfo.GraphicsPipeline.DepthStencilDesc.DepthEnable = False; // TODO: set to true?
+    RTPSOCreateInfo.GraphicsPipeline.DepthStencilDesc.DepthEnable = False;
 
 
     // ???: why isn't PSODesc.GraphicsPipeline.SmplDesc.Count = m_SampleCount set here?

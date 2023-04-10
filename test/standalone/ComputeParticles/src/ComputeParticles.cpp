@@ -351,42 +351,6 @@ void ComputeParticles::initCamera()
     mCamera.SetSpeedUpScales( CameraSpeedUp.x, CameraSpeedUp.y );
 }
 
-void ComputeParticles::UpdateUI()
-{
-    ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
-    if (ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
-    {
-        if (ImGui::InputInt("Num Particles", &m_NumParticles, 100, 1000, ImGuiInputTextFlags_EnterReturnsTrue))
-        {
-            m_NumParticles = std::min(std::max(m_NumParticles, 100), 100000);
-            CreateParticleBuffers();
-        }
-        ImGui::SliderFloat("Simulation Speed", &m_fSimulationSpeed, 0.1f, 5.f);
-
-        if( im::CollapsingHeader( "Camera", ImGuiTreeNodeFlags_DefaultOpen ) ) {
-            im::Checkbox( "enabled", &UseFirstPersonCamera );
-            if( im::DragFloat( "move speed", &CameraMoveSpeed) ) {
-                mCamera.SetMoveSpeed(CameraMoveSpeed);
-            }
-            if( im::DragFloat( "rotate speed", &CameraRotationSpeed) ) {
-                mCamera.SetRotationSpeed(CameraRotationSpeed);
-            }
-            if( im::DragFloat2( "speed up scale", &CameraSpeedUp.x) ) {
-                mCamera.SetSpeedUpScales(CameraSpeedUp.x, CameraSpeedUp.y);
-            }
-            if( im::Button("reset") ) {
-                initCamera();
-            }
-        }
-
-        if( im::CollapsingHeader( "World", ImGuiTreeNodeFlags_DefaultOpen ) ) {
-            im::Text( "light dir: [%0.02f, %0.02f, %0.02f]", LightDir.x, LightDir.y, LightDir.z );
-            im::gizmo3D("##LightDirection", LightDir, ImGui::GetTextLineHeight() * 10);
-        }
-    }
-    ImGui::End();
-}
-
 void ComputeParticles::ModifyEngineInitInfo(const ModifyEngineInitInfoAttribs& Attribs)
 {
     SampleBase::ModifyEngineInitInfo(Attribs);
@@ -401,6 +365,10 @@ void ComputeParticles::WindowResize(Uint32 Width, Uint32 Height)
     // Update projection matrix.
     float AspectRatio = static_cast<float>(Width) / static_cast<float>(Height);
     mCamera.SetProjAttribs(1.f, 1000.f, AspectRatio, PI_F / 4.f, m_pSwapChain->GetDesc().PreTransform, m_pDevice->GetDeviceInfo().IsGLDevice());
+
+    if( mBackgroundCanvas ) {
+        mBackgroundCanvas->setSize( int2( Width, Height ) );
+    }
 }
 
 void ComputeParticles::Update(double CurrTime, double ElapsedTime)
@@ -411,15 +379,19 @@ void ComputeParticles::Update(double CurrTime, double ElapsedTime)
     mCamera.Update(m_InputController, float(ElapsedTime));
     m_fTimeDelta = static_cast<float>(ElapsedTime);
 
-    if( ! mCube ) {
-        return;
-    }
-    mCube->setLightDir( LightDir );
-    mCube->update( ElapsedTime );
-
-    // Apply rotation
+    // Rotation matrix
     float4x4 CubeModelTransform = float4x4::RotationY(static_cast<float>(CurrTime) * 1.0f) * float4x4::RotationX(-PI_F * 0.1f);
-    mCube->setTransform( CubeModelTransform );
+
+    if( mBackgroundCanvas ) {
+        mBackgroundCanvas->update( ElapsedTime );
+    }
+
+    if( mCube ) {
+        mCube->setLightDir( LightDir );
+        mCube->update( ElapsedTime );
+
+        mCube->setTransform( CubeModelTransform );
+    }
 
     // Camera is at (0, 0, -5) looking along the Z axis
     float4x4 View = float4x4::Translation(0.f, 0.0f, 5.0f);
@@ -450,9 +422,21 @@ void ComputeParticles::Render()
     m_pImmediateContext->ClearRenderTarget(pRTV, ClearColor, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
     m_pImmediateContext->ClearDepthStencil(pDSV, CLEAR_DEPTH_FLAG, 1.f, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 
+    if( mBackgroundCanvas && mDrawBackground ) {
+        mBackgroundCanvas->render( m_pImmediateContext, m_WorldViewProjMatrix );
+    }
+
+    updateParticles();
+    drawParticles();
+
+    draw3D();
+}
+
+void ComputeParticles::updateParticles()
+{
+    // appears we always need to update this buffer or an assertial failure happens (stale buffer)
     {
-        struct Constants
-        {
+        struct Constants {
             uint  uiNumParticles;
             float fDeltaTime;
             float fDummy0;
@@ -475,42 +459,96 @@ void ComputeParticles::Render()
         ConstData->i2ParticleGridSize.y = m_NumParticles / iParticleGridWidth;
     }
 
-    DispatchComputeAttribs DispatAttribs;
-    DispatAttribs.ThreadGroupCountX = (m_NumParticles + m_ThreadGroupSize - 1) / m_ThreadGroupSize;
+    if( mUpdateParticles ) {
 
-    m_pImmediateContext->SetPipelineState(m_pResetParticleListsPSO);
-    m_pImmediateContext->CommitShaderResources(m_pResetParticleListsSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
-    m_pImmediateContext->DispatchCompute(DispatAttribs);
+        DispatchComputeAttribs DispatAttribs;
+        DispatAttribs.ThreadGroupCountX = (m_NumParticles + m_ThreadGroupSize - 1) / m_ThreadGroupSize;
 
-    m_pImmediateContext->SetPipelineState(m_pMoveParticlesPSO);
-    m_pImmediateContext->CommitShaderResources(m_pMoveParticlesSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
-    m_pImmediateContext->DispatchCompute(DispatAttribs);
+        m_pImmediateContext->SetPipelineState(m_pResetParticleListsPSO);
+        m_pImmediateContext->CommitShaderResources(m_pResetParticleListsSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+        m_pImmediateContext->DispatchCompute(DispatAttribs);
 
-    m_pImmediateContext->SetPipelineState(m_pCollideParticlesPSO);
-    m_pImmediateContext->CommitShaderResources(m_pCollideParticlesSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
-    m_pImmediateContext->DispatchCompute(DispatAttribs);
+        m_pImmediateContext->SetPipelineState(m_pMoveParticlesPSO);
+        m_pImmediateContext->CommitShaderResources(m_pMoveParticlesSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+        m_pImmediateContext->DispatchCompute(DispatAttribs);
 
-    m_pImmediateContext->SetPipelineState(m_pUpdateParticleSpeedPSO);
-    // Use the same SRB
-    m_pImmediateContext->CommitShaderResources(m_pCollideParticlesSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
-    m_pImmediateContext->DispatchCompute(DispatAttribs);
+        m_pImmediateContext->SetPipelineState(m_pCollideParticlesPSO);
+        m_pImmediateContext->CommitShaderResources(m_pCollideParticlesSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+        m_pImmediateContext->DispatchCompute(DispatAttribs);
+
+        m_pImmediateContext->SetPipelineState(m_pUpdateParticleSpeedPSO);
+        // Use the same SRB
+        m_pImmediateContext->CommitShaderResources(m_pCollideParticlesSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+        m_pImmediateContext->DispatchCompute(DispatAttribs);
+    }
+}
+
+void ComputeParticles::drawParticles()
+{
+    if( ! mDrawParticles ) {
+        return;
+    }
 
     m_pImmediateContext->SetPipelineState(m_pRenderParticlePSO);
     m_pImmediateContext->CommitShaderResources(m_pRenderParticleSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+
     DrawAttribs drawAttrs;
     drawAttrs.NumVertices  = 4;
     drawAttrs.NumInstances = static_cast<Uint32>(m_NumParticles);
     m_pImmediateContext->Draw(drawAttrs);
-
-    render3D();
 }
 
-void ComputeParticles::render3D()
+void ComputeParticles::draw3D()
 {
-    if( ! mCube ) {
-        return;
+    if( mCube && mDrawCube ) {
+        mCube->render( m_pImmediateContext, m_WorldViewProjMatrix );
     }
-
-    mCube->render( m_pImmediateContext, m_WorldViewProjMatrix );
 }
 
+
+// ------------------------------------------------------------------------------------------------------------
+// ImGui
+// ------------------------------------------------------------------------------------------------------------
+
+void ComputeParticles::UpdateUI()
+{
+    im::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
+    if (im::Begin("Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        if( im::CollapsingHeader( "Particles", ImGuiTreeNodeFlags_DefaultOpen ) ) {
+            im::Checkbox( "update", &mUpdateParticles );
+            im::SameLine();
+            im::Checkbox( "draw", &mDrawParticles );
+
+            if (im::InputInt("count", &m_NumParticles, 100, 1000, ImGuiInputTextFlags_EnterReturnsTrue))
+            {
+                m_NumParticles = std::min(std::max(m_NumParticles, 100), 100000);
+                CreateParticleBuffers();
+            }
+            im::SliderFloat("speed", &m_fSimulationSpeed, 0.1f, 5.f);
+        }
+
+        if( im::CollapsingHeader( "Camera", ImGuiTreeNodeFlags_DefaultOpen ) ) {
+            im::Checkbox( "enabled", &UseFirstPersonCamera );
+            if( im::DragFloat( "move speed", &CameraMoveSpeed) ) {
+                mCamera.SetMoveSpeed(CameraMoveSpeed);
+            }
+            if( im::DragFloat( "rotate speed", &CameraRotationSpeed) ) {
+                mCamera.SetRotationSpeed(CameraRotationSpeed);
+            }
+            if( im::DragFloat2( "speed up scale", &CameraSpeedUp.x) ) {
+                mCamera.SetSpeedUpScales(CameraSpeedUp.x, CameraSpeedUp.y);
+            }
+            if( im::Button("reset") ) {
+                initCamera();
+            }
+        }
+
+        if( im::CollapsingHeader( "Scene", ImGuiTreeNodeFlags_DefaultOpen ) ) {
+            im::Text( "light dir: [%0.02f, %0.02f, %0.02f]", LightDir.x, LightDir.y, LightDir.z );
+            im::gizmo3D("##LightDirection", LightDir, ImGui::GetTextLineHeight() * 10);
+            im::Checkbox( "draw background", &mDrawBackground );
+            im::Checkbox( "draw cube", &mDrawCube );
+        }
+    }
+    im::End();
+}

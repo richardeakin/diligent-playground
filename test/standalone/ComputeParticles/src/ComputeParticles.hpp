@@ -49,6 +49,11 @@ private:
     float m_fTimeDelta       = 0;
     float m_fSimulationSpeed = 1;
 
+    bool    mDrawBackground = true;
+    bool    mDrawCube = true;
+    bool    mDrawParticles = false;
+    bool    mUpdateParticles = false;
+
     std::unique_ptr<ju::Canvas> mBackgroundCanvas;
     std::unique_ptr<ju::Cube>   mCube;
 
@@ -58,5 +63,7 @@ private:
 
     void initCamera();
 
-    void render3D();
+    void updateParticles();
+    void drawParticles();
+    void draw3D();
 };
