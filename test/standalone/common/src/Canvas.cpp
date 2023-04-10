@@ -20,6 +20,17 @@ bool                                                         ShaderAssetsMarkedD
 Canvas::Canvas( const dg::int2 &size )
 	: mSize( size )
 {
+    // create dynamic uniform buffer
+    {
+        BufferDesc CBDesc;
+        CBDesc.Name           = "VS constants CB";
+        CBDesc.Size           = sizeof(float4);
+        CBDesc.Usage          = USAGE_DYNAMIC;
+        CBDesc.BindFlags      = BIND_UNIFORM_BUFFER;
+        CBDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
+        app::global()->renderDevice->CreateBuffer( CBDesc, nullptr, &mShaderConstants );
+    }
+
 	initPipelineState();
 	watchShadersDir();
 }
@@ -53,8 +64,8 @@ void Canvas::initPipelineState()
     ShaderCI.Desc.UseCombinedTextureSamplers = true;
     ShaderCI.pShaderSourceStreamFactory = global->shaderSourceFactory;
 
-    // load shaders
     // TODO: set shader paths with constructor property
+    // vertex shader
     RefCntAutoPtr<IShader> pVS;
     {
         ShaderCI.Desc.ShaderType = SHADER_TYPE_VERTEX;
@@ -62,20 +73,9 @@ void Canvas::initPipelineState()
         ShaderCI.Desc.Name       = "Canvas VS";
         ShaderCI.FilePath        = "shaders/canvas/canvas.vsh";
         global->renderDevice->CreateShader( ShaderCI, &pVS );
-
-        // Create dynamic uniform buffer that will store our transformation matrix
-        // Dynamic buffers can be frequently updated by the CPU
-        // TODO: move to initialize method
-        BufferDesc CBDesc;
-        CBDesc.Name           = "VS constants CB";
-        CBDesc.Size           = sizeof(float4);
-        CBDesc.Usage          = USAGE_DYNAMIC;
-        CBDesc.BindFlags      = BIND_UNIFORM_BUFFER;
-        CBDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
-        global->renderDevice->CreateBuffer( CBDesc, nullptr, &mShaderConstants );
     }
 
-    // Create a pixel shader
+    // pixel shader
     RefCntAutoPtr<IShader> pPS;
     {
         ShaderCI.Desc.ShaderType = SHADER_TYPE_PIXEL;
@@ -122,7 +122,6 @@ void Canvas::reloadOnAssetsUpdated()
 
     mPSO.Release();
     mSRB.Release();
-    mShaderConstants.Release(); // TODO: pull this out once initialized from main Initialize
     initPipelineState();
 
     ShaderAssetsMarkedDirty = false;

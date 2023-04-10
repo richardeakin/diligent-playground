@@ -78,6 +78,17 @@ const std::array<Uint32, NumIndices> Indices =
 Cube::Cube( VERTEX_COMPONENT_FLAGS components )
     : mComponents( components )
 {
+    // create dynamic uniform buffer
+    {
+        BufferDesc CBDesc;
+        CBDesc.Name           = "VS constants CB";
+        CBDesc.Size           = sizeof(float4x4) * 2 + sizeof(float4);
+        CBDesc.Usage          = USAGE_DYNAMIC;
+        CBDesc.BindFlags      = BIND_UNIFORM_BUFFER;
+        CBDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
+        app::global()->renderDevice->CreateBuffer(CBDesc, nullptr, &m_VSConstants);
+    }
+
     initPipelineState();
     initVertexBuffer();
     initIndexBuffer();
@@ -112,17 +123,6 @@ void Cube::initPipelineState()
         ShaderCI.Desc.Name       = "Cube VS";
         ShaderCI.FilePath        = "shaders/cube/cube.vsh";
         global->renderDevice->CreateShader(ShaderCI, &pVS);
-
-        // Create dynamic uniform buffer that will store our transformation matrix
-        // Dynamic buffers can be frequently updated by the CPU
-        // TODO: move to separate (non-hotloadable) method
-        BufferDesc CBDesc;
-        CBDesc.Name           = "VS constants CB";
-        CBDesc.Size           = sizeof(float4x4) * 2 + sizeof(float4);
-        CBDesc.Usage          = USAGE_DYNAMIC;
-        CBDesc.BindFlags      = BIND_UNIFORM_BUFFER;
-        CBDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
-        global->renderDevice->CreateBuffer(CBDesc, nullptr, &m_VSConstants);
     }
 
     // Create a pixel shader
@@ -257,11 +257,10 @@ void Cube::watchShadersDir()
 
 void Cube::reloadOnAssetsUpdated()
 {
-    LOG_INFO_MESSAGE( __FUNCTION__, "| boom" );
+    LOG_INFO_MESSAGE( __FUNCTION__, "| re-initializing shader assets" );
 
     m_pPSO.Release();
     m_SRB.Release();
-    m_VSConstants.Release();
     initPipelineState();
 
     ShaderAssetsMarkedDirty = false;
