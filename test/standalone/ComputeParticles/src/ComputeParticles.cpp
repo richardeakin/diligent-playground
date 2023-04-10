@@ -366,9 +366,10 @@ void ComputeParticles::WindowResize(Uint32 Width, Uint32 Height)
     float AspectRatio = static_cast<float>(Width) / static_cast<float>(Height);
     mCamera.SetProjAttribs(1.f, 1000.f, AspectRatio, PI_F / 4.f, m_pSwapChain->GetDesc().PreTransform, m_pDevice->GetDeviceInfo().IsGLDevice());
 
-    if( mBackgroundCanvas ) {
-        mBackgroundCanvas->setSize( int2( Width, Height ) );
-    }
+    // TODO: re-enable once Canvas pixel shader is reworked to be drawing in pixel coordinates
+    //if( mBackgroundCanvas ) {
+    //    mBackgroundCanvas->setSize( int2( Width, Height ) );
+    //}
 }
 
 void ComputeParticles::Update(double CurrTime, double ElapsedTime)
@@ -548,6 +549,15 @@ void ComputeParticles::UpdateUI()
             im::gizmo3D("##LightDirection", LightDir, ImGui::GetTextLineHeight() * 10);
             im::Checkbox( "draw background", &mDrawBackground );
             im::Checkbox( "draw cube", &mDrawCube );
+
+            auto bgCenter = mBackgroundCanvas->getCenter();
+            if( im::DragFloat2( "bg center", &bgCenter.x, 0.02f ) ) {
+                mBackgroundCanvas->setCenter( bgCenter );
+            }
+            auto bgSize = mBackgroundCanvas->getSize();
+            if( im::DragFloat2( "bg size", &bgSize.x, 0.02f ) ) {
+                mBackgroundCanvas->setSize( bgSize );
+            }
         }
     }
     im::End();

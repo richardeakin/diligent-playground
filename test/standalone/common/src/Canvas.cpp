@@ -17,8 +17,8 @@ std::unique_ptr<filewatch::FileWatch<std::filesystem::path>> ShadersDirWatchHand
 bool                                                         ShaderAssetsMarkedDirty = false;
 
 } // anon
-Canvas::Canvas( const dg::int2 &size )
-	: mSize( size )
+Canvas::Canvas( const dg::float2 &center, const dg::float2 &size )
+	: mCenter( center ), mSize( size )
 {
     // create dynamic uniform buffer
     {
@@ -33,16 +33,6 @@ Canvas::Canvas( const dg::int2 &size )
 
 	initPipelineState();
 	watchShadersDir();
-}
-
-void Canvas::setSize( const int2 &size )
-{
-	if( mSize == size ) {
-		return;
-	}
-	mSize = size;
-
-	// TODO: update constants buffer with size
 }
 
 void Canvas::initPipelineState()
@@ -139,13 +129,14 @@ void Canvas::render( IDeviceContext* context, const float4x4 &mvp )
     // update constants buffer
     {
         struct ShaderConstants {
-            float2 Size;
-            float2 Padding;
+            float2 center;
+            float2 size;
         };
 
         // Map the render target PS constant buffer and fill it in with current time
         MapHelper<ShaderConstants> CBConstants( context, mShaderConstants, MAP_WRITE, MAP_FLAG_DISCARD );
-        CBConstants->Size              = float2( mSize.x, mSize.y );
+        CBConstants->center            = mCenter;
+        CBConstants->size              = mSize;
     }
 
     context->SetPipelineState( mPSO );
