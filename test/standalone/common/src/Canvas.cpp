@@ -5,9 +5,18 @@
 #include "AppGlobal.h"
 #include "MapHelper.hpp"
 
+#include <filesystem>
+#include "../../common/src/FileWatch.hpp"
+
 using namespace ju;
 using namespace Diligent;
 
+namespace {
+
+std::unique_ptr<filewatch::FileWatch<std::filesystem::path>> ShadersDirWatchHandle;
+bool                                                         ShaderAssetsMarkedDirty = false;
+
+} // anon
 Canvas::Canvas( const dg::int2 &size )
 	: mSize( size )
 {
@@ -87,15 +96,43 @@ void Canvas::initPipelineState()
 
 void Canvas::watchShadersDir()
 {
-    // TODO
+    std::filesystem::path shaderDir( "shaders/canvas" );
+
+    if( std::filesystem::exists( shaderDir ) ) {
+        LOG_INFO_MESSAGE( __FUNCTION__, "| watching assets directory: ", shaderDir );
+        try {
+            ShadersDirWatchHandle = std::make_unique<filewatch::FileWatch<std::filesystem::path>>( shaderDir,
+                [=](const std::filesystem::path &path, const filewatch::Event change_type ) {
+                    ShaderAssetsMarkedDirty = true;
+                }
+            );
+        }
+        catch( std::system_error &exc ) {
+            LOG_ERROR_MESSAGE( __FUNCTION__, "| exception caught attempting to watch directory (assets): ", shaderDir, ", what: ", exc.what() );
+        }
+    }
+    else {
+        LOG_WARNING_MESSAGE( __FUNCTION__, "| shader directory couldn't be found (not watching): ", shaderDir );
+    }
 }
 
 void Canvas::reloadOnAssetsUpdated()
 {
+    LOG_INFO_MESSAGE( __FUNCTION__, "| re-initializing shader assets" );
+
+    mPSO.Release();
+    mSRB.Release();
+    mShaderConstants.Release(); // TODO: pull this out once initialized from main Initialize
+    initPipelineState();
+
+    ShaderAssetsMarkedDirty = false;
 }
 
 void Canvas::update( double deltaSeconds )
 {
+    if( ShaderAssetsMarkedDirty ) {
+        reloadOnAssetsUpdated();
+    }
 }
 
 void Canvas::render( IDeviceContext* context, const float4x4 &mvp )

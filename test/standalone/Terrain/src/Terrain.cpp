@@ -281,6 +281,7 @@ void Terrain::InitCamera()
 }
 
 namespace {
+// TODO: move to file in common folder
 const char* watchEventTypeToString( const filewatch::Event change_type )
 {
     switch (change_type) {
