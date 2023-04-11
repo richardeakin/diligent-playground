@@ -17,18 +17,27 @@ std::unique_ptr<filewatch::FileWatch<std::filesystem::path>> ShadersDirWatchHand
 bool                                                         ShaderAssetsMarkedDirty = false;
 
 } // anon
-Canvas::Canvas( const dg::float2 &center, const dg::float2 &size )
-	: mCenter( center ), mSize( size )
+
+Canvas::Canvas( size_t sizePixelConstants )
 {
-    // create dynamic uniform buffer
+    // create dynamic uniform buffers
     {
         BufferDesc CBDesc;
-        CBDesc.Name           = "VS constants CB";
+        CBDesc.Name           = "VertexConstants Buffer";
         CBDesc.Size           = sizeof(float4);
         CBDesc.Usage          = USAGE_DYNAMIC;
         CBDesc.BindFlags      = BIND_UNIFORM_BUFFER;
         CBDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
-        app::global()->renderDevice->CreateBuffer( CBDesc, nullptr, &mShaderConstants );
+        app::global()->renderDevice->CreateBuffer( CBDesc, nullptr, &mVertexConstants );
+    }
+    {
+        BufferDesc CBDesc;
+        CBDesc.Name           = "PixelConstants Buffer";
+        CBDesc.Size           = sizePixelConstants;
+        CBDesc.Usage          = USAGE_DYNAMIC;
+        CBDesc.BindFlags      = BIND_UNIFORM_BUFFER;
+        CBDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
+        app::global()->renderDevice->CreateBuffer( CBDesc, nullptr, &mPixelConstants );
     }
 
 	initPipelineState();
@@ -80,7 +89,8 @@ void Canvas::initPipelineState()
     PSOCreateInfo.PSODesc.ResourceLayout.DefaultVariableType = SHADER_RESOURCE_VARIABLE_TYPE_STATIC;
 
     global->renderDevice->CreateGraphicsPipelineState( PSOCreateInfo, &mPSO );
-    mPSO->GetStaticVariableByName( SHADER_TYPE_VERTEX, "Constants")->Set( mShaderConstants );
+    mPSO->GetStaticVariableByName( SHADER_TYPE_VERTEX, "Constants")->Set( mVertexConstants );
+    mPSO->GetStaticVariableByName( SHADER_TYPE_PIXEL, "Constants")->Set( mPixelConstants );
     mPSO->CreateShaderResourceBinding( &mSRB, true );
 }
 
@@ -133,8 +143,7 @@ void Canvas::render( IDeviceContext* context, const float4x4 &mvp )
             float2 size;
         };
 
-        // Map the render target PS constant buffer and fill it in with current time
-        MapHelper<ShaderConstants> CBConstants( context, mShaderConstants, MAP_WRITE, MAP_FLAG_DISCARD );
+        MapHelper<ShaderConstants> CBConstants( context, mVertexConstants, MAP_WRITE, MAP_FLAG_DISCARD );
         CBConstants->center            = mCenter;
         CBConstants->size              = mSize;
     }

@@ -29,6 +29,8 @@ set(SHADERS
     assets/particles.fxh
     assets/shaders/cube/cube.vsh
     assets/shaders/cube/cube.psh
+    assets/shaders/canvas/canvas.vsh
+    assets/shaders/canvas/canvas.psh
 )
 
 set(ASSETS)

@@ -38,6 +38,12 @@ struct ParticleAttribs {
     float fPadding0      = 0;
 };
 
+struct BackgroundPixelConstants {
+    float3 camPos;
+    float3 camDir;
+    float2 padding;
+};
+
 bool UseFirstPersonCamera = true;
 bool RotateCube = true;
 
@@ -66,11 +72,8 @@ void ComputeParticles::Initialize(const SampleInitInfo& InitInfo)
     global->swapChainImageDesc = &m_pSwapChain->GetDesc();
     m_pEngineFactory->CreateDefaultShaderSourceStreamFactory(nullptr, &global->shaderSourceFactory);
 
-    // TODO: do we already have a size here?
-    // TODO: call set size in resize function
-    mBackgroundCanvas = std::make_unique<ju::Canvas>();
+    mBackgroundCanvas = std::make_unique<ju::Canvas>( sizeof(BackgroundPixelConstants) );
 
-    //mCube = std::make_unique<ju::Cube>();
     mCube = std::make_unique<ju::Cube>( ju::VERTEX_COMPONENT_FLAG_POS_NORM_UV );
     initCamera();
 
@@ -424,6 +427,11 @@ void ComputeParticles::Render()
     m_pImmediateContext->ClearDepthStencil(pDSV, CLEAR_DEPTH_FLAG, 1.f, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 
     if( mBackgroundCanvas && mDrawBackground ) {
+        auto pixelConstants = mBackgroundCanvas->getPixelConstantsBuffer();
+        MapHelper<BackgroundPixelConstants> cb( m_pImmediateContext, pixelConstants, MAP_WRITE, MAP_FLAG_DISCARD );
+        cb->camPos = mCamera.GetPos();
+        cb->camDir = mCamera.GetWorldAhead();
+
         mBackgroundCanvas->render( m_pImmediateContext, m_WorldViewProjMatrix );
     }
 
