@@ -560,6 +560,7 @@ void ComputeParticles::UpdateUI()
             if( im::Button("reset") ) {
                 initCamera();
             }
+            im::Text( "view dir: [%0.02f, %0.02f, %0.02f]", mCamera.GetWorldAhead().x, mCamera.GetWorldAhead().y, mCamera.GetWorldAhead().z );
         }
 
         if( im::CollapsingHeader( "Scene", ImGuiTreeNodeFlags_DefaultOpen ) ) {

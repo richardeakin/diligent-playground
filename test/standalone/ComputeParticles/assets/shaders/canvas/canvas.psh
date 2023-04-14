@@ -52,11 +52,16 @@ void main( in  PSInput  PSIn, out PSOutput PSOut )
     float camRoll = 0.0;
     float2 p = ( -cResolution.xy + 2.0 * PSIn.Pos.xy ) / cResolution.y;
     p.y *= -1;
-    //float2 p = PSIn.Pos.xy;
     Ray ray = calcViewRay( p, cCamPos, cCamDir, camRoll, camLensLength );
 
-    float3 col = float3( 0.25, 0.12, 0.1 ) * 0.7;
-    col += ray.dir.y * 0.15;
+    float3 col = float3( 0.1, 0.05, 0.1 ) * 0.1;
+
+    float ss1 = smoothstep( 0.0, 4.0, max( ray.dir.y + 0.0 * ray.dir.x, 0.0 ) * 5.0 );
+    col = lerp( col, float3( 0.7, 0.17, 0.03 ), ss1 );
+    //col += ray.dir.y * 0.15;
+
+    float ss2 = smoothstep( 0.0, 5.0, pow( max( ray.dir.y, 0.0 ), 1.5 ) * 10.0 );
+    col = lerp( col, float3( 0.02, 0.03, 0.5 ), ss2 );
 
      PSOut.Color = float4( col, 1 );
     //PSOut.Color = float4( UV.x, UV.y, 0.0, 1.0 );
