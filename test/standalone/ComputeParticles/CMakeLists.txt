@@ -20,13 +20,13 @@ set(INCLUDE
 )
 
 set(SHADERS
-    assets/particle.psh
-    assets/particle.vsh
-    assets/structures.fxh
-    assets/reset_particle_lists.csh
-    assets/collide_particles.csh
-    assets/move_particles.csh
-    assets/particles.fxh
+    assets/shaders/particles/particle.psh
+    assets/shaders/particles/particle.vsh
+    assets/shaders/particles/structures.fxh
+    assets/shaders/particles/reset_particle_lists.csh
+    assets/shaders/particles/collide_particles.csh
+    assets/shaders/particles/move_particles.csh
+    assets/shaders/particles/particles.fxh
     assets/shaders/cube/cube.vsh
     assets/shaders/cube/cube.psh
     assets/shaders/canvas/canvas.vsh

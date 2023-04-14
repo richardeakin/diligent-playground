@@ -1,4 +1,4 @@
-#include "structures.fxh"
+#include "shaders/particles/structures.fxh"
 
 cbuffer Constants
 {

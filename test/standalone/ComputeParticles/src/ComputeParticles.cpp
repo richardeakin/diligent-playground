@@ -124,7 +124,7 @@ void ComputeParticles::CreateRenderParticlePSO()
         ShaderCI.Desc.ShaderType = SHADER_TYPE_VERTEX;
         ShaderCI.EntryPoint      = "main";
         ShaderCI.Desc.Name       = "Particle VS";
-        ShaderCI.FilePath        = "particle.vsh";
+        ShaderCI.FilePath        = "shaders/particles/particle.vsh";
         m_pDevice->CreateShader(ShaderCI, &pVS);
     }
 
@@ -134,7 +134,7 @@ void ComputeParticles::CreateRenderParticlePSO()
         ShaderCI.Desc.ShaderType = SHADER_TYPE_PIXEL;
         ShaderCI.EntryPoint      = "main";
         ShaderCI.Desc.Name       = "Particle PS";
-        ShaderCI.FilePath        = "particle.psh";
+        ShaderCI.FilePath        = "shaders/particles/particle.psh";
         m_pDevice->CreateShader(ShaderCI, &pPS);
     }
 
@@ -183,7 +183,7 @@ void ComputeParticles::CreateUpdateParticlePSO()
         ShaderCI.Desc.ShaderType = SHADER_TYPE_COMPUTE;
         ShaderCI.EntryPoint      = "main";
         ShaderCI.Desc.Name       = "Reset particle lists CS";
-        ShaderCI.FilePath        = "reset_particle_lists.csh";
+        ShaderCI.FilePath        = "shaders/particles/reset_particle_lists.csh";
         ShaderCI.Macros          = Macros;
         m_pDevice->CreateShader(ShaderCI, &pResetParticleListsCS);
     }
@@ -193,7 +193,7 @@ void ComputeParticles::CreateUpdateParticlePSO()
         ShaderCI.Desc.ShaderType = SHADER_TYPE_COMPUTE;
         ShaderCI.EntryPoint      = "main";
         ShaderCI.Desc.Name       = "Move particles CS";
-        ShaderCI.FilePath        = "move_particles.csh";
+        ShaderCI.FilePath        = "shaders/particles/move_particles.csh";
         ShaderCI.Macros          = Macros;
         m_pDevice->CreateShader(ShaderCI, &pMoveParticlesCS);
     }
@@ -203,7 +203,7 @@ void ComputeParticles::CreateUpdateParticlePSO()
         ShaderCI.Desc.ShaderType = SHADER_TYPE_COMPUTE;
         ShaderCI.EntryPoint      = "main";
         ShaderCI.Desc.Name       = "Collide particles CS";
-        ShaderCI.FilePath        = "collide_particles.csh";
+        ShaderCI.FilePath        = "shaders/particles/collide_particles.csh";
         ShaderCI.Macros          = Macros;
         m_pDevice->CreateShader(ShaderCI, &pCollideParticlesCS);
     }
@@ -213,7 +213,7 @@ void ComputeParticles::CreateUpdateParticlePSO()
         ShaderCI.Desc.ShaderType = SHADER_TYPE_COMPUTE;
         ShaderCI.EntryPoint      = "main";
         ShaderCI.Desc.Name       = "Update particle speed CS";
-        ShaderCI.FilePath        = "collide_particles.csh";
+        ShaderCI.FilePath        = "shaders/particles/collide_particles.csh";
         Macros.AddShaderMacro("UPDATE_SPEED", 1);
         ShaderCI.Macros = Macros;
         m_pDevice->CreateShader(ShaderCI, &pUpdatedSpeedCS);

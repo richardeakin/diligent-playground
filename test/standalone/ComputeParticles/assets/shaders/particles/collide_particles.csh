@@ -1,5 +1,5 @@
-#include "structures.fxh"
-#include "particles.fxh"
+#include "shaders/particles/structures.fxh"
+#include "shaders/particles/particles.fxh"
 
 cbuffer Constants
 {
