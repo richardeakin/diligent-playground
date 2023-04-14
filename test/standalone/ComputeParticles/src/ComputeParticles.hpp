@@ -19,7 +19,7 @@ public:
     virtual void Update(double CurrTime, double ElapsedTime) override final;
     virtual void Render() override final;
 
-    virtual const dg::Char* GetSampleName() const override final { return "ComputeParticles Blarg"; }
+    virtual const dg::Char* GetSampleName() const override final { return "ComputeParticles"; }
 
 private:
     void CreateRenderParticlePSO();

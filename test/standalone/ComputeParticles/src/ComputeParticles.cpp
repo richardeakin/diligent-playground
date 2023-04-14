@@ -1,4 +1,7 @@
 
+// disable annoying int to float conversion warnings
+#pragma warning( disable : 4244 )
+
 #include "ComputeParticles.hpp"
 #include "BasicMath.hpp"
 #include "MapHelper.hpp"
@@ -40,8 +43,12 @@ struct ParticleAttribs {
 
 struct BackgroundPixelConstants {
     float3 camPos;
+    float padding0;
     float3 camDir;
-    float2 padding;
+    float padding1;
+    float2 resolution;
+    float padding2;
+    float padding3;
 };
 
 bool UseFirstPersonCamera = true;
@@ -363,7 +370,7 @@ void ComputeParticles::ModifyEngineInitInfo(const ModifyEngineInitInfoAttribs& A
 
 void ComputeParticles::WindowResize(Uint32 Width, Uint32 Height)
 {
-    LOG_INFO_MESSAGE("Terrain::WindowResize| size: [", Width, ", ", Height, "]" );
+    LOG_INFO_MESSAGE("ComputeParticles::WindowResize| size: [", Width, ", ", Height, "]" );
 
     // Update projection matrix.
     float AspectRatio = static_cast<float>(Width) / static_cast<float>(Height);
@@ -431,6 +438,9 @@ void ComputeParticles::Render()
         MapHelper<BackgroundPixelConstants> cb( m_pImmediateContext, pixelConstants, MAP_WRITE, MAP_FLAG_DISCARD );
         cb->camPos = mCamera.GetPos();
         cb->camDir = mCamera.GetWorldAhead();
+
+        auto swapChainDesc = m_pSwapChain->GetDesc();
+        cb->resolution = float2( swapChainDesc.Width, swapChainDesc.Height );
 
         mBackgroundCanvas->render( m_pImmediateContext, m_WorldViewProjMatrix );
     }

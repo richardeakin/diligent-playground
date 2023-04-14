@@ -89,8 +89,16 @@ void Canvas::initPipelineState()
     PSOCreateInfo.PSODesc.ResourceLayout.DefaultVariableType = SHADER_RESOURCE_VARIABLE_TYPE_STATIC;
 
     global->renderDevice->CreateGraphicsPipelineState( PSOCreateInfo, &mPSO );
-    mPSO->GetStaticVariableByName( SHADER_TYPE_VERTEX, "Constants")->Set( mVertexConstants );
-    mPSO->GetStaticVariableByName( SHADER_TYPE_PIXEL, "Constants")->Set( mPixelConstants );
+
+
+    auto vc = mPSO->GetStaticVariableByName( SHADER_TYPE_VERTEX, "Constants");
+    if( vc ) {
+        vc->Set( mVertexConstants );
+    }
+    auto pc = mPSO->GetStaticVariableByName( SHADER_TYPE_PIXEL, "Constants" );
+    if( pc ) {
+        pc->Set( mPixelConstants );
+    }
     mPSO->CreateShaderResourceBinding( &mSRB, true );
 }
 
