@@ -51,8 +51,8 @@ private:
 
     bool    mDrawBackground = true;
     bool    mDrawCube = true;
-    bool    mDrawParticles = false;
-    bool    mUpdateParticles = false;
+    bool    mDrawParticles = true;
+    bool    mUpdateParticles = true;
 
     std::unique_ptr<ju::Canvas> mBackgroundCanvas;
     std::unique_ptr<ju::Cube>   mCube;
@@ -62,6 +62,9 @@ private:
     dg::FirstPersonCamera mCamera;
 
     void initCamera();
+
+    void watchShadersDir();
+    void reloadOnAssetsUpdated();
 
     void updateParticles();
     void drawParticles();

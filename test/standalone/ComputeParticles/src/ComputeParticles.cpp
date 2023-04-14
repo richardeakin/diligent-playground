@@ -85,6 +85,8 @@ void ComputeParticles::Initialize(const SampleInitInfo& InitInfo)
     initCamera();
 
     ju::initLivePP( LPP_PATH );
+
+    watchShadersDir();
 }
 
 void ComputeParticles::CreateRenderParticlePSO()
@@ -361,6 +363,46 @@ void ComputeParticles::initCamera()
     mCamera.SetSpeedUpScales( CameraSpeedUp.x, CameraSpeedUp.y );
 }
 
+void ComputeParticles::watchShadersDir()
+{
+    std::filesystem::path shaderDir( "shaders/particles" );
+
+    if( std::filesystem::exists( shaderDir ) ) {
+        LOG_INFO_MESSAGE( __FUNCTION__, "| watching assets directory: ", shaderDir );
+        try {
+            ShadersDirWatchHandle = std::make_unique<filewatch::FileWatch<std::filesystem::path>>( shaderDir,
+                [=](const std::filesystem::path &path, const filewatch::Event change_type ) {
+                    ShaderAssetsMarkedDirty = true;
+                }
+            );
+        }
+        catch( std::system_error &exc ) {
+            LOG_ERROR_MESSAGE( __FUNCTION__, "| exception caught attempting to watch directory (assets): ", shaderDir, ", what: ", exc.what() );
+        }
+    }
+    else {
+        LOG_WARNING_MESSAGE( __FUNCTION__, "| shader directory couldn't be found (not watching): ", shaderDir );
+    }
+}
+
+void ComputeParticles::reloadOnAssetsUpdated()
+{
+    LOG_INFO_MESSAGE( __FUNCTION__, "| re-initializing shader assets" );
+
+    m_pRenderParticlePSO.Release();
+    CreateRenderParticlePSO();
+
+    m_pResetParticleListsPSO.Release();
+    m_pMoveParticlesPSO.Release();
+    m_pCollideParticlesPSO.Release();
+    m_pUpdateParticleSpeedPSO.Release();
+    // TODO: need to reset vars created by CreateParticleBuffers() and call again?
+
+    CreateUpdateParticlePSO();
+
+    ShaderAssetsMarkedDirty = false;
+}
+
 void ComputeParticles::ModifyEngineInitInfo(const ModifyEngineInitInfoAttribs& Attribs)
 {
     SampleBase::ModifyEngineInitInfo(Attribs);
@@ -386,6 +428,10 @@ void ComputeParticles::Update(double CurrTime, double ElapsedTime)
 {
     SampleBase::Update(CurrTime, ElapsedTime);
     UpdateUI();
+
+    if( ShaderAssetsMarkedDirty ) {
+        reloadOnAssetsUpdated();
+    }
 
     mCamera.Update(m_InputController, float(ElapsedTime));
     m_fTimeDelta = static_cast<float>(ElapsedTime);
