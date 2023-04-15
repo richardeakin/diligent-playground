@@ -29,12 +29,17 @@ Diligent::SampleBase* Diligent::CreateSample()
 namespace {
 
 struct ParticleAttribs {
-    float2 f2Pos;
-    float2 f2NewPos;
+    float3 pos;
+    float  padding0;// TODO: try without padding between the positions
+    float3 newPos;
+    float  padding1;
 
-    float2 f2Speed;
-    float2 f2NewSpeed;
+    float3 speed;
+    float  padding2;
+    float3 newSpeed;
+    float  padding3;
 
+    // TODO: update names
     float fSize          = 0;
     float fTemperature   = 0;
     int   iNumCollisions = 0;
@@ -283,12 +288,13 @@ void ComputeParticles::CreateParticleBuffers()
     constexpr float fMaxParticleSize = 0.05f;
     float           fSize            = 0.7f / std::sqrt(static_cast<float>(m_NumParticles));
     fSize                            = std::min(fMaxParticleSize, fSize);
-    for (auto& particle : ParticleData)
-    {
-        particle.f2NewPos.x   = pos_distr(gen);
-        particle.f2NewPos.y   = pos_distr(gen);
-        particle.f2NewSpeed.x = pos_distr(gen) * fSize * 5.f;
-        particle.f2NewSpeed.y = pos_distr(gen) * fSize * 5.f;
+    for ( auto &particle : ParticleData ) {
+        particle.newPos.x   = pos_distr(gen);
+        particle.newPos.y   = pos_distr(gen);
+        particle.newPos.z   = pos_distr(gen);
+        particle.newSpeed.x = pos_distr(gen) * fSize * 5.f;
+        particle.newSpeed.y = pos_distr(gen) * fSize * 5.f;
+        particle.newSpeed.z = pos_distr(gen) * fSize * 5.f;
         particle.fSize        = fSize * size_distr(gen);
     }
 

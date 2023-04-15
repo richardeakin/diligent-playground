@@ -1,16 +1,20 @@
 
 struct ParticleAttribs
 {
-    float2 f2Pos;
-    float2 f2NewPos;
+    float3 pos;
+    float  padding0;// TODO: try without padding between the positions
+    float3 newPos;
+    float  padding1;
 
-    float2 f2Speed;
-    float2 f2NewSpeed;
+    float3 speed;
+    float  padding2;
+    float3 newSpeed;
+    float  padding3;
 
     float  fSize;
     float  fTemperature;
     int    iNumCollisions;
-    float  fPadding0;
+    float  fPadding4;
 };
 
 struct GlobalConstants

@@ -31,9 +31,10 @@ void main(in  VSInput VSIn,
 
     ParticleAttribs Attribs = g_Particles[VSIn.InstID];
 
-    float2 pos = pos_uv[VSIn.VertID].xy * g_Constants.f2Scale.xy;
-    pos = pos * Attribs.fSize + Attribs.f2Pos;
-    PSIn.Pos = float4(pos, 0.0, 1.0);
+    // TODO: make sure I understand what scale is
+    float3 pos = float3( pos_uv[VSIn.VertID].xy * g_Constants.f2Scale.xy, 0.0 );
+    pos = pos * Attribs.fSize + Attribs.pos;
+    PSIn.Pos = float4(pos, 1.0);
     PSIn.uv = pos_uv[VSIn.VertID].zw;
     PSIn.Temp = Attribs.fTemperature;
 }
