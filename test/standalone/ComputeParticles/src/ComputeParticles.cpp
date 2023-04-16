@@ -106,10 +106,8 @@ void ComputeParticles::CreateRenderParticlePSO()
     PSOCreateInfo.GraphicsPipeline.RTVFormats[0]                = m_pSwapChain->GetDesc().ColorBufferFormat;
     PSOCreateInfo.GraphicsPipeline.DSVFormat                    = m_pSwapChain->GetDesc().DepthBufferFormat;
     PSOCreateInfo.GraphicsPipeline.PrimitiveTopology            = PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
-    // Disable back face culling TODO: enable for 3D
-    PSOCreateInfo.GraphicsPipeline.RasterizerDesc.CullMode      = CULL_MODE_NONE;
-    // Disable depth testing TODO: enable for 3D
-    PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.DepthEnable = False;
+    PSOCreateInfo.GraphicsPipeline.RasterizerDesc.CullMode      = CULL_MODE_BACK;
+    PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.DepthEnable = True;
 
     auto& BlendDesc = PSOCreateInfo.GraphicsPipeline.BlendDesc;
 
@@ -163,7 +161,11 @@ void ComputeParticles::CreateRenderParticlePSO()
     PSOCreateInfo.PSODesc.ResourceLayout.NumVariables = _countof(Vars);
 
     m_pDevice->CreateGraphicsPipelineState(PSOCreateInfo, &m_pRenderParticlePSO);
-    m_pRenderParticlePSO->GetStaticVariableByName(SHADER_TYPE_VERTEX, "Constants")->Set(m_Constants);
+
+    auto vc = m_pRenderParticlePSO->GetStaticVariableByName( SHADER_TYPE_VERTEX, "Constants" );
+    if( vc ) {
+        vc->Set(m_Constants);
+    }
 }
 
 void ComputeParticles::CreateUpdateParticlePSO()
@@ -439,8 +441,8 @@ void ComputeParticles::Update(double CurrTime, double ElapsedTime)
         reloadOnAssetsUpdated();
     }
 
-    mCamera.Update(m_InputController, float(ElapsedTime));
-    m_fTimeDelta = static_cast<float>(ElapsedTime);
+    m_fTimeDelta = (float)ElapsedTime;
+    mCamera.Update( m_InputController, m_fTimeDelta );
 
     // Rotation matrix
     float4x4 CubeModelTransform = float4x4::RotationY(static_cast<float>(CurrTime) * 1.0f) * float4x4::RotationX(-PI_F * 0.1f);
@@ -456,21 +458,26 @@ void ComputeParticles::Update(double CurrTime, double ElapsedTime)
         mCube->setTransform( CubeModelTransform );
     }
 
-    // Camera is at (0, 0, -5) looking along the Z axis
-    float4x4 View = float4x4::Translation(0.f, 0.0f, 5.0f);
-
-    // Get pretransform matrix that rotates the scene according the surface orientation
-    // TODO: understand when this is needed, not using with the FPS cam
-    auto SrfPreTransform = GetSurfacePretransformMatrix(float3{0, 0, 1});
-
-    // Get projection matrix adjusted to the current screen orientation
-    auto Proj = GetAdjustedProjectionMatrix(PI_F / 4.0f, 0.1f, 100.f);
-
-    // Compute world-view-projection matrix
-    m_WorldViewProjMatrix = CubeModelTransform * View * SrfPreTransform * Proj;
-
     if( UseFirstPersonCamera ) {
+        m_ViewProjMatrix = mCamera.GetViewMatrix() * mCamera.GetProjMatrix();
         m_WorldViewProjMatrix = CubeModelTransform * mCamera.GetViewMatrix() * mCamera.GetProjMatrix();
+    }
+    else {
+        // from samples..
+        // 
+        // Camera is at (0, 0, -5) looking along the Z axis
+        float4x4 View = float4x4::Translation(0.f, 0.0f, 5.0f);
+
+        // Get pretransform matrix that rotates the scene according the surface orientation
+        // TODO: remove to simplify for now, this is the identity matrix on desktop
+        auto SrfPreTransform = GetSurfacePretransformMatrix(float3{0, 0, 1});
+
+        // Get projection matrix adjusted to the current screen orientation
+        //auto Proj = GetAdjustedProjectionMatrix(PI_F / 4.0f, 0.1f, 100.f);
+        auto Proj = GetAdjustedProjectionMatrix( mCamera.GetProjAttribs().FOV, mCamera.GetProjAttribs().NearClipPlane, mCamera.GetProjAttribs().FarClipPlane );
+
+        m_ViewProjMatrix = View * SrfPreTransform * Proj;
+        m_WorldViewProjMatrix = CubeModelTransform * View * SrfPreTransform * Proj;
     }
 }
 
@@ -500,7 +507,9 @@ void ComputeParticles::Render()
     updateParticles();
     drawParticles();
 
-    draw3D();
+    if( mCube && mDrawCube ) {
+        mCube->render( m_pImmediateContext, m_WorldViewProjMatrix );
+    }
 }
 
 void ComputeParticles::updateParticles()
@@ -508,6 +517,7 @@ void ComputeParticles::updateParticles()
     // appears we always need to update this buffer or an assertial failure happens (stale buffer)
     {
         struct Constants {
+            float4x4 cViewProj;
             uint  uiNumParticles;
             float fDeltaTime;
             float fDummy0;
@@ -518,6 +528,7 @@ void ComputeParticles::updateParticles()
         };
         // Map the buffer and write current world-view-projection matrix
         MapHelper<Constants> ConstData(m_pImmediateContext, m_Constants, MAP_WRITE, MAP_FLAG_DISCARD);
+        ConstData->cViewProj = m_ViewProjMatrix.Transpose();
         ConstData->uiNumParticles = static_cast<Uint32>(m_NumParticles);
         ConstData->fDeltaTime     = std::min(m_fTimeDelta, 1.f / 60.f) * m_fSimulationSpeed;
 
@@ -571,9 +582,6 @@ void ComputeParticles::drawParticles()
 
 void ComputeParticles::draw3D()
 {
-    if( mCube && mDrawCube ) {
-        mCube->render( m_pImmediateContext, m_WorldViewProjMatrix );
-    }
 }
 
 

@@ -1,8 +1,8 @@
 
-struct ParticleAttribs
-{
+// TODO: try without padding between the positions
+struct ParticleAttribs {
     float3 pos;
-    float  padding0;// TODO: try without padding between the positions
+    float  padding0;
     float3 newPos;
     float  padding1;
 
@@ -17,8 +17,9 @@ struct ParticleAttribs
     float  fPadding4;
 };
 
-struct GlobalConstants
-{
+struct GlobalConstants {
+    float4x4 cViewProj;
+
     uint   uiNumParticles;
     float  fDeltaTime;
     float  fDummy0;

@@ -57,7 +57,8 @@ private:
     std::unique_ptr<ju::Canvas> mBackgroundCanvas;
     std::unique_ptr<ju::Cube>   mCube;
 
-    dg::float4x4                m_WorldViewProjMatrix; // TODO: break out world transform and store in Cube as a separate const?
+    dg::float4x4             m_ViewProjMatrix;
+    dg::float4x4         m_WorldViewProjMatrix; // TODO: get rid of this, no need for both
 
     dg::FirstPersonCamera mCamera;
 
