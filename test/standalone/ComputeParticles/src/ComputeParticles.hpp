@@ -44,7 +44,7 @@ private:
     dg::RefCntAutoPtr<dg::IBuffer>                m_pParticleAttribsBuffer;
     dg::RefCntAutoPtr<dg::IBuffer>                m_pParticleListsBuffer;
     dg::RefCntAutoPtr<dg::IBuffer>                m_pParticleListHeadsBuffer;
-    dg::RefCntAutoPtr<dg::IResourceMapping>       m_pResMapping;
+    //dg::RefCntAutoPtr<dg::IResourceMapping>       m_pResMapping;
 
     float m_fTimeDelta       = 0;
     float m_fSimulationSpeed = 1;
@@ -59,10 +59,18 @@ private:
     std::unique_ptr<ju::Canvas> mBackgroundCanvas;
     std::unique_ptr<ju::Cube>   mCube;
 
-    dg::float4x4             m_ViewProjMatrix;
-    dg::float4x4         m_WorldViewProjMatrix; // TODO: get rid of this, no need for both
+    dg::float4x4                m_ViewProjMatrix;
+    dg::float4x4                m_WorldViewProjMatrix; // TODO: get rid of this, no need for both
 
     dg::FirstPersonCamera mCamera;
+
+    enum ParticleType {
+        Sprite,
+        Cube,
+        Pyramid
+    };
+
+    ParticleType mParticleType = ParticleType::Sprite;
 
     void initCamera();
 
@@ -71,5 +79,4 @@ private:
 
     void updateParticles();
     void drawParticles();
-    void draw3D();
 };

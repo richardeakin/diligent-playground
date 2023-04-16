@@ -583,30 +583,32 @@ void ComputeParticles::drawParticles()
     m_pImmediateContext->Draw(drawAttrs);
 }
 
-void ComputeParticles::draw3D()
-{
-}
-
-
 // ------------------------------------------------------------------------------------------------------------
 // ImGui
 // ------------------------------------------------------------------------------------------------------------
 
 void ComputeParticles::UpdateUI()
 {
-    im::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
-    if (im::Begin("Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+    im::SetNextWindowPos( ImVec2( 10, 10 ), ImGuiCond_FirstUseEver );
+    if( im::Begin( "Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize ) ) {
         if( im::CollapsingHeader( "Particles", ImGuiTreeNodeFlags_DefaultOpen ) ) {
             im::Checkbox( "update", &mUpdateParticles );
             im::SameLine();
             im::Checkbox( "draw", &mDrawParticles );
 
-            if (im::InputInt("count", &m_NumParticles, 100, 1000, ImGuiInputTextFlags_EnterReturnsTrue))
-            {
-                m_NumParticles = std::min(std::max(m_NumParticles, 100), 100000);
+            if( im::InputInt("count", &m_NumParticles, 100, 1000, ImGuiInputTextFlags_EnterReturnsTrue ) ) {
+                m_NumParticles = std::min( std::max( m_NumParticles, 100 ), 100000 );
                 CreateParticleBuffers();
             }
-            im::SliderFloat("speed", &m_fSimulationSpeed, 0.1f, 5.f);
+            im::SliderFloat( "speed", &m_fSimulationSpeed, 0.1f, 5.f );
+
+            static std::vector<const char*> types = { "sprite", "cube", "pyramid" };
+            int t = (int)mParticleType;
+            if( im::Combo( "type", &t, types.data(), (int)types.size() ) ) {
+                LOG_INFO_MESSAGE( "type changed" );
+                mParticleType = (ParticleType)t;
+                // TODO: reload geometry + shaders as appropriate
+            }
         }
 
         if( im::CollapsingHeader( "Camera", ImGuiTreeNodeFlags_DefaultOpen ) ) {
@@ -628,7 +630,7 @@ void ComputeParticles::UpdateUI()
 
         if( im::CollapsingHeader( "Scene", ImGuiTreeNodeFlags_DefaultOpen ) ) {
             im::Text( "light dir: [%0.02f, %0.02f, %0.02f]", LightDir.x, LightDir.y, LightDir.z );
-            im::gizmo3D("##LightDirection", LightDir, ImGui::GetTextLineHeight() * 10);
+            im::gizmo3D( "##LightDirection", LightDir, ImGui::GetTextLineHeight() * 10 );
             im::Checkbox( "draw background", &mDrawBackground );
             im::Checkbox( "draw cube", &mDrawCube );
 
