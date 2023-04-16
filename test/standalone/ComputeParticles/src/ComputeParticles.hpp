@@ -28,29 +28,26 @@ private:
     void CreateConsantBuffer();
     void UpdateUI();
 
-    int m_NumParticles    = 2000;
-    int m_ThreadGroupSize = 256;
+    dg::RefCntAutoPtr<dg::IPipelineState>         mRenderParticlePSO;
+    dg::RefCntAutoPtr<dg::IShaderResourceBinding> mRenderParticleSRB;
+    dg::RefCntAutoPtr<dg::IPipelineState>         mResetParticleListsPSO;
+    dg::RefCntAutoPtr<dg::IShaderResourceBinding> mResetParticleListsSRB;
+    dg::RefCntAutoPtr<dg::IPipelineState>         mMoveParticlesPSO;
+    dg::RefCntAutoPtr<dg::IShaderResourceBinding> mMoveParticlesSRB;
+    dg::RefCntAutoPtr<dg::IPipelineState>         mCollideParticlesPSO;
+    dg::RefCntAutoPtr<dg::IShaderResourceBinding> mCollideParticlesSRB;
+    dg::RefCntAutoPtr<dg::IPipelineState>         mUpdateParticleSpeedPSO;
+    dg::RefCntAutoPtr<dg::IBuffer>                mConstants; // TODO: rename to mParticleConstants, in hlsl too
+    dg::RefCntAutoPtr<dg::IBuffer>                mParticleAttribsBuffer;
+    dg::RefCntAutoPtr<dg::IBuffer>                mParticleListsBuffer;
+    dg::RefCntAutoPtr<dg::IBuffer>                mParticleListHeadsBuffer;
+    //dg::RefCntAutoPtr<dg::IResourceMapping>       mResMapping;
 
-    dg::RefCntAutoPtr<dg::IPipelineState>         m_pRenderParticlePSO;
-    dg::RefCntAutoPtr<dg::IShaderResourceBinding> m_pRenderParticleSRB;
-    dg::RefCntAutoPtr<dg::IPipelineState>         m_pResetParticleListsPSO;
-    dg::RefCntAutoPtr<dg::IShaderResourceBinding> m_pResetParticleListsSRB;
-    dg::RefCntAutoPtr<dg::IPipelineState>         m_pMoveParticlesPSO;
-    dg::RefCntAutoPtr<dg::IShaderResourceBinding> m_pMoveParticlesSRB;
-    dg::RefCntAutoPtr<dg::IPipelineState>         m_pCollideParticlesPSO;
-    dg::RefCntAutoPtr<dg::IShaderResourceBinding> m_pCollideParticlesSRB;
-    dg::RefCntAutoPtr<dg::IPipelineState>         m_pUpdateParticleSpeedPSO;
-    dg::RefCntAutoPtr<dg::IBuffer>                m_Constants;
-    dg::RefCntAutoPtr<dg::IBuffer>                m_pParticleAttribsBuffer;
-    dg::RefCntAutoPtr<dg::IBuffer>                m_pParticleListsBuffer;
-    dg::RefCntAutoPtr<dg::IBuffer>                m_pParticleListHeadsBuffer;
-    //dg::RefCntAutoPtr<dg::IResourceMapping>       m_pResMapping;
-
-    float m_fTimeDelta       = 0;
-    float m_fSimulationSpeed = 1;
-
-    float mParticleScale = 1;
-
+    int     mNumParticles    = 2000;
+    int     mThreadGroupSize = 256;
+    float   mTimeDelta       = 0;
+    float   mSimulationSpeed = 1;
+    float   mParticleScale = 1;
     bool    mDrawBackground = true;
     bool    mDrawCube = true;
     bool    mDrawParticles = true;
@@ -59,8 +56,8 @@ private:
     std::unique_ptr<ju::Canvas> mBackgroundCanvas;
     std::unique_ptr<ju::Cube>   mCube;
 
-    dg::float4x4                m_ViewProjMatrix;
-    dg::float4x4                m_WorldViewProjMatrix; // TODO: get rid of this, no need for both
+    dg::float4x4                mViewProjMatrix;
+    dg::float4x4                mWorldViewProjMatrix; // TODO: get rid of this, no need for both
 
     dg::FirstPersonCamera mCamera;
 
