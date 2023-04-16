@@ -1,10 +1,10 @@
 #include "shaders/particles/structures.fxh"
 
 cbuffer Constants {
-    GlobalConstants g_Constants;
+    GlobalConstants Constants;
 };
 
-StructuredBuffer<ParticleAttribs> g_Particles;
+StructuredBuffer<ParticleAttribs> Particles;
 
 struct VSInput {
     uint VertID : SV_VertexID;
@@ -25,13 +25,11 @@ void main( in VSInput VSIn, out PSInput PSIn )
     pos_uv[2] = float4(+1.0,+1.0, 1.0,0.0);
     pos_uv[3] = float4(+1.0,-1.0, 1.0,1.0);
 
-    ParticleAttribs Attribs = g_Particles[VSIn.InstID];
+    ParticleAttribs Attribs = Particles[VSIn.InstID];
 
-    // TODO: make scale a single float, expose as uniform
-    float3 pos = float3( pos_uv[VSIn.VertID].xy * g_Constants.f2Scale.xy, 0.0 ); // for now drawing all particles at z = 0
-    pos = pos * Attribs.fSize + Attribs.pos;
-    //PSIn.Pos = float4(pos, 1.0);
-    PSIn.Pos = mul( float4(pos, 1.0), g_Constants.cViewProj );
+    float3 pos = float3( pos_uv[VSIn.VertID].xy * Constants.scale, 0.0 ); // TODO: use pos.z
+    pos = pos * Attribs.size + Attribs.pos;
+    PSIn.Pos = mul( float4( pos, 1.0 ), Constants.viewProj );
     PSIn.uv = pos_uv[VSIn.VertID].zw;
-    PSIn.Temp = Attribs.fTemperature;
+    PSIn.Temp = Attribs.temperature;
 }

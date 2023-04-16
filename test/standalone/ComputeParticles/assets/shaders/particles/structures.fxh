@@ -11,20 +11,20 @@ struct ParticleAttribs {
     float3 newSpeed;
     float  padding3;
 
-    float  fSize;
-    float  fTemperature;
-    int    iNumCollisions;
-    float  fPadding4;
+    float  size;
+    float  temperature;
+    int    numCollisions;
+    float  padding4;
 };
 
 struct GlobalConstants {
-    float4x4 cViewProj;
+    float4x4 viewProj;
 
-    uint   uiNumParticles;
-    float  fDeltaTime;
-    float  fDummy0;
-    float  fDummy1;
+    uint   numParticles;
+    float  deltaTime;
+    float  padding0;
+    float  padding1;
 
-    float2 f2Scale;
-    int2   i2ParticleGridSize;
+    float  scale;
+    int2   gridSize; // TODO: make 3D
 };

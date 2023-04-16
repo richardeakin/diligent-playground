@@ -39,11 +39,10 @@ struct ParticleAttribs {
     float3 newSpeed;
     float  padding3;
 
-    // TODO: update names
-    float fSize          = 0;
-    float fTemperature   = 0;
-    int   iNumCollisions = 0;
-    float fPadding0      = 0;
+    float size          = 0;
+    float temperature   = 0;
+    int   numCollisions = 0;
+    float padding4      = 0;
 };
 
 struct BackgroundPixelConstants {
@@ -150,14 +149,11 @@ void ComputeParticles::CreateRenderParticlePSO()
     // Define variable type that will be used by default
     PSOCreateInfo.PSODesc.ResourceLayout.DefaultVariableType = SHADER_RESOURCE_VARIABLE_TYPE_STATIC;
 
-    // clang-format off
-    // Shader variables should typically be mutable, which means they are expected
-    // to change on a per-instance basis
-    ShaderResourceVariableDesc Vars[] = 
-    {
-        {SHADER_TYPE_VERTEX, "g_Particles", SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE}
+    // Shader variables should typically be mutable, which means they are expected to change on a per-instance basis
+    ShaderResourceVariableDesc Vars[] = {
+        { SHADER_TYPE_VERTEX, "Particles", SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE }
     };
-    // clang-format on
+
     PSOCreateInfo.PSODesc.ResourceLayout.Variables    = Vars;
     PSOCreateInfo.PSODesc.ResourceLayout.NumVariables = _countof(Vars);
 
@@ -181,11 +177,11 @@ void ComputeParticles::CreateUpdateParticlePSO()
 
     // Create a shader source stream factory to load shaders from files.
     RefCntAutoPtr<IShaderSourceInputStreamFactory> pShaderSourceFactory;
-    m_pEngineFactory->CreateDefaultShaderSourceStreamFactory(nullptr, &pShaderSourceFactory);
+    m_pEngineFactory->CreateDefaultShaderSourceStreamFactory( nullptr, &pShaderSourceFactory );
     ShaderCI.pShaderSourceStreamFactory = pShaderSourceFactory;
 
     ShaderMacroHelper Macros;
-    Macros.AddShaderMacro("THREAD_GROUP_SIZE", m_ThreadGroupSize);
+    Macros.AddShaderMacro( "THREAD_GROUP_SIZE", m_ThreadGroupSize );
     Macros.Finalize();
 
     RefCntAutoPtr<IShader> pResetParticleListsCS;
@@ -195,7 +191,7 @@ void ComputeParticles::CreateUpdateParticlePSO()
         ShaderCI.Desc.Name       = "Reset particle lists CS";
         ShaderCI.FilePath        = "shaders/particles/reset_particle_lists.csh";
         ShaderCI.Macros          = Macros;
-        m_pDevice->CreateShader(ShaderCI, &pResetParticleListsCS);
+        m_pDevice->CreateShader( ShaderCI, &pResetParticleListsCS );
     }
 
     RefCntAutoPtr<IShader> pMoveParticlesCS;
@@ -205,7 +201,7 @@ void ComputeParticles::CreateUpdateParticlePSO()
         ShaderCI.Desc.Name       = "Move particles CS";
         ShaderCI.FilePath        = "shaders/particles/move_particles.csh";
         ShaderCI.Macros          = Macros;
-        m_pDevice->CreateShader(ShaderCI, &pMoveParticlesCS);
+        m_pDevice->CreateShader( ShaderCI, &pMoveParticlesCS );
     }
 
     RefCntAutoPtr<IShader> pCollideParticlesCS;
@@ -215,7 +211,7 @@ void ComputeParticles::CreateUpdateParticlePSO()
         ShaderCI.Desc.Name       = "Collide particles CS";
         ShaderCI.FilePath        = "shaders/particles/collide_particles.csh";
         ShaderCI.Macros          = Macros;
-        m_pDevice->CreateShader(ShaderCI, &pCollideParticlesCS);
+        m_pDevice->CreateShader( ShaderCI, &pCollideParticlesCS );
     }
 
     RefCntAutoPtr<IShader> pUpdatedSpeedCS;
@@ -224,46 +220,52 @@ void ComputeParticles::CreateUpdateParticlePSO()
         ShaderCI.EntryPoint      = "main";
         ShaderCI.Desc.Name       = "Update particle speed CS";
         ShaderCI.FilePath        = "shaders/particles/collide_particles.csh";
-        Macros.AddShaderMacro("UPDATE_SPEED", 1);
+        Macros.AddShaderMacro( "UPDATE_SPEED", 1 );
         ShaderCI.Macros = Macros;
-        m_pDevice->CreateShader(ShaderCI, &pUpdatedSpeedCS);
+        m_pDevice->CreateShader( ShaderCI, &pUpdatedSpeedCS );
     }
 
     ComputePipelineStateCreateInfo PSOCreateInfo;
     PipelineStateDesc&             PSODesc = PSOCreateInfo.PSODesc;
 
-    // This is a compute pipeline
+    // init compute pipeline
     PSODesc.PipelineType = PIPELINE_TYPE_COMPUTE;
-
     PSODesc.ResourceLayout.DefaultVariableType = SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE;
-    // clang-format off
-    ShaderResourceVariableDesc Vars[] = 
-    {
-        {SHADER_TYPE_COMPUTE, "Constants", SHADER_RESOURCE_VARIABLE_TYPE_STATIC}
+    ShaderResourceVariableDesc Vars[] = {
+        { SHADER_TYPE_COMPUTE, "Constants", SHADER_RESOURCE_VARIABLE_TYPE_STATIC }
     };
-    // clang-format on
     PSODesc.ResourceLayout.Variables    = Vars;
     PSODesc.ResourceLayout.NumVariables = _countof(Vars);
 
     PSODesc.Name      = "Reset particle lists PSO";
     PSOCreateInfo.pCS = pResetParticleListsCS;
     m_pDevice->CreateComputePipelineState(PSOCreateInfo, &m_pResetParticleListsPSO);
-    m_pResetParticleListsPSO->GetStaticVariableByName(SHADER_TYPE_COMPUTE, "Constants")->Set(m_Constants);
+    if( auto var = m_pResetParticleListsPSO->GetStaticVariableByName( SHADER_TYPE_COMPUTE, "Constants" ) ) {
+        var->Set( m_Constants );
+    }
 
     PSODesc.Name      = "Move particles PSO";
     PSOCreateInfo.pCS = pMoveParticlesCS;
-    m_pDevice->CreateComputePipelineState(PSOCreateInfo, &m_pMoveParticlesPSO);
-    m_pMoveParticlesPSO->GetStaticVariableByName(SHADER_TYPE_COMPUTE, "Constants")->Set(m_Constants);
+    m_pDevice->CreateComputePipelineState( PSOCreateInfo, &m_pMoveParticlesPSO );
+    if( m_pMoveParticlesPSO ) {
+        if( auto var = m_pMoveParticlesPSO->GetStaticVariableByName( SHADER_TYPE_COMPUTE, "Constants" ) ) {
+            var->Set( m_Constants );
+        }
+    }
 
     PSODesc.Name      = "Collidse particles PSO";
     PSOCreateInfo.pCS = pCollideParticlesCS;
-    m_pDevice->CreateComputePipelineState(PSOCreateInfo, &m_pCollideParticlesPSO);
-    m_pCollideParticlesPSO->GetStaticVariableByName(SHADER_TYPE_COMPUTE, "Constants")->Set(m_Constants);
+    m_pDevice->CreateComputePipelineState( PSOCreateInfo, &m_pCollideParticlesPSO );
+    if( m_pCollideParticlesPSO ) {
+        m_pCollideParticlesPSO->GetStaticVariableByName(SHADER_TYPE_COMPUTE, "Constants")->Set(m_Constants);
+    }
 
     PSODesc.Name      = "Update particle speed PSO";
     PSOCreateInfo.pCS = pUpdatedSpeedCS;
-    m_pDevice->CreateComputePipelineState(PSOCreateInfo, &m_pUpdateParticleSpeedPSO);
-    m_pUpdateParticleSpeedPSO->GetStaticVariableByName(SHADER_TYPE_COMPUTE, "Constants")->Set(m_Constants);
+    m_pDevice->CreateComputePipelineState( PSOCreateInfo, &m_pUpdateParticleSpeedPSO );
+    if( m_pUpdateParticleSpeedPSO ) {
+        m_pUpdateParticleSpeedPSO->GetStaticVariableByName(SHADER_TYPE_COMPUTE, "Constants")->Set(m_Constants);
+    }
 }
 
 void ComputeParticles::CreateParticleBuffers()
@@ -298,7 +300,7 @@ void ComputeParticles::CreateParticleBuffers()
         particle.newSpeed.x = pos_distr(gen) * fSize * 5.f;
         particle.newSpeed.y = pos_distr(gen) * fSize * 5.f;
         particle.newSpeed.z = pos_distr(gen) * fSize * 5.f;
-        particle.fSize        = fSize * size_distr(gen);
+        particle.size       = fSize * size_distr(gen);
     }
 
     BufferData VBData;
@@ -333,23 +335,23 @@ void ComputeParticles::CreateParticleBuffers()
 
     m_pResetParticleListsSRB.Release();
     m_pResetParticleListsPSO->CreateShaderResourceBinding(&m_pResetParticleListsSRB, true);
-    m_pResetParticleListsSRB->GetVariableByName(SHADER_TYPE_COMPUTE, "g_ParticleListHead")->Set(pParticleListHeadsBufferUAV);
+    m_pResetParticleListsSRB->GetVariableByName(SHADER_TYPE_COMPUTE, "ParticleListHead")->Set(pParticleListHeadsBufferUAV);
 
     m_pRenderParticleSRB.Release();
     m_pRenderParticlePSO->CreateShaderResourceBinding(&m_pRenderParticleSRB, true);
-    m_pRenderParticleSRB->GetVariableByName(SHADER_TYPE_VERTEX, "g_Particles")->Set(pParticleAttribsBufferSRV);
+    m_pRenderParticleSRB->GetVariableByName(SHADER_TYPE_VERTEX, "Particles")->Set(pParticleAttribsBufferSRV);
 
     m_pMoveParticlesSRB.Release();
     m_pMoveParticlesPSO->CreateShaderResourceBinding(&m_pMoveParticlesSRB, true);
-    m_pMoveParticlesSRB->GetVariableByName(SHADER_TYPE_COMPUTE, "g_Particles")->Set(pParticleAttribsBufferUAV);
-    m_pMoveParticlesSRB->GetVariableByName(SHADER_TYPE_COMPUTE, "g_ParticleListHead")->Set(pParticleListHeadsBufferUAV);
-    m_pMoveParticlesSRB->GetVariableByName(SHADER_TYPE_COMPUTE, "g_ParticleLists")->Set(pParticleListsBufferUAV);
+    m_pMoveParticlesSRB->GetVariableByName(SHADER_TYPE_COMPUTE, "Particles")->Set(pParticleAttribsBufferUAV);
+    m_pMoveParticlesSRB->GetVariableByName(SHADER_TYPE_COMPUTE, "ParticleListHead")->Set(pParticleListHeadsBufferUAV);
+    m_pMoveParticlesSRB->GetVariableByName(SHADER_TYPE_COMPUTE, "ParticleLists")->Set(pParticleListsBufferUAV);
 
     m_pCollideParticlesSRB.Release();
     m_pCollideParticlesPSO->CreateShaderResourceBinding(&m_pCollideParticlesSRB, true);
-    m_pCollideParticlesSRB->GetVariableByName(SHADER_TYPE_COMPUTE, "g_Particles")->Set(pParticleAttribsBufferUAV);
-    m_pCollideParticlesSRB->GetVariableByName(SHADER_TYPE_COMPUTE, "g_ParticleListHead")->Set(pParticleListHeadsBufferSRV);
-    m_pCollideParticlesSRB->GetVariableByName(SHADER_TYPE_COMPUTE, "g_ParticleLists")->Set(pParticleListsBufferSRV);
+    m_pCollideParticlesSRB->GetVariableByName(SHADER_TYPE_COMPUTE, "Particles")->Set(pParticleAttribsBufferUAV);
+    m_pCollideParticlesSRB->GetVariableByName(SHADER_TYPE_COMPUTE, "ParticleListHead")->Set(pParticleListHeadsBufferSRV);
+    m_pCollideParticlesSRB->GetVariableByName(SHADER_TYPE_COMPUTE, "ParticleLists")->Set(pParticleListsBufferSRV);
 }
 
 void ComputeParticles::CreateConsantBuffer()
@@ -515,31 +517,31 @@ void ComputeParticles::Render()
 
 void ComputeParticles::updateParticles()
 {
-    // appears we always need to update this buffer or an assertial failure happens (stale buffer)
+    // appears we always need to update this buffer or an assert failure happens (stale buffer)
+    // TODO: update ParticleAtribles names
     {
         struct Constants {
-            float4x4 cViewProj;
-            uint  uiNumParticles;
-            float fDeltaTime;
-            float fDummy0;
-            float fDummy1;
+            float4x4 viewProj;
 
-            float2 f2Scale;
-            int2   i2ParticleGridSize;
+            uint  numParticles;
+            float deltaTime;
+            float padding0;
+            float padding1;
+
+            float scale;
+            int2  gridSize;
         };
         // Map the buffer and write current world-view-projection matrix
         MapHelper<Constants> ConstData(m_pImmediateContext, m_Constants, MAP_WRITE, MAP_FLAG_DISCARD);
-        ConstData->cViewProj = m_ViewProjMatrix.Transpose();
-        ConstData->uiNumParticles = static_cast<Uint32>(m_NumParticles);
-        ConstData->fDeltaTime     = std::min(m_fTimeDelta, 1.f / 60.f) * m_fSimulationSpeed;
+        ConstData->viewProj = m_ViewProjMatrix.Transpose();
+        ConstData->numParticles = static_cast<Uint32>(m_NumParticles);
+        ConstData->deltaTime     = std::min(m_fTimeDelta, 1.f / 60.f) * m_fSimulationSpeed;
+        ConstData->scale = mParticleScale;
 
-        float  AspectRatio = static_cast<float>(m_pSwapChain->GetDesc().Width) / static_cast<float>(m_pSwapChain->GetDesc().Height);
-        float2 f2Scale     = float2(std::sqrt(1.f / AspectRatio), std::sqrt(AspectRatio));
-        ConstData->f2Scale = f2Scale;
-
-        int iParticleGridWidth          = static_cast<int>(std::sqrt(static_cast<float>(m_NumParticles)) / f2Scale.x);
-        ConstData->i2ParticleGridSize.x = iParticleGridWidth;
-        ConstData->i2ParticleGridSize.y = m_NumParticles / iParticleGridWidth;
+        // TODO: update for 3D
+        int iParticleGridWidth          = static_cast<int>(std::sqrt(static_cast<float>(m_NumParticles)) / mParticleScale);
+        ConstData->gridSize.x = iParticleGridWidth;
+        ConstData->gridSize.y = m_NumParticles / iParticleGridWidth;
     }
 
     if( mUpdateParticles ) {

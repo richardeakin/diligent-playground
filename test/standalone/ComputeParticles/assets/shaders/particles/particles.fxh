@@ -3,30 +3,29 @@
 
 void ClampParticlePosition( inout float3 pos,
                             inout float3 speed,
-                            in    float  size,
-                            in    float2 scale )
+                            in    float  size )
 {
-    if( pos.x + size * scale.x > 1.0 ) {
-        pos.x -= pos.x + size * scale.x - 1.0;
+    if( pos.x + size > 1.0 ) {
+        pos.x -= pos.x + size - 1.0;
         speed.x *= -1.0;
     }
 
-    if( pos.x - size * scale.x < -1.0 ) {
-        pos.x += -1.0 - ( pos.x - size * scale.x );
+    if( pos.x - size < -1.0 ) {
+        pos.x += -1.0 - ( pos.x - size );
         speed.x *= -1.0;
     }
 
-    if( pos.y + size * scale.y > 1.0 ) {
-        pos.y -= pos.y + size * scale.y - 1.0;
+    if( pos.y + size > 1.0 ) {
+        pos.y -= pos.y + size - 1.0;
         speed.y *= -1.0;
     }
 
-    if( pos.y - size * scale.y < -1.0 ) {
-        pos.y += -1.0 - ( pos.y - size * scale.y );
+    if( pos.y - size < -1.0 ) {
+        pos.y += -1.0 - ( pos.y - size );
         speed.y *= -1.0;
     }
 
-    // TODO: make scale float3 and clamp in Z too
+    // TODO: clamp in Z
 }
 
 int3 GetGridLocation(float2 f2Pos, int2 i2ParticleGridSize)

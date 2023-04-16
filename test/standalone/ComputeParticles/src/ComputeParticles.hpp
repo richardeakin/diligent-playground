@@ -49,6 +49,8 @@ private:
     float m_fTimeDelta       = 0;
     float m_fSimulationSpeed = 1;
 
+    float mParticleScale = 1;
+
     bool    mDrawBackground = true;
     bool    mDrawCube = true;
     bool    mDrawParticles = true;

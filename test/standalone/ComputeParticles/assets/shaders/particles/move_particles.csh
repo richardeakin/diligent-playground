@@ -1,42 +1,42 @@
 #include "shaders/particles/structures.fxh"
 #include "shaders/particles/particles.fxh"
+#line 4
 
-cbuffer Constants
-{
-    GlobalConstants g_Constants;
+cbuffer Constants {
+    GlobalConstants Constants;
 };
 
 #ifndef THREAD_GROUP_SIZE
 #   define THREAD_GROUP_SIZE 64
 #endif
 
-RWStructuredBuffer<ParticleAttribs> g_Particles;
-RWBuffer<int /*format=r32i*/>       g_ParticleListHead;
-RWBuffer<int /*format=r32i*/>       g_ParticleLists;
+RWStructuredBuffer<ParticleAttribs> Particles;
+RWBuffer<int /*format=r32i*/>       ParticleListHead;
+RWBuffer<int /*format=r32i*/>       ParticleLists;
 
 [numthreads(THREAD_GROUP_SIZE, 1, 1)]
-void main(uint3 Gid  : SV_GroupID,
-          uint3 GTid : SV_GroupThreadID)
+void main( uint3 Gid  : SV_GroupID,
+           uint3 GTid : SV_GroupThreadID)
 {
     uint uiGlobalThreadIdx = Gid.x * uint(THREAD_GROUP_SIZE) + GTid.x;
-    if (uiGlobalThreadIdx >= g_Constants.uiNumParticles)
+    if( uiGlobalThreadIdx >= Constants.numParticles ) {
         return;
+    }
 
     int iParticleIdx = int(uiGlobalThreadIdx);
 
-    ParticleAttribs Particle = g_Particles[iParticleIdx];
+    ParticleAttribs Particle = Particles[iParticleIdx];
     Particle.pos   = Particle.newPos;
     Particle.speed = Particle.newSpeed;
-    //Particle.pos  += Particle.speed * g_Constants.scale * g_Constants.fDeltaTime; // TODO: make scale float3
-    Particle.pos  += Particle.speed * float3( g_Constants.f2Scale, 0 ) * g_Constants.fDeltaTime;
-    Particle.fTemperature -= Particle.fTemperature * min(g_Constants.fDeltaTime * 2.0, 1.0);
+    Particle.pos  += Particle.speed * Constants.scale * Constants.deltaTime;
+    Particle.temperature -= Particle.temperature * min( Constants.deltaTime * 2.0, 1.0 );
 
-    ClampParticlePosition( Particle.pos, Particle.speed, Particle.fSize, g_Constants.f2Scale );
-    g_Particles[iParticleIdx] = Particle;
+    ClampParticlePosition( Particle.pos, Particle.speed, Particle.size * Constants.scale );
+    Particles[iParticleIdx] = Particle;
 
     // Bin particles. TODO: make grid 3D
-    int GridIdx = GetGridLocation(Particle.pos.xy, g_Constants.i2ParticleGridSize).z;
+    int GridIdx = GetGridLocation( Particle.pos.xy, Constants.gridSize ).z;
     int OriginalListIdx;
-    InterlockedExchange(g_ParticleListHead[GridIdx], iParticleIdx, OriginalListIdx);
-    g_ParticleLists[iParticleIdx] = OriginalListIdx;
+    InterlockedExchange( ParticleListHead[GridIdx], iParticleIdx, OriginalListIdx );
+    ParticleLists[iParticleIdx] = OriginalListIdx;
 }
