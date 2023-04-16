@@ -129,7 +129,7 @@ void ComputeParticles::CreateRenderParticlePSO()
         ShaderCI.Desc.ShaderType = SHADER_TYPE_VERTEX;
         ShaderCI.EntryPoint      = "main";
         ShaderCI.Desc.Name       = "Particle VS";
-        ShaderCI.FilePath        = "shaders/particles/particle.vsh";
+        ShaderCI.FilePath        = "shaders/particles/particle_sprite.vsh";
         m_pDevice->CreateShader(ShaderCI, &pVS);
     }
 
@@ -139,7 +139,7 @@ void ComputeParticles::CreateRenderParticlePSO()
         ShaderCI.Desc.ShaderType = SHADER_TYPE_PIXEL;
         ShaderCI.EntryPoint      = "main";
         ShaderCI.Desc.Name       = "Particle PS";
-        ShaderCI.FilePath        = "shaders/particles/particle.psh";
+        ShaderCI.FilePath        = "shaders/particles/particle_sprite.psh";
         m_pDevice->CreateShader(ShaderCI, &pPS);
     }
 
