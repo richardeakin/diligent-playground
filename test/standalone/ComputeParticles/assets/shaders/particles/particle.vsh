@@ -27,10 +27,11 @@ void main( in VSInput VSIn, out PSInput PSIn )
 
     ParticleAttribs Attribs = g_Particles[VSIn.InstID];
 
-    // TODO: remove scale once rendering in 3D, just use size
+    // TODO: make scale a single float, expose as uniform
     float3 pos = float3( pos_uv[VSIn.VertID].xy * g_Constants.f2Scale.xy, 0.0 ); // for now drawing all particles at z = 0
     pos = pos * Attribs.fSize + Attribs.pos;
-    PSIn.Pos = mul( float4(pos, 0.0), g_Constants.cViewProj );
+    //PSIn.Pos = float4(pos, 1.0);
+    PSIn.Pos = mul( float4(pos, 1.0), g_Constants.cViewProj );
     PSIn.uv = pos_uv[VSIn.VertID].zw;
     PSIn.Temp = Attribs.fTemperature;
 }

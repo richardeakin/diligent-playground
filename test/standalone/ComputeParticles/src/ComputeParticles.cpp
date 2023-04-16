@@ -106,11 +106,12 @@ void ComputeParticles::CreateRenderParticlePSO()
     PSOCreateInfo.GraphicsPipeline.RTVFormats[0]                = m_pSwapChain->GetDesc().ColorBufferFormat;
     PSOCreateInfo.GraphicsPipeline.DSVFormat                    = m_pSwapChain->GetDesc().DepthBufferFormat;
     PSOCreateInfo.GraphicsPipeline.PrimitiveTopology            = PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
-    PSOCreateInfo.GraphicsPipeline.RasterizerDesc.CullMode      = CULL_MODE_BACK;
+    PSOCreateInfo.GraphicsPipeline.RasterizerDesc.CullMode      = CULL_MODE_NONE; // CULL_MODE_BACK; // FIXME: CULL_MODE_BACK makes particles disapear
     PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.DepthEnable = True;
 
+    // TODO: disable blend for 3D rendering (soon going to be using geometry)
+    // - can make it optional so I can re-enable if using sprites
     auto& BlendDesc = PSOCreateInfo.GraphicsPipeline.BlendDesc;
-
     BlendDesc.RenderTargets[0].BlendEnable = True;
     BlendDesc.RenderTargets[0].SrcBlend    = BLEND_FACTOR_SRC_ALPHA;
     BlendDesc.RenderTargets[0].DestBlend   = BLEND_FACTOR_INV_SRC_ALPHA;
