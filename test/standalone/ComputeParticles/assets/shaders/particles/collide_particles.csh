@@ -1,6 +1,5 @@
 #include "shaders/particles/structures.fxh"
 #include "shaders/particles/particles.fxh"
-#line 4
 
 cbuffer Constants {
     ParticleConstants Constants;
