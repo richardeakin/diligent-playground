@@ -21,5 +21,5 @@ void main( in  PSInput  PSIn, out PSOutput PSOut )
     PSOut.Color = float4( col, 1.0 );
     // PSOut.Color.r = 0;
 
-    //PSOut.Color = float4(1, 0, 0, 1);
+    PSOut.Color = float4(1, 0, 0, 1);
 }

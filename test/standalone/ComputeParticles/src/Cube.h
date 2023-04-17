@@ -45,7 +45,8 @@ public:
 		VERTEX_COMPONENT_FLAGS components = VERTEX_COMPONENT_FLAG_POS_UV;
 		fs::path	vertPath;
 		fs::path	pixelPath;
-		std::string mName;
+		fs::path	watchDir;
+		std::string name;
 
 		// used to set things needed before the SRB is constructed
 		std::vector<dg::ShaderResourceVariableDesc> shaderResourceVars;
@@ -71,12 +72,11 @@ private:
 	void watchShadersDir();
 	void reloadOnAssetsUpdated();
 
-	// TODO: fix names
-	dg::RefCntAutoPtr<dg::IPipelineState>         m_pPSO;
-	dg::RefCntAutoPtr<dg::IShaderResourceBinding> m_SRB;
-	dg::RefCntAutoPtr<dg::IBuffer>                m_CubeVertexBuffer;
-	dg::RefCntAutoPtr<dg::IBuffer>                m_CubeIndexBuffer;
-	dg::RefCntAutoPtr<dg::IBuffer>                m_VSConstants;
+	dg::RefCntAutoPtr<dg::IPipelineState>         mPSO;
+	dg::RefCntAutoPtr<dg::IShaderResourceBinding> mSRB;
+	dg::RefCntAutoPtr<dg::IBuffer>                mVertexBuffer;
+	dg::RefCntAutoPtr<dg::IBuffer>                mIndexBuffer;
+	dg::RefCntAutoPtr<dg::IBuffer>                mVSConstants;
 
 	Options	mOptions;
 

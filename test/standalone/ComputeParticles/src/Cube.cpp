@@ -91,8 +91,8 @@ Cube::Cube( const Options &options )
     if( mOptions.pixelPath.empty() ) {
         mOptions.pixelPath = "shaders/cube/cube.psh";
     }
-    if( mOptions.mName.empty() ) {
-        mOptions.mName = "Cube";
+    if( mOptions.name.empty() ) {
+        mOptions.name = "Cube";
     }
 
     // create dynamic uniform buffer
@@ -103,11 +103,10 @@ Cube::Cube( const Options &options )
         CBDesc.Usage          = USAGE_DYNAMIC;
         CBDesc.BindFlags      = BIND_UNIFORM_BUFFER;
         CBDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
-        app::global()->renderDevice->CreateBuffer( CBDesc, nullptr, &m_VSConstants );
+        app::global()->renderDevice->CreateBuffer( CBDesc, nullptr, &mVSConstants );
     }
 
-    mOptions.staticShaderVars.push_back( { SHADER_TYPE_VERTEX, "VSConstants", m_VSConstants } );
-
+    mOptions.staticShaderVars.push_back( { SHADER_TYPE_VERTEX, "VSConstants", mVSConstants } );
 
     initPipelineState();
     initVertexBuffer();
@@ -117,8 +116,8 @@ Cube::Cube( const Options &options )
 
 void Cube::setShaderResourceVar( dg::SHADER_TYPE shaderType, const dg::Char* name, dg::IDeviceObject* object )
 {
-    if( m_SRB ) {
-        m_SRB->GetVariableByName( shaderType, name )->Set( object );
+    if( mSRB ) {
+        mSRB->GetVariableByName( shaderType, name )->Set( object );
     }
 }
 
@@ -145,7 +144,7 @@ void Cube::initPipelineState()
     RefCntAutoPtr<IShader> vertShader;
     {
         auto filePathStr = mOptions.vertPath.string();
-        auto nameStr = mOptions.mName + " (VS)";
+        auto nameStr = mOptions.name + " (VS)";
 
         ShaderCI.Desc.ShaderType = SHADER_TYPE_VERTEX;
         ShaderCI.EntryPoint      = "main";
@@ -157,7 +156,7 @@ void Cube::initPipelineState()
     RefCntAutoPtr<IShader> pixelShader;
     {
         auto filePathStr = mOptions.pixelPath.string();
-        auto nameStr = mOptions.mName + " (PS)";
+        auto nameStr = mOptions.name + " (PS)";
 
         ShaderCI.Desc.ShaderType = SHADER_TYPE_PIXEL;
         ShaderCI.EntryPoint      = "main";
@@ -187,13 +186,13 @@ void Cube::initPipelineState()
     PSOCreateInfo.PSODesc.ResourceLayout.Variables    = mOptions.shaderResourceVars.data();
     PSOCreateInfo.PSODesc.ResourceLayout.NumVariables = mOptions.shaderResourceVars.size();
 
-    global->renderDevice->CreateGraphicsPipelineState( PSOCreateInfo, &m_pPSO );
+    global->renderDevice->CreateGraphicsPipelineState( PSOCreateInfo, &mPSO );
 
     //m_pPSO->GetStaticVariableByName( SHADER_TYPE_VERTEX, "VSConstants" )->Set( m_VSConstants );
     for( const auto &var : mOptions.staticShaderVars ) {
-        m_pPSO->GetStaticVariableByName( var.shaderType, var.name )->Set( var.object );
+        mPSO->GetStaticVariableByName( var.shaderType, var.name )->Set( var.object );
     }
-    m_pPSO->CreateShaderResourceBinding( &m_SRB, true );
+    mPSO->CreateShaderResourceBinding( &mSRB, true );
 }
 
 void Cube::initVertexBuffer()
@@ -239,7 +238,7 @@ void Cube::initVertexBuffer()
     VBData.pData    = VertexData.data();
     VBData.DataSize = VertBuffDesc.Size;
 
-    app::global()->renderDevice->CreateBuffer(VertBuffDesc, &VBData, &m_CubeVertexBuffer);
+    app::global()->renderDevice->CreateBuffer(VertBuffDesc, &VBData, &mVertexBuffer);
 }
 
 void Cube::initIndexBuffer()
@@ -253,12 +252,12 @@ void Cube::initIndexBuffer()
     BufferData IBData;
     IBData.pData    = Indices.data();
     IBData.DataSize = NumIndices * sizeof(Indices[0]);
-    app::global()->renderDevice->CreateBuffer(IndBuffDesc, &IBData, &m_CubeIndexBuffer);
+    app::global()->renderDevice->CreateBuffer(IndBuffDesc, &IBData, &mIndexBuffer);
 }
 
 void Cube::watchShadersDir()
 {
-    std::filesystem::path shaderDir( "shaders/cube" );
+    auto shaderDir = mOptions.pixelPath.parent_path();
 
     if( std::filesystem::exists( shaderDir ) ) {
         LOG_INFO_MESSAGE( __FUNCTION__, "| watching assets directory: ", shaderDir );
@@ -272,6 +271,7 @@ void Cube::watchShadersDir()
                     // https://github.com/ThomasMonkman/filewatch/issues/27
                     // - for now will just mark a flag and hope it is fine updating buffers from render loop
 
+                    // TODO NEXT: only mark if vert of frag shader was modified
                     ShaderAssetsMarkedDirty = true;
                 }
             );
@@ -289,8 +289,8 @@ void Cube::reloadOnAssetsUpdated()
 {
     LOG_INFO_MESSAGE( __FUNCTION__, "| re-initializing shader assets" );
 
-    m_pPSO.Release();
-    m_SRB.Release();
+    mPSO.Release();
+    mSRB.Release();
     initPipelineState();
 
     ShaderAssetsMarkedDirty = false;
@@ -308,7 +308,7 @@ void Cube::render( IDeviceContext* context, const float4x4 &mvp, uint32_t numIns
     // Update constant buffer
     {
         // Map the buffer and write current world-view-projection matrix
-        MapHelper<VSConstants> CBConstants( context, m_VSConstants, MAP_WRITE, MAP_FLAG_DISCARD);
+        MapHelper<VSConstants> CBConstants( context, mVSConstants, MAP_WRITE, MAP_FLAG_DISCARD);
         CBConstants->WorldViewProj = mvp.Transpose();
 
         // We need to do inverse-transpose, but we also need to transpose the matrix
@@ -321,15 +321,15 @@ void Cube::render( IDeviceContext* context, const float4x4 &mvp, uint32_t numIns
 
     // Bind vertex and index buffers
     const Uint64 offset   = 0;
-    IBuffer*     pBuffs[] = {m_CubeVertexBuffer};
+    IBuffer*     pBuffs[] = {mVertexBuffer};
     context->SetVertexBuffers(0, 1, pBuffs, &offset, RESOURCE_STATE_TRANSITION_MODE_TRANSITION, SET_VERTEX_BUFFERS_FLAG_RESET);
-    context->SetIndexBuffer(m_CubeIndexBuffer, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+    context->SetIndexBuffer(mIndexBuffer, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 
     // Set the pipeline state
-    context->SetPipelineState(m_pPSO);
+    context->SetPipelineState(mPSO);
     // Commit shader resources. RESOURCE_STATE_TRANSITION_MODE_TRANSITION mode
     // makes sure that resources are transitioned to required states.
-    context->CommitShaderResources( m_SRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+    context->CommitShaderResources( mSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
 
     DrawIndexedAttribs DrawAttrs;     // This is an indexed draw call
     DrawAttrs.IndexType  = VT_UINT32; // Index type

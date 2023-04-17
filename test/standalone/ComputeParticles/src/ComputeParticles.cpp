@@ -68,7 +68,7 @@ struct BackgroundPixelConstants {
 };
 
 bool UseFirstPersonCamera = true;
-bool RotateCube = true;
+bool RotateCube = false;
 
 float CameraRotationSpeed = 0.005f;
 float CameraMoveSpeed = 8.0f;
@@ -112,6 +112,7 @@ void ComputeParticles::Initialize( const SampleInitInfo& InitInfo )
         options.components = ju::VERTEX_COMPONENT_FLAG_POS_NORM_UV;
         options.vertPath = "shaders/particles/particle_solid.vsh";
         options.pixelPath = "shaders/particles/particle_solid.psh";
+        options.name = "Particle Cube";
         options.shaderResourceVars.push_back( { SHADER_TYPE_VERTEX, "Particles", SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE } );
         options.staticShaderVars.push_back( { SHADER_TYPE_VERTEX, "PConstants", mParticleConstants } );
         mParticleCube = std::make_unique<ju::Cube>( options );

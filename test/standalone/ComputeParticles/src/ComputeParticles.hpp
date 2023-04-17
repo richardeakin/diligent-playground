@@ -49,7 +49,7 @@ private:
     float   mSimulationSpeed = 1;
     float   mParticleScale = 1;
     bool    mDrawBackground = true;
-    bool    mDrawCube = true;
+    bool    mDrawCube = false;
     bool    mDrawParticles = true;
     bool    mUpdateParticles = true;
 
