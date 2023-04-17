@@ -40,6 +40,11 @@ struct StaticShaderVar {
 	dg::IDeviceObject*	object = nullptr;
 };
 
+struct ShaderResourceVar {
+	dg::ShaderResourceVariableDesc	desc;
+	dg::IDeviceObject*				object = nullptr;
+};
+
 class Cube {
 public:
 	struct Options {
@@ -48,14 +53,15 @@ public:
 		std::string				name;
 		VERTEX_COMPONENT_FLAGS	components = VERTEX_COMPONENT_FLAG_POS_UV;
 
-		// used to set things needed before the SRB is constructed
-		std::vector<dg::ShaderResourceVariableDesc> shaderResourceVars;
-		std::vector<StaticShaderVar>				staticShaderVars;
+		std::vector<ShaderResourceVar>	shaderResourceVars;
+		std::vector<StaticShaderVar>	staticShaderVars;
+
+		//std::function<void>	oReInitFn;
 	};
 	Cube( const Options &options = Options() );
 
 	// this is used for the structured buffer (ParticleAttribs), which is set after the SRB is already constructed.
-	void setShaderResourceVar( dg::SHADER_TYPE shaderType, const dg::Char* name, dg::IDeviceObject* object );
+	//void setShaderResourceVar( dg::SHADER_TYPE shaderType, const dg::Char* name, dg::IDeviceObject* object );
 
 	void update( double deltaSeconds );
 	void render( dg::IDeviceContext* context, const dg::float4x4 &mvp, uint32_t numInstances = 1 );

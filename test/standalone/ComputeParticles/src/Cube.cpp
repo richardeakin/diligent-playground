@@ -109,12 +109,12 @@ Cube::Cube( const Options &options )
     watchShadersDir();
 }
 
-void Cube::setShaderResourceVar( dg::SHADER_TYPE shaderType, const dg::Char* name, dg::IDeviceObject* object )
-{
-    if( mSRB ) {
-        mSRB->GetVariableByName( shaderType, name )->Set( object );
-    }
-}
+//void Cube::setShaderResourceVar( dg::SHADER_TYPE shaderType, const dg::Char* name, dg::IDeviceObject* object )
+//{
+//    if( mSRB ) {
+//        mSRB->GetVariableByName( shaderType, name )->Set( object );
+//    }
+//}
 
 void Cube::initPipelineState()
 {
@@ -181,8 +181,12 @@ void Cube::initPipelineState()
     PSOCreateInfo.pPS = pixelShader;
     PSOCreateInfo.PSODesc.ResourceLayout.DefaultVariableType = SHADER_RESOURCE_VARIABLE_TYPE_STATIC;
 
-    PSOCreateInfo.PSODesc.ResourceLayout.Variables    = mOptions.shaderResourceVars.data();
-    PSOCreateInfo.PSODesc.ResourceLayout.NumVariables = mOptions.shaderResourceVars.size();
+    std::vector<ShaderResourceVariableDesc>  shaderResourceDescVec;
+    for( const auto &s : mOptions.shaderResourceVars ) {
+        shaderResourceDescVec.push_back( s.desc );
+    }
+    PSOCreateInfo.PSODesc.ResourceLayout.Variables    = shaderResourceDescVec.data();
+    PSOCreateInfo.PSODesc.ResourceLayout.NumVariables = shaderResourceDescVec.size();
 
     global->renderDevice->CreateGraphicsPipelineState( PSOCreateInfo, &mPSO );
 
@@ -191,6 +195,10 @@ void Cube::initPipelineState()
         mPSO->GetStaticVariableByName( var.shaderType, var.name )->Set( var.object );
     }
     mPSO->CreateShaderResourceBinding( &mSRB, true );
+
+    for( const auto &s : mOptions.shaderResourceVars ) {
+        mSRB->GetVariableByName( s.desc.ShaderStages, s.desc.Name )->Set( s.object );
+    }
 }
 
 void Cube::initVertexBuffer()

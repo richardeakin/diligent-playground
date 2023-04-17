@@ -109,17 +109,16 @@ void ComputeParticles::Initialize( const SampleInitInfo& InitInfo )
 
     // make the cube that will get used for instanced drawing of particles
     {
+        IBufferView* particleAttribsBufferSRV = mParticleAttribsBuffer->GetDefaultView( BUFFER_VIEW_SHADER_RESOURCE );
+
         ju::Cube::Options options;
         options.components = ju::VERTEX_COMPONENT_FLAG_POS_NORM_UV;
         options.vertPath = "shaders/particles/particle_solid.vsh";
         options.pixelPath = "shaders/particles/particle_solid.psh";
         options.name = "Particle Cube";
-        options.shaderResourceVars.push_back( { SHADER_TYPE_VERTEX, "Particles", SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE } );
+        options.shaderResourceVars.push_back( { { SHADER_TYPE_VERTEX, "Particles", SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE }, particleAttribsBufferSRV } );
         options.staticShaderVars.push_back( { SHADER_TYPE_VERTEX, "PConstants", mParticleConstants } );
         mParticleCube = std::make_unique<ju::Cube>( options );
-
-        IBufferView* particleAttribsBufferSRV = mParticleAttribsBuffer->GetDefaultView( BUFFER_VIEW_SHADER_RESOURCE );
-        mParticleCube->setShaderResourceVar( SHADER_TYPE_VERTEX, "Particles", particleAttribsBufferSRV );
     }
 
     initCamera();
