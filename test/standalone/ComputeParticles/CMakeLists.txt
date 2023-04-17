@@ -17,6 +17,8 @@ set(INCLUDE
     src/AppGlobal.h
     ../common/src/Canvas.h
     ../common/src/LivePP.h
+    ../common/src/FileWatch.h
+    ../common/src/FileWatch-Monkman.hpp
 )
 
 set(SHADERS

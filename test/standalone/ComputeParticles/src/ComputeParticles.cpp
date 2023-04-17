@@ -10,7 +10,7 @@
 #include "ShaderMacroHelper.hpp"
 
 #include "AppGlobal.h"
-#include "../../common/src/FileWatch.hpp"
+#include "../../common/src/FileWatch.h"
 #include "../../common/src/LivePP.h"
 
 #define LPP_PATH "../../../../../tools/LivePP"
@@ -19,6 +19,7 @@
 #include <random>
 
 using namespace Diligent;
+using namespace ju;
 namespace im = ImGui;
 
 Diligent::SampleBase* Diligent::CreateSample()
@@ -76,8 +77,8 @@ float2 CameraSpeedUp = { 0.2f, 10.0f }; // speed multipliers when {shift, ctrl} 
 
 dg::float3      LightDir  = normalize( float3( 1, -0.5f, -0.1f ) );
 
-std::unique_ptr<filewatch::FileWatch<std::filesystem::path>> ShadersDirWatchHandle;
-bool                                                         ShaderAssetsMarkedDirty = false;
+ju::FileWatchHandle     ShadersDirWatchHandle;
+bool                    ShaderAssetsMarkedDirty = false;
 
 } // anon
 
@@ -424,9 +425,26 @@ void ComputeParticles::watchShadersDir()
     if( std::filesystem::exists( shaderDir ) ) {
         LOG_INFO_MESSAGE( __FUNCTION__, "| watching assets directory: ", shaderDir );
         try {
-            ShadersDirWatchHandle = std::make_unique<filewatch::FileWatch<std::filesystem::path>>( shaderDir,
-                [=](const std::filesystem::path &path, const filewatch::Event change_type ) {
-                    ShaderAssetsMarkedDirty = true;
+            ShadersDirWatchHandle = std::make_unique<FileWatchType>( shaderDir.string(),
+                [=](const PathType &path, const filewatch::Event change_type ) {
+
+                    // make a list of files we actually want to update if changed and check that here
+                    const static std::vector<PathType> checkFilenames = {
+                        "collide_particles.csh",
+                        "move_particles.csh",
+                        "reset_particles.csh",
+                        "particle_sprite.vsh",
+                        "particle_sprite.psh",
+                        "particle.fxh",
+                        "structures.fxh"
+                    };
+
+                    for( const auto &p : checkFilenames ) {
+                        if( p == path ) {
+                            LOG_INFO_MESSAGE( __FUNCTION__, "| \t- file event type: ", watchEventTypeToString( change_type ) , ", path: " , path );
+                            ShaderAssetsMarkedDirty = true;
+                        }
+                    }
                 }
             );
         }
@@ -492,8 +510,12 @@ void ComputeParticles::Update( double CurrTime, double ElapsedTime )
     if( mCube ) {
         mCube->setLightDir( LightDir );
         mCube->update( ElapsedTime );
-
         mCube->setTransform( CubeModelTransform );
+    }
+    if( mParticleCube ) {
+        mParticleCube->setLightDir( LightDir );
+        mParticleCube->update( ElapsedTime );
+        mParticleCube->setTransform( CubeModelTransform );
     }
 
     if( UseFirstPersonCamera ) {

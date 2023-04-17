@@ -7,17 +7,12 @@
 #include "MapHelper.hpp"
 #include "GraphicsTypesX.hpp"
 
-#include "../../common/src/FileWatch.hpp"
 
 using namespace Diligent;
 
 namespace ju {
 
 namespace {
-
-std::unique_ptr<filewatch::FileWatch<std::filesystem::path>> ShadersDirWatchHandle;
-bool                                                         ShaderAssetsMarkedDirty = false;
-
 
 //      (-1,+1,+1)________________(+1,+1,+1)                  Z
 //               /|              /|                           |      Y
@@ -123,6 +118,9 @@ void Cube::setShaderResourceVar( dg::SHADER_TYPE shaderType, const dg::Char* nam
 
 void Cube::initPipelineState()
 {
+    mPSO.Release();
+    mSRB.Release();
+
     auto global = app::global();
 
     GraphicsPipelineStateCreateInfo PSOCreateInfo;
@@ -262,17 +260,19 @@ void Cube::watchShadersDir()
     if( std::filesystem::exists( shaderDir ) ) {
         LOG_INFO_MESSAGE( __FUNCTION__, "| watching assets directory: ", shaderDir );
         try {
-            ShadersDirWatchHandle = std::make_unique<filewatch::FileWatch<std::filesystem::path>>( shaderDir,
-                [=](const std::filesystem::path &path, const filewatch::Event change_type ) {
-                    //LOG_INFO_MESSAGE( __FUNCTION__, "| \t- file event type: ", watchEventTypeToString( change_type ) , ", path: " , path );
-                    //ReloadOnAssetsUpdated();
+            mShadersDirWatchHandle = std::make_unique<FileWatchType>( shaderDir.string(),
+                [=](const PathType &path, const filewatch::Event change_type ) {
 
                     // TODO: filter out repeated events as per
                     // https://github.com/ThomasMonkman/filewatch/issues/27
-                    // - for now will just mark a flag and hope it is fine updating buffers from render loop
+                    // - for now will just mark a flag and update render loop
+                    // - later will wrap in an AssetManager class that can do filtering as needed
 
-                    // TODO NEXT: only mark if vert of frag shader was modified
-                    ShaderAssetsMarkedDirty = true;
+                    // only mark if vert of frag shader was modified
+                    if( mOptions.vertPath.filename() == path || mOptions.pixelPath.filename() == path ) {
+                        LOG_INFO_MESSAGE( __FUNCTION__, "| \t- file event type: ", watchEventTypeToString( change_type ) , ", path: " , path );
+                        mShaderAssetsMarkedDirty = true;
+                    }
                 }
             );
         }
@@ -287,18 +287,15 @@ void Cube::watchShadersDir()
 
 void Cube::reloadOnAssetsUpdated()
 {
-    LOG_INFO_MESSAGE( __FUNCTION__, "| re-initializing shader assets" );
+    LOG_INFO_MESSAGE( __FUNCTION__, "| re-initializing shader assets (", mOptions.name, ")" );
 
-    mPSO.Release();
-    mSRB.Release();
     initPipelineState();
-
-    ShaderAssetsMarkedDirty = false;
+    mShaderAssetsMarkedDirty = false;
 }
 
 void Cube::update( double deltaSeconds )
 {
-    if(ShaderAssetsMarkedDirty) {
+    if( mShaderAssetsMarkedDirty ) {
         reloadOnAssetsUpdated();
     }
 }

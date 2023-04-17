@@ -8,6 +8,7 @@
 #include "DeviceContext.h"
 #include "BasicMath.hpp"
 
+#include "../../common/src/FileWatch.h"
 #include <filesystem>
 
 namespace ju {
@@ -42,11 +43,10 @@ struct StaticShaderVar {
 class Cube {
 public:
 	struct Options {
-		VERTEX_COMPONENT_FLAGS components = VERTEX_COMPONENT_FLAG_POS_UV;
-		fs::path	vertPath;
-		fs::path	pixelPath;
-		fs::path	watchDir;
-		std::string name;
+		fs::path				vertPath;
+		fs::path				pixelPath;
+		std::string				name;
+		VERTEX_COMPONENT_FLAGS	components = VERTEX_COMPONENT_FLAG_POS_UV;
 
 		// used to set things needed before the SRB is constructed
 		std::vector<dg::ShaderResourceVariableDesc> shaderResourceVars;
@@ -82,6 +82,9 @@ private:
 
 	dg::float3      mLightDirection  = dg::float3(0, 1, 0); // TODO: this should be part of a global constants buffer
 	dg::float4x4	mTransform;
+
+	ju::FileWatchHandle     mShadersDirWatchHandle;
+	bool                    mShaderAssetsMarkedDirty = false;
 };
 
 } // namespace ju
