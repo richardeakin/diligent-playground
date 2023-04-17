@@ -649,6 +649,7 @@ void ComputeParticles::UpdateUI()
                 CreateParticleBuffers();
             }
             im::SliderFloat( "speed", &mSimulationSpeed, 0.1f, 5.f );
+            im::DragFloat( "scale", &mParticleScale, 0.01f, 0.001f, 100.0f );
 
             static std::vector<const char*> types = { "sprite", "cube", "pyramid" };
             int t = (int)mParticleType;
@@ -662,14 +663,14 @@ void ComputeParticles::UpdateUI()
 
         if( im::CollapsingHeader( "Camera", ImGuiTreeNodeFlags_DefaultOpen ) ) {
             im::Checkbox( "enabled", &UseFirstPersonCamera );
-            if( im::DragFloat( "move speed", &CameraMoveSpeed) ) {
-                mCamera.SetMoveSpeed(CameraMoveSpeed);
+            if( im::DragFloat( "move speed", &CameraMoveSpeed, 0.01f, 0.001f, 100.0f ) ) {
+                mCamera.SetMoveSpeed( CameraMoveSpeed );
             }
-            if( im::DragFloat( "rotate speed", &CameraRotationSpeed) ) {
-                mCamera.SetRotationSpeed(CameraRotationSpeed);
+            if( im::DragFloat( "rotate speed", &CameraRotationSpeed ) ) {
+                mCamera.SetRotationSpeed( CameraRotationSpeed );
             }
-            if( im::DragFloat2( "speed up scale", &CameraSpeedUp.x) ) {
-                mCamera.SetSpeedUpScales(CameraSpeedUp.x, CameraSpeedUp.y);
+            if( im::DragFloat2( "speed up scale", &CameraSpeedUp.x ) ) {
+                mCamera.SetSpeedUpScales( CameraSpeedUp.x, CameraSpeedUp.y );
             }
             if( im::Button("reset") ) {
                 initCamera();
