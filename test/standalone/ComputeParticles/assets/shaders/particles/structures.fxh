@@ -17,7 +17,7 @@ struct ParticleAttribs {
     float  padding4;
 };
 
-struct GlobalConstants {
+struct ParticleConstants {
     float4x4 viewProj;
 
     uint   numParticles;

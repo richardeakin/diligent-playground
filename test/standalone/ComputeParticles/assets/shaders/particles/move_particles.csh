@@ -3,7 +3,7 @@
 #line 4
 
 cbuffer Constants {
-    GlobalConstants Constants;
+    ParticleConstants Constants;
 };
 
 #ifndef THREAD_GROUP_SIZE
@@ -18,12 +18,12 @@ RWBuffer<int /*format=r32i*/>       ParticleLists;
 void main( uint3 Gid  : SV_GroupID,
            uint3 GTid : SV_GroupThreadID)
 {
-    uint uiGlobalThreadIdx = Gid.x * uint(THREAD_GROUP_SIZE) + GTid.x;
-    if( uiGlobalThreadIdx >= Constants.numParticles ) {
+    uint globalThreadIdx = Gid.x * uint(THREAD_GROUP_SIZE) + GTid.x;
+    if( globalThreadIdx >= Constants.numParticles ) {
         return;
     }
 
-    int iParticleIdx = int(uiGlobalThreadIdx);
+    int iParticleIdx = int(globalThreadIdx);
 
     ParticleAttribs Particle = Particles[iParticleIdx];
     Particle.pos   = Particle.newPos;
@@ -34,7 +34,7 @@ void main( uint3 Gid  : SV_GroupID,
     ClampParticlePosition( Particle.pos, Particle.speed, Particle.size * Constants.scale );
     Particles[iParticleIdx] = Particle;
 
-    // Bin particles. TODO: make grid 3D
+    // Bin particles. TODO: make grid 3D. May have to use .w for the id then
     int GridIdx = GetGridLocation( Particle.pos.xy, Constants.gridSize ).z;
     int OriginalListIdx;
     InterlockedExchange( ParticleListHead[GridIdx], iParticleIdx, OriginalListIdx );

@@ -3,7 +3,7 @@
 #line 4
 
 cbuffer Constants {
-    GlobalConstants Constants;
+    ParticleConstants Constants;
 };
 
 #ifndef THREAD_GROUP_SIZE

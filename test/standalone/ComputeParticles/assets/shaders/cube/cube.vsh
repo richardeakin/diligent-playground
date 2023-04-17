@@ -1,7 +1,8 @@
-cbuffer Constants {
-    float4x4 g_WorldViewProj;
-    float4x4 g_NormalTranform;
-    float4   g_LightDirection;
+
+cbuffer VSConstants {
+    float4x4 WorldViewProj;
+    float4x4 NormalTranform;
+    float4   LightDirection;
 };
 
 struct VSInput {
@@ -18,9 +19,9 @@ struct PSInput {
 
 void main( in VSInput VSIn, out PSInput PSIn ) 
 {
-    PSIn.Pos = mul( float4(VSIn.Pos,1.0), g_WorldViewProj);
+    PSIn.Pos = mul( float4( VSIn.Pos, 1.0 ), WorldViewProj );
     PSIn.UV  = VSIn.UV;
 
-    float3 Normal = mul(float4(VSIn.Normal, 0.0), g_NormalTranform).xyz;
-    PSIn.NdotL = saturate(dot(Normal.xyz, -g_LightDirection.xyz));
+    float3 N = mul( float4( VSIn.Normal, 0.0 ), NormalTranform ).xyz;
+    PSIn.NdotL = saturate( dot( N, - LightDirection.xyz ) );
 }

@@ -73,26 +73,48 @@ const std::array<Uint32, NumIndices> Indices =
     16,18,17, 16,19,18,
     20,21,22, 20,22,23
 };
+
+struct VSConstants {
+    float4x4 WorldViewProj;
+    float4x4 NormalTranform;
+    float4   LightDirection;
+};
+
 } // anon
 
-Cube::Cube( VERTEX_COMPONENT_FLAGS components )
-    : mComponents( components )
+Cube::Cube( const Options &options )
+    : mOptions( options )
 {
+    if( mOptions.vertPath.empty() ) {
+        mOptions.vertPath = "shaders/cube/cube.vsh";
+    }
+    if( mOptions.pixelPath.empty() ) {
+        mOptions.pixelPath = "shaders/cube/cube.psh";
+    }
+
     // create dynamic uniform buffer
     {
         BufferDesc CBDesc;
         CBDesc.Name           = "VS constants CB";
-        CBDesc.Size           = sizeof(float4x4) * 2 + sizeof(float4);
+        CBDesc.Size           = sizeof(VSConstants);
         CBDesc.Usage          = USAGE_DYNAMIC;
         CBDesc.BindFlags      = BIND_UNIFORM_BUFFER;
         CBDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
-        app::global()->renderDevice->CreateBuffer(CBDesc, nullptr, &m_VSConstants);
+        app::global()->renderDevice->CreateBuffer( CBDesc, nullptr, &m_VSConstants );
     }
 
     initPipelineState();
     initVertexBuffer();
     initIndexBuffer();
     watchShadersDir();
+}
+
+// FIXME: this needs to be set from constructor options (before the SRB table is constructed
+void Cube::setShaderVar( dg::SHADER_TYPE shaderType, const dg::Char* name, dg::IDeviceObject* object )
+{
+    if( m_pPSO ) {
+        m_pPSO->GetStaticVariableByName( shaderType, name )->Set( object );
+    }
 }
 
 void Cube::initPipelineState()
@@ -120,9 +142,10 @@ void Cube::initPipelineState()
     {
         ShaderCI.Desc.ShaderType = SHADER_TYPE_VERTEX;
         ShaderCI.EntryPoint      = "main";
-        ShaderCI.Desc.Name       = "Cube VS";
-        ShaderCI.FilePath        = "shaders/cube/cube.vsh";
-        global->renderDevice->CreateShader(ShaderCI, &pVS);
+        ShaderCI.Desc.Name       = ( ( mOptions.mLabel.empty() ? "Cube" : mOptions.mLabel ) + " (VS)" ).c_str();
+        auto filePathStr = mOptions.vertPath.string();
+        ShaderCI.FilePath        = filePathStr.c_str();
+        global->renderDevice->CreateShader( ShaderCI, &pVS );
     }
 
     // Create a pixel shader
@@ -130,67 +153,64 @@ void Cube::initPipelineState()
     {
         ShaderCI.Desc.ShaderType = SHADER_TYPE_PIXEL;
         ShaderCI.EntryPoint      = "main";
-        ShaderCI.Desc.Name       = "Cube PS";
-        ShaderCI.FilePath        = "shaders/cube/cube.psh";
-        global->renderDevice->CreateShader(ShaderCI, &pPS);
+        ShaderCI.Desc.Name       = ( ( mOptions.mLabel.empty() ? "Cube" : mOptions.mLabel ) + " (PS)" ).c_str();
+        auto filePathStr = mOptions.pixelPath.string();
+        ShaderCI.FilePath        = filePathStr.c_str();
+        global->renderDevice->CreateShader( ShaderCI, &pPS );
     }
 
     InputLayoutDescX InputLayout;     
     Uint32 Attrib = 0;
-    if( mComponents & VERTEX_COMPONENT_FLAG_POSITION ) {
-        InputLayout.Add(Attrib++, 0u, 3u, VT_FLOAT32, False);
+    if( mOptions.components & VERTEX_COMPONENT_FLAG_POSITION ) {
+        InputLayout.Add( Attrib++, 0u, 3u, VT_FLOAT32, False );
     }
-    if( mComponents & VERTEX_COMPONENT_FLAG_NORMAL ) {
-        InputLayout.Add(Attrib++, 0u, 3u, VT_FLOAT32, False);
+    if( mOptions.components & VERTEX_COMPONENT_FLAG_NORMAL ) {
+        InputLayout.Add( Attrib++, 0u, 3u, VT_FLOAT32, False );
     }
-    if( mComponents & VERTEX_COMPONENT_FLAG_TEXCOORD ) {
-        InputLayout.Add(Attrib++, 0u, 2u, VT_FLOAT32, False);
+    if( mOptions.components & VERTEX_COMPONENT_FLAG_TEXCOORD ) {
+        InputLayout.Add( Attrib++, 0u, 2u, VT_FLOAT32, False );
     }
 
     PSOCreateInfo.GraphicsPipeline.InputLayout = InputLayout;
 
     PSOCreateInfo.pVS = pVS;
     PSOCreateInfo.pPS = pPS;
-
-    // Define variable type that will be used by default
     PSOCreateInfo.PSODesc.ResourceLayout.DefaultVariableType = SHADER_RESOURCE_VARIABLE_TYPE_STATIC;
 
-    global->renderDevice->CreateGraphicsPipelineState(PSOCreateInfo, &m_pPSO);
+    PSOCreateInfo.PSODesc.ResourceLayout.Variables    = mOptions.shaderResourceVars.data();
+    PSOCreateInfo.PSODesc.ResourceLayout.NumVariables = mOptions.shaderResourceVars.size();
 
-    // Since we did not explcitly specify the type for 'Constants' variable, default
-    // type (SHADER_RESOURCE_VARIABLE_TYPE_STATIC) will be used. Static variables never
-    // change and are bound directly through the pipeline state object.
-    m_pPSO->GetStaticVariableByName(SHADER_TYPE_VERTEX, "Constants")->Set(m_VSConstants);
+    global->renderDevice->CreateGraphicsPipelineState( PSOCreateInfo, &m_pPSO );
 
-    // Create a shader resource binding object and bind all static resources in it
+    m_pPSO->GetStaticVariableByName( SHADER_TYPE_VERTEX, "VSConstants" )->Set( m_VSConstants );
     m_pPSO->CreateShaderResourceBinding( &m_SRB, true );
 }
 
 void Cube::initVertexBuffer()
 {
-    VERIFY_EXPR( mComponents != VERTEX_COMPONENT_FLAG_NONE );
+    VERIFY_EXPR( mOptions.components != VERTEX_COMPONENT_FLAG_NONE );
     const Uint32 TotalVertexComponents =
-        ( (mComponents & VERTEX_COMPONENT_FLAG_POSITION) ? 3 : 0 ) +
-        ( (mComponents & VERTEX_COMPONENT_FLAG_NORMAL) ? 3 : 0 ) +
-        ( (mComponents & VERTEX_COMPONENT_FLAG_TEXCOORD) ? 2 : 0 );
+        ( (mOptions.components & VERTEX_COMPONENT_FLAG_POSITION) ? 3 : 0 ) +
+        ( (mOptions.components & VERTEX_COMPONENT_FLAG_NORMAL) ? 3 : 0 ) +
+        ( (mOptions.components & VERTEX_COMPONENT_FLAG_TEXCOORD) ? 2 : 0 );
 
     std::vector<float> VertexData(size_t{TotalVertexComponents} * NumVertices);
 
     auto it = VertexData.begin();
     for( Uint32 v = 0; v < NumVertices; ++v ) {
-        if( mComponents & VERTEX_COMPONENT_FLAG_POSITION ) {
+        if( mOptions.components & VERTEX_COMPONENT_FLAG_POSITION ) {
             const auto& Pos{Positions[v]};
             *(it++) = Pos.x;
             *(it++) = Pos.y;
             *(it++) = Pos.z;
         }
-        if( mComponents & VERTEX_COMPONENT_FLAG_NORMAL ) {
+        if( mOptions.components & VERTEX_COMPONENT_FLAG_NORMAL ) {
             const auto& N{Normals[v]};
             *(it++) = N.x;
             *(it++) = N.y;
             *(it++) = N.z;
         }
-        if( mComponents & VERTEX_COMPONENT_FLAG_TEXCOORD ) {
+        if( mOptions.components & VERTEX_COMPONENT_FLAG_TEXCOORD ) {
             const auto& UV{Texcoords[v]};
             *(it++) = UV.x;
             *(it++) = UV.y;
@@ -273,28 +293,17 @@ void Cube::update( double deltaSeconds )
     }
 }
 
-void Cube::render( IDeviceContext* context, const float4x4 &mvp )
+void Cube::render( IDeviceContext* context, const float4x4 &mvp, uint32_t numInstances )
 {
-    // Map the buffer and write current world-view-projection matrix
-    //{
-    //    MapHelper<float4x4> CBConstants( context, m_VSConstants, MAP_WRITE, MAP_FLAG_DISCARD );
-    //    *CBConstants = mvp.Transpose();
-    //}
-
     // Update constant buffer
     {
-        struct Constants
-        {
-            float4x4 WorldViewProj;
-            float4x4 NormalTranform;
-            float4   LightDirection;
-        };
         // Map the buffer and write current world-view-projection matrix
-        MapHelper<Constants> CBConstants( context, m_VSConstants, MAP_WRITE, MAP_FLAG_DISCARD);
+        MapHelper<VSConstants> CBConstants( context, m_VSConstants, MAP_WRITE, MAP_FLAG_DISCARD);
         CBConstants->WorldViewProj = mvp.Transpose();
-        auto NormalMatrix          = mTransform.RemoveTranslation().Inverse();
+
         // We need to do inverse-transpose, but we also need to transpose the matrix
         // before writing it to the buffer
+        auto NormalMatrix          = mTransform.RemoveTranslation().Inverse();
         CBConstants->NormalTranform = NormalMatrix;
         CBConstants->LightDirection = mLightDirection;
     }
@@ -315,6 +324,7 @@ void Cube::render( IDeviceContext* context, const float4x4 &mvp )
     DrawIndexedAttribs DrawAttrs;     // This is an indexed draw call
     DrawAttrs.IndexType  = VT_UINT32; // Index type
     DrawAttrs.NumIndices = 36;
+    DrawAttrs.NumInstances = numInstances;
     // Verify the state of vertex and index buffers
     DrawAttrs.Flags = DRAW_FLAG_VERIFY_ALL;
     context->DrawIndexed(DrawAttrs);

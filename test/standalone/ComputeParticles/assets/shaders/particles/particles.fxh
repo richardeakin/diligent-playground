@@ -1,15 +1,11 @@
 
 // TODO: add a world bounds and use that for these methods so that locations are not limited to -1:1
-
-void ClampParticlePosition( inout float3 pos,
-                            inout float3 speed,
-                            in    float  size )
+void ClampParticlePosition( inout float3 pos, inout float3 speed, in float size )
 {
     if( pos.x + size > 1.0 ) {
         pos.x -= pos.x + size - 1.0;
         speed.x *= -1.0;
     }
-
     if( pos.x - size < -1.0 ) {
         pos.x += -1.0 - ( pos.x - size );
         speed.x *= -1.0;
@@ -19,16 +15,23 @@ void ClampParticlePosition( inout float3 pos,
         pos.y -= pos.y + size - 1.0;
         speed.y *= -1.0;
     }
-
     if( pos.y - size < -1.0 ) {
         pos.y += -1.0 - ( pos.y - size );
         speed.y *= -1.0;
     }
 
-    // TODO: clamp in Z
+    if( pos.z + size > 1.0 ) {
+        pos.z -= pos.z + size - 1.0;
+        speed.z *= -1.0;
+    }
+    if( pos.z - size < -1.0 ) {
+        pos.z += -1.0 - ( pos.z - size );
+        speed.z *= -1.0;
+    }
 }
 
-int3 GetGridLocation(float2 f2Pos, int2 i2ParticleGridSize)
+// TODO: update for a 3D grid position
+int3 GetGridLocation( float2 f2Pos, int2 i2ParticleGridSize )
 {
     int3 i3GridPos;
     i3GridPos.x = clamp(int((f2Pos.x + 1.0) * 0.5 * float(i2ParticleGridSize.x)), 0, i2ParticleGridSize.x - 1);

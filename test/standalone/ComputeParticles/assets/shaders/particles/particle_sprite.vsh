@@ -1,7 +1,7 @@
 #include "shaders/particles/structures.fxh"
 
 cbuffer Constants {
-    GlobalConstants Constants;
+    ParticleConstants Constants;
 };
 
 StructuredBuffer<ParticleAttribs> Particles;
@@ -27,7 +27,9 @@ void main( in VSInput VSIn, out PSInput PSIn )
 
     ParticleAttribs Attribs = Particles[VSIn.InstID];
 
-    float3 pos = float3( pos_uv[VSIn.VertID].xy * Constants.scale, 0.0 ); // TODO: use pos.z
+    // sprite is always at local pos.z = 0
+    float3 pos = float3( pos_uv[VSIn.VertID].xy * Constants.scale, 0.0 );
+
     pos = pos * Attribs.size + Attribs.pos;
     PSIn.Pos = mul( float4( pos, 1.0 ), Constants.viewProj );
     PSIn.uv = pos_uv[VSIn.VertID].zw;

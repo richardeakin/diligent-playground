@@ -37,7 +37,7 @@ private:
     dg::RefCntAutoPtr<dg::IPipelineState>         mCollideParticlesPSO;
     dg::RefCntAutoPtr<dg::IShaderResourceBinding> mCollideParticlesSRB;
     dg::RefCntAutoPtr<dg::IPipelineState>         mUpdateParticleSpeedPSO;
-    dg::RefCntAutoPtr<dg::IBuffer>                mConstants; // TODO: rename to mParticleConstants, in hlsl too
+    dg::RefCntAutoPtr<dg::IBuffer>                mParticleConstants;
     dg::RefCntAutoPtr<dg::IBuffer>                mParticleAttribsBuffer;
     dg::RefCntAutoPtr<dg::IBuffer>                mParticleListsBuffer;
     dg::RefCntAutoPtr<dg::IBuffer>                mParticleListHeadsBuffer;
@@ -54,7 +54,7 @@ private:
     bool    mUpdateParticles = true;
 
     std::unique_ptr<ju::Canvas> mBackgroundCanvas;
-    std::unique_ptr<ju::Cube>   mCube;
+    std::unique_ptr<ju::Cube>   mCube, mParticleCube;
 
     dg::float4x4                mViewProjMatrix;
     dg::float4x4                mWorldViewProjMatrix; // TODO: get rid of this, no need for both
@@ -67,7 +67,7 @@ private:
         Pyramid
     };
 
-    ParticleType mParticleType = ParticleType::Sprite;
+    ParticleType mParticleType = ParticleType::Cube;
 
     void initCamera();
 

@@ -30,7 +30,7 @@ namespace {
 
 struct ParticleAttribs {
     float3 pos;
-    float  padding0;// TODO: try without padding between the positions
+    float  padding0; // TODO: try without padding between the positions
     float3 newPos;
     float  padding1;
 
@@ -43,6 +43,18 @@ struct ParticleAttribs {
     float temperature   = 0;
     int   numCollisions = 0;
     float padding4      = 0;
+};
+
+struct ParticleConstants {
+    float4x4 viewProj;
+
+    uint  numParticles;
+    float deltaTime;
+    float padding0;
+    float padding1;
+
+    float scale;
+    int2  gridSize;
 };
 
 struct BackgroundPixelConstants {
@@ -69,9 +81,11 @@ bool                                                         ShaderAssetsMarkedD
 
 } // anon
 
-void ComputeParticles::Initialize(const SampleInitInfo& InitInfo)
+void ComputeParticles::Initialize( const SampleInitInfo& InitInfo )
 {
-    SampleBase::Initialize(InitInfo);
+    ju::initLivePP( LPP_PATH );
+
+    SampleBase::Initialize( InitInfo );
 
     CreateConsantBuffer();
     CreateRenderParticlePSO();
@@ -85,16 +99,33 @@ void ComputeParticles::Initialize(const SampleInitInfo& InitInfo)
 
     mBackgroundCanvas = std::make_unique<ju::Canvas>( sizeof(BackgroundPixelConstants) );
 
-    mCube = std::make_unique<ju::Cube>( ju::VERTEX_COMPONENT_FLAG_POS_NORM_UV );
+    {
+        ju::Cube::Options options;
+        options.components = ju::VERTEX_COMPONENT_FLAG_POS_NORM_UV;
+        mCube = std::make_unique<ju::Cube>( options );
+    }
+
+    // TODO NEXT: set Particles buffer
+    {
+        ju::Cube::Options options;
+        options.components = ju::VERTEX_COMPONENT_FLAG_POS_NORM_UV;
+        options.vertPath = "shaders/particles/particle_solid.vsh";
+        options.pixelPath = "shaders/particles/particle_solid.psh";
+        options.shaderResourceVars.push_back( { SHADER_TYPE_VERTEX, "Particles", SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE } );
+        mParticleCube = std::make_unique<ju::Cube>( options );
+
+        // TODO NEXT: set this at init, but don't blow away other
+        mParticleCube->setShaderVar( SHADER_TYPE_VERTEX, "PConstants", mParticleConstants );
+    }
+
     initCamera();
-
-    ju::initLivePP( LPP_PATH );
-
     watchShadersDir();
 }
 
 void ComputeParticles::CreateRenderParticlePSO()
 {
+    mRenderParticlePSO.Release();
+
     GraphicsPipelineStateCreateInfo PSOCreateInfo;
 
     PSOCreateInfo.PSODesc.Name = "Render particles PSO";
@@ -105,11 +136,10 @@ void ComputeParticles::CreateRenderParticlePSO()
     PSOCreateInfo.GraphicsPipeline.RTVFormats[0]                = m_pSwapChain->GetDesc().ColorBufferFormat;
     PSOCreateInfo.GraphicsPipeline.DSVFormat                    = m_pSwapChain->GetDesc().DepthBufferFormat;
     PSOCreateInfo.GraphicsPipeline.PrimitiveTopology            = PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
-    PSOCreateInfo.GraphicsPipeline.RasterizerDesc.CullMode      = CULL_MODE_NONE; // CULL_MODE_BACK; // FIXME: CULL_MODE_BACK makes particles disapear
-    PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.DepthEnable = True;
 
-    // TODO: disable blend for 3D rendering (soon going to be using geometry)
-    // - can make it optional so I can re-enable if using sprites
+    PSOCreateInfo.GraphicsPipeline.RasterizerDesc.CullMode      = CULL_MODE_NONE;
+    PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.DepthEnable = false;
+
     auto& BlendDesc = PSOCreateInfo.GraphicsPipeline.BlendDesc;
     BlendDesc.RenderTargets[0].BlendEnable = True;
     BlendDesc.RenderTargets[0].SrcBlend    = BLEND_FACTOR_SRC_ALPHA;
@@ -118,10 +148,13 @@ void ComputeParticles::CreateRenderParticlePSO()
     ShaderCreateInfo ShaderCI;
     ShaderCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_HLSL;
     ShaderCI.Desc.UseCombinedTextureSamplers = true; // needed for OpenGL support
+    // TODO: enable these lines and see if any of my hlsl compile errors are fixed
+    //ShaderCI.ShaderCompiler = SHADER_COMPILER_DXC; // use modern HLSL compiler
+    //ShaderCI.HLSLVersion    = {6, 3};
 
     // Create a shader source stream factory to load shaders from files.
     RefCntAutoPtr<IShaderSourceInputStreamFactory> pShaderSourceFactory;
-    m_pEngineFactory->CreateDefaultShaderSourceStreamFactory(nullptr, &pShaderSourceFactory);
+    m_pEngineFactory->CreateDefaultShaderSourceStreamFactory( nullptr, &pShaderSourceFactory );
     ShaderCI.pShaderSourceStreamFactory = pShaderSourceFactory;
     // Create particle vertex shader
     RefCntAutoPtr<IShader> pVS;
@@ -130,7 +163,7 @@ void ComputeParticles::CreateRenderParticlePSO()
         ShaderCI.EntryPoint      = "main";
         ShaderCI.Desc.Name       = "Particle VS";
         ShaderCI.FilePath        = "shaders/particles/particle_sprite.vsh";
-        m_pDevice->CreateShader(ShaderCI, &pVS);
+        m_pDevice->CreateShader( ShaderCI, &pVS );
     }
 
     // Create particle pixel shader
@@ -140,7 +173,8 @@ void ComputeParticles::CreateRenderParticlePSO()
         ShaderCI.EntryPoint      = "main";
         ShaderCI.Desc.Name       = "Particle PS";
         ShaderCI.FilePath        = "shaders/particles/particle_sprite.psh";
-        m_pDevice->CreateShader(ShaderCI, &pPS);
+
+        m_pDevice->CreateShader( ShaderCI, &pPS );
     }
 
     PSOCreateInfo.pVS = pVS;
@@ -161,12 +195,17 @@ void ComputeParticles::CreateRenderParticlePSO()
 
     auto vc = mRenderParticlePSO->GetStaticVariableByName( SHADER_TYPE_VERTEX, "Constants" );
     if( vc ) {
-        vc->Set( mConstants );
+        vc->Set( mParticleConstants );
     }
 }
 
 void ComputeParticles::CreateUpdateParticlePSO()
 {
+    mResetParticleListsPSO.Release();
+    mMoveParticlesPSO.Release();
+    mCollideParticlesPSO.Release();
+    mUpdateParticleSpeedPSO.Release();
+
     ShaderCreateInfo ShaderCI;
     // Tell the system that the shader source code is in HLSL.
     // For OpenGL, the engine will convert this into GLSL under the hood.
@@ -241,7 +280,7 @@ void ComputeParticles::CreateUpdateParticlePSO()
     PSOCreateInfo.pCS = pResetParticleListsCS;
     m_pDevice->CreateComputePipelineState( PSOCreateInfo, &mResetParticleListsPSO );
     if( auto var = mResetParticleListsPSO->GetStaticVariableByName( SHADER_TYPE_COMPUTE, "Constants" ) ) {
-        var->Set( mConstants );
+        var->Set( mParticleConstants );
     }
 
     PSODesc.Name      = "Move particles PSO";
@@ -249,7 +288,7 @@ void ComputeParticles::CreateUpdateParticlePSO()
     m_pDevice->CreateComputePipelineState( PSOCreateInfo, &mMoveParticlesPSO );
     if( mMoveParticlesPSO ) {
         if( auto var = mMoveParticlesPSO->GetStaticVariableByName( SHADER_TYPE_COMPUTE, "Constants" ) ) {
-            var->Set( mConstants );
+            var->Set( mParticleConstants );
         }
     }
 
@@ -257,14 +296,14 @@ void ComputeParticles::CreateUpdateParticlePSO()
     PSOCreateInfo.pCS = pCollideParticlesCS;
     m_pDevice->CreateComputePipelineState( PSOCreateInfo, &mCollideParticlesPSO );
     if( mCollideParticlesPSO ) {
-        mCollideParticlesPSO->GetStaticVariableByName( SHADER_TYPE_COMPUTE, "Constants" )->Set( mConstants );
+        mCollideParticlesPSO->GetStaticVariableByName( SHADER_TYPE_COMPUTE, "Constants" )->Set( mParticleConstants );
     }
 
     PSODesc.Name      = "Update particle speed PSO";
     PSOCreateInfo.pCS = pUpdatedSpeedCS;
     m_pDevice->CreateComputePipelineState( PSOCreateInfo, &mUpdateParticleSpeedPSO );
     if( mUpdateParticleSpeedPSO ) {
-        mUpdateParticleSpeedPSO->GetStaticVariableByName( SHADER_TYPE_COMPUTE, "Constants" )->Set( mConstants );
+        mUpdateParticleSpeedPSO->GetStaticVariableByName( SHADER_TYPE_COMPUTE, "Constants" )->Set( mParticleConstants );
     }
 }
 
@@ -352,17 +391,21 @@ void ComputeParticles::CreateParticleBuffers()
     mCollideParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "Particles" )->Set( pParticleAttribsBufferUAV );
     mCollideParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "ParticleListHead" )->Set( pParticleListHeadsBufferSRV );
     mCollideParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "ParticleLists" )->Set( pParticleListsBufferSRV );
+
+    if( mParticleCube ) {
+        mParticleCube->setShaderVar( SHADER_TYPE_VERTEX, "Particles", pParticleAttribsBufferSRV );
+    }
 }
 
 void ComputeParticles::CreateConsantBuffer()
 {
     BufferDesc BuffDesc;
-    BuffDesc.Name           = "Constants buffer";
+    BuffDesc.Name           = "ParticleConstants buffer";
     BuffDesc.Usage          = USAGE_DYNAMIC;
     BuffDesc.BindFlags      = BIND_UNIFORM_BUFFER;
     BuffDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
-    BuffDesc.Size           = sizeof(float4) * 2;
-    m_pDevice->CreateBuffer( BuffDesc, nullptr, &mConstants );
+    BuffDesc.Size           = sizeof(ParticleConstants);
+    m_pDevice->CreateBuffer( BuffDesc, nullptr, &mParticleConstants );
 }
 
 void ComputeParticles::initCamera()
@@ -400,15 +443,7 @@ void ComputeParticles::reloadOnAssetsUpdated()
 {
     LOG_INFO_MESSAGE( __FUNCTION__, "| re-initializing shader assets" );
 
-    mRenderParticlePSO.Release();
     CreateRenderParticlePSO();
-
-    mResetParticleListsPSO.Release();
-    mMoveParticlesPSO.Release();
-    mCollideParticlesPSO.Release();
-    mUpdateParticleSpeedPSO.Release();
-    // TODO: need to reset vars created by CreateParticleBuffers() and call again?
-
     CreateUpdateParticlePSO();
 
     ShaderAssetsMarkedDirty = false;
@@ -518,21 +553,9 @@ void ComputeParticles::Render()
 void ComputeParticles::updateParticles()
 {
     // appears we always need to update this buffer or an assert failure happens (stale buffer)
-    // TODO: update ParticleAtribles names
     {
-        struct Constants {
-            float4x4 viewProj;
-
-            uint  numParticles;
-            float deltaTime;
-            float padding0;
-            float padding1;
-
-            float scale;
-            int2  gridSize;
-        };
         // Map the buffer and write current world-view-projection matrix
-        MapHelper<Constants> ConstData(m_pImmediateContext, mConstants, MAP_WRITE, MAP_FLAG_DISCARD);
+        MapHelper<ParticleConstants> ConstData(m_pImmediateContext, mParticleConstants, MAP_WRITE, MAP_FLAG_DISCARD);
         ConstData->viewProj = mViewProjMatrix.Transpose();
         ConstData->numParticles = static_cast<Uint32>( mNumParticles );
         ConstData->deltaTime     = std::min( mTimeDelta, 1.f / 60.f) * mSimulationSpeed;
@@ -576,10 +599,15 @@ void ComputeParticles::drawParticles()
     m_pImmediateContext->SetPipelineState( mRenderParticlePSO );
     m_pImmediateContext->CommitShaderResources( mRenderParticleSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
 
-    DrawAttribs drawAttrs;
-    drawAttrs.NumVertices  = 4;
-    drawAttrs.NumInstances = static_cast<Uint32>( mNumParticles );
-    m_pImmediateContext->Draw(drawAttrs);
+    if( mParticleType == ParticleType::Cube ) {
+        // TODO: add draw instanced method to Cube class
+    }
+    else {
+        DrawAttribs drawAttrs;
+        drawAttrs.NumVertices  = 4;
+        drawAttrs.NumInstances = static_cast<Uint32>( mNumParticles );
+        m_pImmediateContext->Draw(drawAttrs);
+    }
 }
 
 // ------------------------------------------------------------------------------------------------------------
@@ -606,7 +634,8 @@ void ComputeParticles::UpdateUI()
             if( im::Combo( "type", &t, types.data(), (int)types.size() ) ) {
                 LOG_INFO_MESSAGE( "type changed" );
                 mParticleType = (ParticleType)t;
-                // TODO: reload geometry + shaders as appropriate
+
+                CreateRenderParticlePSO();
             }
         }
 
