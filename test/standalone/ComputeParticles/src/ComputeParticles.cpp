@@ -115,6 +115,9 @@ void ComputeParticles::Initialize( const SampleInitInfo& InitInfo )
         options.shaderResourceVars.push_back( { SHADER_TYPE_VERTEX, "Particles", SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE } );
         options.staticShaderVars.push_back( { SHADER_TYPE_VERTEX, "PConstants", mParticleConstants } );
         mParticleCube = std::make_unique<ju::Cube>( options );
+
+        IBufferView* particleAttribsBufferSRV = mParticleAttribsBuffer->GetDefaultView( BUFFER_VIEW_SHADER_RESOURCE );
+        mParticleCube->setShaderResourceVar( SHADER_TYPE_VERTEX, "Particles", particleAttribsBufferSRV );
     }
 
     initCamera();
@@ -191,10 +194,11 @@ void ComputeParticles::CreateRenderParticlePSO()
     PSOCreateInfo.PSODesc.ResourceLayout.NumVariables = _countof(Vars);
 
     m_pDevice->CreateGraphicsPipelineState( PSOCreateInfo, &mRenderParticlePSO );
-
-    auto vc = mRenderParticlePSO->GetStaticVariableByName( SHADER_TYPE_VERTEX, "Constants" );
-    if( vc ) {
-        vc->Set( mParticleConstants );
+    if( mRenderParticlePSO ) {
+        auto vc = mRenderParticlePSO->GetStaticVariableByName( SHADER_TYPE_VERTEX, "Constants" );
+        if( vc ) {
+            vc->Set( mParticleConstants );
+        }
     }
 }
 
@@ -390,10 +394,6 @@ void ComputeParticles::CreateParticleBuffers()
     mCollideParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "Particles" )->Set( pParticleAttribsBufferUAV );
     mCollideParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "ParticleListHead" )->Set( pParticleListHeadsBufferSRV );
     mCollideParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "ParticleLists" )->Set( pParticleListsBufferSRV );
-
-    if( mParticleCube ) {
-        mParticleCube->setShaderVar( SHADER_TYPE_VERTEX, "Particles", pParticleAttribsBufferSRV );
-    }
 }
 
 void ComputeParticles::CreateConsantBuffer()
@@ -482,7 +482,7 @@ void ComputeParticles::Update( double CurrTime, double ElapsedTime )
     mCamera.Update( m_InputController, mTimeDelta );
 
     // Rotation matrix
-    float4x4 CubeModelTransform = float4x4::RotationY( static_cast<float>(CurrTime) * 1.0f) * float4x4::RotationX( -PI_F * 0.1f );
+    float4x4 CubeModelTransform = RotateCube ? float4x4::RotationY( static_cast<float>(CurrTime) * 1.0f) * float4x4::RotationX( -PI_F * 0.1f ) : float4x4::Identity();
 
     if( mBackgroundCanvas ) {
         mBackgroundCanvas->update( ElapsedTime );
@@ -598,8 +598,8 @@ void ComputeParticles::drawParticles()
     m_pImmediateContext->SetPipelineState( mRenderParticlePSO );
     m_pImmediateContext->CommitShaderResources( mRenderParticleSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
 
-    if( mParticleType == ParticleType::Cube ) {
-        // TODO: add draw instanced method to Cube class
+    if( mParticleType == ParticleType::Cube && mParticleCube ) {
+        mParticleCube->render( m_pImmediateContext, mWorldViewProjMatrix, mNumParticles );
     }
     else {
         DrawAttribs drawAttrs;
@@ -660,6 +660,7 @@ void ComputeParticles::UpdateUI()
             im::gizmo3D( "##LightDirection", LightDir, ImGui::GetTextLineHeight() * 10 );
             im::Checkbox( "draw background", &mDrawBackground );
             im::Checkbox( "draw cube", &mDrawCube );
+            im::Checkbox( "rotate cube", &RotateCube );
 
             auto bgCenter = mBackgroundCanvas->getCenter();
             if( im::DragFloat2( "bg center", &bgCenter.x, 0.02f ) ) {

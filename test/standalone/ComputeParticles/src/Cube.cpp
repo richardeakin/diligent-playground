@@ -91,6 +91,9 @@ Cube::Cube( const Options &options )
     if( mOptions.pixelPath.empty() ) {
         mOptions.pixelPath = "shaders/cube/cube.psh";
     }
+    if( mOptions.mName.empty() ) {
+        mOptions.mName = "Cube";
+    }
 
     // create dynamic uniform buffer
     {
@@ -112,10 +115,10 @@ Cube::Cube( const Options &options )
     watchShadersDir();
 }
 
-void Cube::setShaderVar( dg::SHADER_TYPE shaderType, const dg::Char* name, dg::IDeviceObject* object )
+void Cube::setShaderResourceVar( dg::SHADER_TYPE shaderType, const dg::Char* name, dg::IDeviceObject* object )
 {
-    if( m_pPSO ) {
-        m_pPSO->GetStaticVariableByName( shaderType, name )->Set( object );
+    if( m_SRB ) {
+        m_SRB->GetVariableByName( shaderType, name )->Set( object );
     }
 }
 
@@ -139,26 +142,28 @@ void Cube::initPipelineState()
     ShaderCI.Desc.UseCombinedTextureSamplers = true;
     ShaderCI.pShaderSourceStreamFactory = global->shaderSourceFactory;
 
-    // load shaders
-    RefCntAutoPtr<IShader> pVS;
+    RefCntAutoPtr<IShader> vertShader;
     {
+        auto filePathStr = mOptions.vertPath.string();
+        auto nameStr = mOptions.mName + " (VS)";
+
         ShaderCI.Desc.ShaderType = SHADER_TYPE_VERTEX;
         ShaderCI.EntryPoint      = "main";
-        ShaderCI.Desc.Name       = ( ( mOptions.mLabel.empty() ? "Cube" : mOptions.mLabel ) + " (VS)" ).c_str();
-        auto filePathStr = mOptions.vertPath.string();
+        ShaderCI.Desc.Name       = nameStr.c_str();
         ShaderCI.FilePath        = filePathStr.c_str();
-        global->renderDevice->CreateShader( ShaderCI, &pVS );
+        global->renderDevice->CreateShader( ShaderCI, &vertShader );
     }
 
-    // Create a pixel shader
-    RefCntAutoPtr<IShader> pPS;
+    RefCntAutoPtr<IShader> pixelShader;
     {
+        auto filePathStr = mOptions.pixelPath.string();
+        auto nameStr = mOptions.mName + " (PS)";
+
         ShaderCI.Desc.ShaderType = SHADER_TYPE_PIXEL;
         ShaderCI.EntryPoint      = "main";
-        ShaderCI.Desc.Name       = ( ( mOptions.mLabel.empty() ? "Cube" : mOptions.mLabel ) + " (PS)" ).c_str();
-        auto filePathStr = mOptions.pixelPath.string();
+        ShaderCI.Desc.Name       = nameStr.c_str();
         ShaderCI.FilePath        = filePathStr.c_str();
-        global->renderDevice->CreateShader( ShaderCI, &pPS );
+        global->renderDevice->CreateShader( ShaderCI, &pixelShader );
     }
 
     InputLayoutDescX InputLayout;     
@@ -175,8 +180,8 @@ void Cube::initPipelineState()
 
     PSOCreateInfo.GraphicsPipeline.InputLayout = InputLayout;
 
-    PSOCreateInfo.pVS = pVS;
-    PSOCreateInfo.pPS = pPS;
+    PSOCreateInfo.pVS = vertShader;
+    PSOCreateInfo.pPS = pixelShader;
     PSOCreateInfo.PSODesc.ResourceLayout.DefaultVariableType = SHADER_RESOURCE_VARIABLE_TYPE_STATIC;
 
     PSOCreateInfo.PSODesc.ResourceLayout.Variables    = mOptions.shaderResourceVars.data();

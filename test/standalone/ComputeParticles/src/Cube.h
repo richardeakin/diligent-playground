@@ -45,7 +45,7 @@ public:
 		VERTEX_COMPONENT_FLAGS components = VERTEX_COMPONENT_FLAG_POS_UV;
 		fs::path	vertPath;
 		fs::path	pixelPath;
-		std::string mLabel;
+		std::string mName;
 
 		// used to set things needed before the SRB is constructed
 		std::vector<dg::ShaderResourceVariableDesc> shaderResourceVars;
@@ -53,8 +53,8 @@ public:
 	};
 	Cube( const Options &options = Options() );
 
-	// this is used for the structured buffer (ParticleAttribs), which can be set after the SRB is already constructed.
-	void setShaderVar( dg::SHADER_TYPE shaderType, const dg::Char* name, dg::IDeviceObject* object );
+	// this is used for the structured buffer (ParticleAttribs), which is set after the SRB is already constructed.
+	void setShaderResourceVar( dg::SHADER_TYPE shaderType, const dg::Char* name, dg::IDeviceObject* object );
 
 	void update( double deltaSeconds );
 	void render( dg::IDeviceContext* context, const dg::float4x4 &mvp, uint32_t numInstances = 1 );
@@ -73,10 +73,10 @@ private:
 
 	// TODO: fix names
 	dg::RefCntAutoPtr<dg::IPipelineState>         m_pPSO;
+	dg::RefCntAutoPtr<dg::IShaderResourceBinding> m_SRB;
 	dg::RefCntAutoPtr<dg::IBuffer>                m_CubeVertexBuffer;
 	dg::RefCntAutoPtr<dg::IBuffer>                m_CubeIndexBuffer;
 	dg::RefCntAutoPtr<dg::IBuffer>                m_VSConstants;
-	dg::RefCntAutoPtr<dg::IShaderResourceBinding> m_SRB;
 
 	Options	mOptions;
 
