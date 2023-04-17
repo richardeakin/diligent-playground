@@ -99,23 +99,22 @@ void ComputeParticles::Initialize( const SampleInitInfo& InitInfo )
 
     mBackgroundCanvas = std::make_unique<ju::Canvas>( sizeof(BackgroundPixelConstants) );
 
+    // make a test cube
     {
         ju::Cube::Options options;
         options.components = ju::VERTEX_COMPONENT_FLAG_POS_NORM_UV;
         mCube = std::make_unique<ju::Cube>( options );
     }
 
-    // TODO NEXT: set Particles buffer
+    // make the cube that will get used for instanced drawing of particles
     {
         ju::Cube::Options options;
         options.components = ju::VERTEX_COMPONENT_FLAG_POS_NORM_UV;
         options.vertPath = "shaders/particles/particle_solid.vsh";
         options.pixelPath = "shaders/particles/particle_solid.psh";
         options.shaderResourceVars.push_back( { SHADER_TYPE_VERTEX, "Particles", SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE } );
+        options.staticShaderVars.push_back( { SHADER_TYPE_VERTEX, "PConstants", mParticleConstants } );
         mParticleCube = std::make_unique<ju::Cube>( options );
-
-        // TODO NEXT: set this at init, but don't blow away other
-        mParticleCube->setShaderVar( SHADER_TYPE_VERTEX, "PConstants", mParticleConstants );
     }
 
     initCamera();

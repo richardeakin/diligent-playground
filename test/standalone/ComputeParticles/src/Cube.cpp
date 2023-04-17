@@ -103,13 +103,15 @@ Cube::Cube( const Options &options )
         app::global()->renderDevice->CreateBuffer( CBDesc, nullptr, &m_VSConstants );
     }
 
+    mOptions.staticShaderVars.push_back( { SHADER_TYPE_VERTEX, "VSConstants", m_VSConstants } );
+
+
     initPipelineState();
     initVertexBuffer();
     initIndexBuffer();
     watchShadersDir();
 }
 
-// FIXME: this needs to be set from constructor options (before the SRB table is constructed
 void Cube::setShaderVar( dg::SHADER_TYPE shaderType, const dg::Char* name, dg::IDeviceObject* object )
 {
     if( m_pPSO ) {
@@ -182,7 +184,10 @@ void Cube::initPipelineState()
 
     global->renderDevice->CreateGraphicsPipelineState( PSOCreateInfo, &m_pPSO );
 
-    m_pPSO->GetStaticVariableByName( SHADER_TYPE_VERTEX, "VSConstants" )->Set( m_VSConstants );
+    //m_pPSO->GetStaticVariableByName( SHADER_TYPE_VERTEX, "VSConstants" )->Set( m_VSConstants );
+    for( const auto &var : mOptions.staticShaderVars ) {
+        m_pPSO->GetStaticVariableByName( var.shaderType, var.name )->Set( var.object );
+    }
     m_pPSO->CreateShaderResourceBinding( &m_SRB, true );
 }
 

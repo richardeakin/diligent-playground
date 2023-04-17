@@ -33,6 +33,12 @@ enum VERTEX_COMPONENT_FLAGS : int
 };
 DEFINE_FLAG_ENUM_OPERATORS(VERTEX_COMPONENT_FLAGS);
 
+struct StaticShaderVar {
+	dg::SHADER_TYPE		shaderType = dg::SHADER_TYPE_UNKNOWN;
+	const dg::Char*		name = nullptr;
+	dg::IDeviceObject*	object = nullptr;
+};
+
 class Cube {
 public:
 	struct Options {
@@ -40,10 +46,14 @@ public:
 		fs::path	vertPath;
 		fs::path	pixelPath;
 		std::string mLabel;
-		std::vector<dg::ShaderResourceVariableDesc> shaderResourceVars; // TODO NEXT: set and use
+
+		// used to set things needed before the SRB is constructed
+		std::vector<dg::ShaderResourceVariableDesc> shaderResourceVars;
+		std::vector<StaticShaderVar>				staticShaderVars;
 	};
 	Cube( const Options &options = Options() );
 
+	// this is used for the structured buffer (ParticleAttribs), which can be set after the SRB is already constructed.
 	void setShaderVar( dg::SHADER_TYPE shaderType, const dg::Char* name, dg::IDeviceObject* object );
 
 	void update( double deltaSeconds );
