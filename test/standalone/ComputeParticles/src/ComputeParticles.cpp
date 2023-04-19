@@ -69,7 +69,9 @@ struct BackgroundPixelConstants {
 };
 
 bool UseFirstPersonCamera = true;
-bool RotateCube = false;
+bool TestSolidRotate = false;
+float3 TestSolidTranslate = { 0, 0, 0 };
+float3 TestSolidScale = { 1, 1, 1 };
 
 float CameraRotationSpeed = 0.005f;
 float CameraMoveSpeed = 8.0f;
@@ -499,8 +501,14 @@ void ComputeParticles::Update( double CurrTime, double ElapsedTime )
     mTimeDelta = (float)ElapsedTime;
     mCamera.Update( m_InputController, mTimeDelta );
 
-    // Rotation matrix
-    float4x4 CubeModelTransform = RotateCube ? float4x4::RotationY( static_cast<float>(CurrTime) * 1.0f) * float4x4::RotationX( -PI_F * 0.1f ) : float4x4::Identity();
+    // Build a transform matrix for the test solid
+    float4x4 cubeModelTransform = float4x4::Identity();
+    cubeModelTransform *= float4x4::Scale( TestSolidScale );
+    if( TestSolidRotate )  {
+        cubeModelTransform *= float4x4::RotationY( static_cast<float>(CurrTime) * 1.0f) * float4x4::RotationX( -PI_F * 0.1f );
+    }
+
+    cubeModelTransform *= float4x4::Translation( TestSolidTranslate );
 
     if( mBackgroundCanvas ) {
         mBackgroundCanvas->update( ElapsedTime );
@@ -509,17 +517,17 @@ void ComputeParticles::Update( double CurrTime, double ElapsedTime )
     if( mCube ) {
         mCube->setLightDir( LightDir );
         mCube->update( ElapsedTime );
-        mCube->setTransform( CubeModelTransform );
+        mCube->setTransform( cubeModelTransform );
     }
     if( mParticleCube ) {
         mParticleCube->setLightDir( LightDir );
         mParticleCube->update( ElapsedTime );
-        mParticleCube->setTransform( CubeModelTransform );
+        mParticleCube->setTransform( cubeModelTransform );
     }
 
     if( UseFirstPersonCamera ) {
         mViewProjMatrix = mCamera.GetViewMatrix() * mCamera.GetProjMatrix();
-        mWorldViewProjMatrix = CubeModelTransform * mCamera.GetViewMatrix() * mCamera.GetProjMatrix();
+        mWorldViewProjMatrix = cubeModelTransform * mCamera.GetViewMatrix() * mCamera.GetProjMatrix();
     }
     else {
         // from samples..
@@ -536,7 +544,7 @@ void ComputeParticles::Update( double CurrTime, double ElapsedTime )
         auto Proj = GetAdjustedProjectionMatrix( mCamera.GetProjAttribs().FOV, mCamera.GetProjAttribs().NearClipPlane, mCamera.GetProjAttribs().FarClipPlane );
 
         mViewProjMatrix = View * SrfPreTransform * Proj;
-        mWorldViewProjMatrix = CubeModelTransform * View * SrfPreTransform * Proj;
+        mWorldViewProjMatrix = cubeModelTransform * View * SrfPreTransform * Proj;
     }
 }
 
@@ -566,7 +574,7 @@ void ComputeParticles::Render()
     updateParticles();
     drawParticles();
 
-    if( mCube && mDrawCube ) {
+    if( mCube && mDrawTestSolid ) {
         mCube->render( m_pImmediateContext, mWorldViewProjMatrix );
     }
 }
@@ -681,10 +689,28 @@ void ComputeParticles::UpdateUI()
         if( im::CollapsingHeader( "Scene", ImGuiTreeNodeFlags_DefaultOpen ) ) {
             im::Text( "light dir: [%0.02f, %0.02f, %0.02f]", LightDir.x, LightDir.y, LightDir.z );
             im::gizmo3D( "##LightDirection", LightDir, ImGui::GetTextLineHeight() * 10 );
-            im::Checkbox( "draw background", &mDrawBackground );
-            im::Checkbox( "draw cube", &mDrawCube );
-            im::Checkbox( "rotate cube", &RotateCube );
 
+            im::Separator();
+            im::Text( "Test Solid" );
+            im::Checkbox( "draw##test solid", &mDrawTestSolid );
+            im::Checkbox( "rotate##solid", &TestSolidRotate );
+            im::DragFloat3( "translate##solid", &TestSolidTranslate.x, 0.01f );
+
+            static bool lockDims = true;
+            if( lockDims ) {
+                if( im::DragFloat( "scale##solids1", &TestSolidScale.x, 0.01f, 0.001f, 1000.0f ) ) {
+                    TestSolidScale = float3( TestSolidScale.x, TestSolidScale.x, TestSolidScale.x );
+                }
+            }
+            else {
+                im::DragFloat3( "scale##solid", &TestSolidScale.x, 0.01f );
+            }
+            im::Checkbox( "lock dims##test solid", &lockDims );
+
+
+            im::Separator();
+            im::Text( "Background Canvas" );
+            im::Checkbox( "draw##background", &mDrawBackground );
             auto bgCenter = mBackgroundCanvas->getCenter();
             if( im::DragFloat2( "bg center", &bgCenter.x, 0.02f ) ) {
                 mBackgroundCanvas->setCenter( bgCenter );

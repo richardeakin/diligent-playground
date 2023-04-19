@@ -6,7 +6,7 @@
 #include "FirstPersonCamera.hpp"
 
 #include "common/src/Canvas.h"
-#include "Cube.h"
+#include "Solids.h"
 
 namespace dg = Diligent;
 
@@ -49,7 +49,7 @@ private:
     float   mSimulationSpeed = 1;
     float   mParticleScale = 1;
     bool    mDrawBackground = true;
-    bool    mDrawCube = false;
+    bool    mDrawTestSolid = false;
     bool    mDrawParticles = true;
     bool    mUpdateParticles = true;
 

@@ -523,10 +523,10 @@ void Terrain::UpdateUI()
             if( im::DragFloat( "move speed", &CameraMoveSpeed) ) {
                 m_Camera.SetMoveSpeed(CameraMoveSpeed);
             }
-            if( im::DragFloat( "rotate speed", &CameraRotationSpeed) ) {
+            if( im::DragFloat( "rotate speed", &CameraRotationSpeed ) ) {
                 m_Camera.SetRotationSpeed(CameraRotationSpeed);
             }
-            if( im::DragFloat2( "speed up scale", &CameraSpeedUp.x) ) {
+            if( im::DragFloat2( "speed up scale", &CameraSpeedUp.x ) ) {
                 m_Camera.SetSpeedUpScales(CameraSpeedUp.x, CameraSpeedUp.y);
             }
             if( im::Button("reset") ) {

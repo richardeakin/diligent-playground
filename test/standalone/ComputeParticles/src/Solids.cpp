@@ -2,7 +2,7 @@
 
 #include <filesystem>
 
-#include "Cube.h"
+#include "Solids.h"
 #include "AppGlobal.h"
 #include "MapHelper.hpp"
 #include "GraphicsTypesX.hpp"
@@ -81,10 +81,10 @@ Cube::Cube( const Options &options )
     : mOptions( options )
 {
     if( mOptions.vertPath.empty() ) {
-        mOptions.vertPath = "shaders/cube/cube.vsh";
+        mOptions.vertPath = "shaders/solids/solid.vsh";
     }
     if( mOptions.pixelPath.empty() ) {
-        mOptions.pixelPath = "shaders/cube/cube.psh";
+        mOptions.pixelPath = "shaders/solids/solid.psh";
     }
     if( mOptions.name.empty() ) {
         mOptions.name = "Cube";
