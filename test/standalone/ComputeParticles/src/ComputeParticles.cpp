@@ -84,30 +84,31 @@ bool                    ShaderAssetsMarkedDirty = false;
 
 } // anon
 
+void ComputeParticles::ModifyEngineInitInfo( const ModifyEngineInitInfoAttribs& Attribs )
+{
+    SampleBase::ModifyEngineInitInfo( Attribs );
+
+    Attribs.EngineCI.Features.ComputeShaders = DEVICE_FEATURE_STATE_ENABLED;
+}
+
 void ComputeParticles::Initialize( const SampleInitInfo& InitInfo )
 {
     ju::initLivePP( LPP_PATH );
 
     SampleBase::Initialize( InitInfo );
 
-    CreateConsantBuffer();
-    CreateRenderParticlePSO();
-    CreateUpdateParticlePSO();
-    CreateParticleBuffers();
+    initConsantBuffer();
+    initRenderParticlePSO();
+    initUpdateParticlePSO();
+    initParticleBuffers();
 
     auto global = app::global();
     global->renderDevice = m_pDevice;
     global->swapChainImageDesc = &m_pSwapChain->GetDesc();
-    m_pEngineFactory->CreateDefaultShaderSourceStreamFactory(nullptr, &global->shaderSourceFactory);
+    m_pEngineFactory->CreateDefaultShaderSourceStreamFactory( nullptr, &global->shaderSourceFactory );
 
     mBackgroundCanvas = std::make_unique<ju::Canvas>( sizeof(BackgroundPixelConstants) );
-
-    // make a test cube
-    {
-        ju::Solid::Options options;
-        options.components = ju::VERTEX_COMPONENT_FLAG_POS_NORM_UV;
-        mCube = std::make_unique<ju::Cube>( options );
-    }
+    initTestSolid();
 
     // make the cube that will get used for instanced drawing of particles
     {
@@ -120,14 +121,14 @@ void ComputeParticles::Initialize( const SampleInitInfo& InitInfo )
         options.name = "Particle Cube";
         options.shaderResourceVars.push_back( { { SHADER_TYPE_VERTEX, "Particles", SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE }, particleAttribsBufferSRV } );
         options.staticShaderVars.push_back( { SHADER_TYPE_VERTEX, "PConstants", mParticleConstants } );
-        mParticleCube = std::make_unique<ju::Cube>( options );
+        mParticleSolid = std::make_unique<ju::Cube>( options );
     }
 
     initCamera();
     watchShadersDir();
 }
 
-void ComputeParticles::CreateRenderParticlePSO()
+void ComputeParticles::initRenderParticlePSO()
 {
     mRenderParticlePSO.Release();
 
@@ -205,7 +206,7 @@ void ComputeParticles::CreateRenderParticlePSO()
     }
 }
 
-void ComputeParticles::CreateUpdateParticlePSO()
+void ComputeParticles::initUpdateParticlePSO()
 {
     mResetParticleListsPSO.Release();
     mMoveParticlesPSO.Release();
@@ -313,7 +314,20 @@ void ComputeParticles::CreateUpdateParticlePSO()
     }
 }
 
-void ComputeParticles::CreateParticleBuffers()
+void ComputeParticles::initTestSolid()
+{
+    ju::Solid::Options options;
+    options.components = ju::VERTEX_COMPONENT_FLAG_POS_NORM_UV;
+
+    if( mParticleType == ParticleType::Pyramid ) {
+        mTestSolid = std::make_unique<ju::Pyramid>( options );
+    }
+    else {
+        mTestSolid = std::make_unique<ju::Cube>( options );
+    }
+}
+
+void ComputeParticles::initParticleBuffers()
 {
     mParticleAttribsBuffer.Release();
     mParticleListHeadsBuffer.Release();
@@ -399,7 +413,7 @@ void ComputeParticles::CreateParticleBuffers()
     mCollideParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "ParticleLists" )->Set( pParticleListsBufferSRV );
 }
 
-void ComputeParticles::CreateConsantBuffer()
+void ComputeParticles::initConsantBuffer()
 {
     BufferDesc BuffDesc;
     BuffDesc.Name           = "ParticleConstants buffer";
@@ -462,17 +476,10 @@ void ComputeParticles::reloadOnAssetsUpdated()
 {
     LOG_INFO_MESSAGE( __FUNCTION__, "| re-initializing shader assets" );
 
-    CreateRenderParticlePSO();
-    CreateUpdateParticlePSO();
+    initRenderParticlePSO();
+    initUpdateParticlePSO();
 
     ShaderAssetsMarkedDirty = false;
-}
-
-void ComputeParticles::ModifyEngineInitInfo( const ModifyEngineInitInfoAttribs& Attribs )
-{
-    SampleBase::ModifyEngineInitInfo( Attribs );
-
-    Attribs.EngineCI.Features.ComputeShaders = DEVICE_FEATURE_STATE_ENABLED;
 }
 
 void ComputeParticles::WindowResize( Uint32 Width, Uint32 Height )
@@ -492,7 +499,7 @@ void ComputeParticles::WindowResize( Uint32 Width, Uint32 Height )
 void ComputeParticles::Update( double CurrTime, double ElapsedTime )
 {
     SampleBase::Update( CurrTime, ElapsedTime );
-    UpdateUI();
+    updateUI();
 
     if( ShaderAssetsMarkedDirty ) {
         reloadOnAssetsUpdated();
@@ -502,32 +509,32 @@ void ComputeParticles::Update( double CurrTime, double ElapsedTime )
     mCamera.Update( m_InputController, mTimeDelta );
 
     // Build a transform matrix for the test solid
-    float4x4 cubeModelTransform = float4x4::Identity();
-    cubeModelTransform *= float4x4::Scale( TestSolidScale );
+    float4x4 modelTransform = float4x4::Identity();
+    modelTransform *= float4x4::Scale( TestSolidScale );
     if( TestSolidRotate )  {
-        cubeModelTransform *= float4x4::RotationY( static_cast<float>(CurrTime) * 1.0f) * float4x4::RotationX( -PI_F * 0.1f );
+        modelTransform *= float4x4::RotationY( static_cast<float>(CurrTime) * 1.0f) * float4x4::RotationX( -PI_F * 0.1f );
     }
 
-    cubeModelTransform *= float4x4::Translation( TestSolidTranslate );
+    modelTransform *= float4x4::Translation( TestSolidTranslate );
 
     if( mBackgroundCanvas ) {
         mBackgroundCanvas->update( ElapsedTime );
     }
 
-    if( mCube ) {
-        mCube->setLightDir( LightDir );
-        mCube->update( ElapsedTime );
-        mCube->setTransform( cubeModelTransform );
+    if( mTestSolid ) {
+        mTestSolid->setLightDir( LightDir );
+        mTestSolid->update( ElapsedTime );
+        mTestSolid->setTransform( modelTransform );
     }
-    if( mParticleCube ) {
-        mParticleCube->setLightDir( LightDir );
-        mParticleCube->update( ElapsedTime );
-        mParticleCube->setTransform( cubeModelTransform );
+    if( mParticleSolid ) {
+        mParticleSolid->setLightDir( LightDir );
+        mParticleSolid->update( ElapsedTime );
+        //mParticleSolid->setTransform( modelTransform );
     }
 
     if( UseFirstPersonCamera ) {
         mViewProjMatrix = mCamera.GetViewMatrix() * mCamera.GetProjMatrix();
-        mWorldViewProjMatrix = cubeModelTransform * mCamera.GetViewMatrix() * mCamera.GetProjMatrix();
+        //mWorldViewProjMatrix = modelTransform * mCamera.GetViewMatrix() * mCamera.GetProjMatrix();
     }
     else {
         // from samples..
@@ -544,7 +551,7 @@ void ComputeParticles::Update( double CurrTime, double ElapsedTime )
         auto Proj = GetAdjustedProjectionMatrix( mCamera.GetProjAttribs().FOV, mCamera.GetProjAttribs().NearClipPlane, mCamera.GetProjAttribs().FarClipPlane );
 
         mViewProjMatrix = View * SrfPreTransform * Proj;
-        mWorldViewProjMatrix = cubeModelTransform * View * SrfPreTransform * Proj;
+        //mWorldViewProjMatrix = modelTransform * View * SrfPreTransform * Proj;
     }
 }
 
@@ -568,14 +575,14 @@ void ComputeParticles::Render()
         auto swapChainDesc = m_pSwapChain->GetDesc();
         cb->resolution = float2( swapChainDesc.Width, swapChainDesc.Height );
 
-        mBackgroundCanvas->render( m_pImmediateContext, mWorldViewProjMatrix );
+        mBackgroundCanvas->render( m_pImmediateContext, mViewProjMatrix );
     }
 
     updateParticles();
     drawParticles();
 
-    if( mCube && mDrawTestSolid ) {
-        mCube->draw( m_pImmediateContext, mWorldViewProjMatrix );
+    if( mTestSolid && mDrawTestSolid ) {
+        mTestSolid->draw( m_pImmediateContext, mViewProjMatrix );
     }
 }
 
@@ -628,14 +635,14 @@ void ComputeParticles::drawParticles()
     m_pImmediateContext->SetPipelineState( mRenderParticlePSO );
     m_pImmediateContext->CommitShaderResources( mRenderParticleSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
 
-    if( mParticleType == ParticleType::Cube && mParticleCube ) {
-        mParticleCube->draw( m_pImmediateContext, mWorldViewProjMatrix, mNumParticles );
-    }
-    else {
+    if( mParticleType == ParticleType::Sprite ) {
         DrawAttribs drawAttrs;
         drawAttrs.NumVertices  = 4;
         drawAttrs.NumInstances = static_cast<Uint32>( mNumParticles );
         m_pImmediateContext->Draw(drawAttrs);
+    }
+    else {
+        mParticleSolid->draw( m_pImmediateContext, mViewProjMatrix, mNumParticles );
     }
 }
 
@@ -643,7 +650,7 @@ void ComputeParticles::drawParticles()
 // ImGui
 // ------------------------------------------------------------------------------------------------------------
 
-void ComputeParticles::UpdateUI()
+void ComputeParticles::updateUI()
 {
     im::SetNextWindowPos( ImVec2( 10, 10 ), ImGuiCond_FirstUseEver );
     if( im::Begin( "Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize ) ) {
@@ -654,7 +661,7 @@ void ComputeParticles::UpdateUI()
 
             if( im::InputInt("count", &mNumParticles, 100, 1000, ImGuiInputTextFlags_EnterReturnsTrue ) ) {
                 mNumParticles = std::min( std::max( mNumParticles, 100 ), 100000 );
-                CreateParticleBuffers();
+                initParticleBuffers();
             }
             im::SliderFloat( "speed", &mSimulationSpeed, 0.1f, 5.f );
             im::DragFloat( "scale", &mParticleScale, 0.01f, 0.001f, 100.0f );
@@ -662,10 +669,11 @@ void ComputeParticles::UpdateUI()
             static std::vector<const char*> types = { "sprite", "cube", "pyramid" };
             int t = (int)mParticleType;
             if( im::Combo( "type", &t, types.data(), (int)types.size() ) ) {
-                LOG_INFO_MESSAGE( "type changed" );
+                LOG_INFO_MESSAGE( "solid type changed" );
                 mParticleType = (ParticleType)t;
 
-                CreateRenderParticlePSO();
+                initTestSolid();
+                initRenderParticlePSO();
             }
         }
 

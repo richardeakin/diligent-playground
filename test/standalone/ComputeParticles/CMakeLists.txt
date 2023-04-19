@@ -33,6 +33,7 @@ set(SHADERS
     assets/shaders/particles/move_particles.csh
     assets/shaders/solids/solid.vsh
     assets/shaders/solids/solid.psh
+    assets/shaders/solids/solid.fxh
     assets/shaders/canvas/canvas.vsh
     assets/shaders/canvas/canvas.psh
 )

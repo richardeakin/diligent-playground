@@ -65,7 +65,7 @@ public:
 	//void setShaderResourceVar( dg::SHADER_TYPE shaderType, const dg::Char* name, dg::IDeviceObject* object );
 
 	virtual void update( double deltaSeconds );
-	virtual void draw( dg::IDeviceContext* context, const dg::float4x4 &mvp, uint32_t numInstances = 1 );
+	virtual void draw( dg::IDeviceContext* context, const dg::float4x4 &viewProjectionMatrix, uint32_t numInstances = 1 );
 
 	void setTransform( const dg::float4x4 &m )	{ mTransform = m; }
 
@@ -83,7 +83,8 @@ protected:
 	dg::RefCntAutoPtr<dg::IShaderResourceBinding> mSRB;
 	dg::RefCntAutoPtr<dg::IBuffer>                mVertexBuffer;
 	dg::RefCntAutoPtr<dg::IBuffer>                mIndexBuffer;
-	dg::RefCntAutoPtr<dg::IBuffer>                mVSConstants;
+	dg::RefCntAutoPtr<dg::IBuffer>                mSceneConstants, mModelConstants;
+	dg::Uint32									  mNumIndices = 0;
 
 	Options	mOptions;
 
@@ -99,4 +100,11 @@ public:
 	Cube( const Options &options = Options() );
 
 };
+
+class Pyramid : public Solid {
+public:
+	Pyramid( const Options &options = Options() );
+
+};
+
 } // namespace ju

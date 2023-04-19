@@ -18,7 +18,7 @@ struct ParticleAttribs {
 };
 
 struct ParticleConstants {
-    float4x4 viewProj;
+    float4x4 viewProj; // TODO: should be removed? Or moved to the sprites-only buffer
 
     uint   numParticles;
     float  deltaTime;
@@ -27,4 +27,11 @@ struct ParticleConstants {
 
     float  scale;
     int2   gridSize; // TODO: make 3D
+};
+
+// matches struct from solids/solid.fxh
+struct SceneConstants {
+    float4x4 ModelViewProj;
+    float4x4 NormalTranform;
+    float4   LightDirection;
 };

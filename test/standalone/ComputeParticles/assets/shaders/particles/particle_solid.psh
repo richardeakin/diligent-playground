@@ -1,8 +1,14 @@
+#include "shaders/particles/structures.fxh"
+
+cbuffer SConstants {
+    SceneConstants SConstants;
+};
+
 struct PSInput { 
     float4 Pos  : SV_POSITION; 
     float2 UV   : TEX_COORD;
     float  Temp : TEMPERATURE;
-    float  NdotL : N_DOT_L;
+    float3 Normal : NORMAL;
 };
 
 struct PSOutput {
@@ -14,7 +20,9 @@ void main( in  PSInput  PSIn, out PSOutput PSOut )
     float3 col = lerp( float3( 0.0, 0.63, 0.9 ), float3( 1.0, 0.78, 0.05 ), PSIn.Temp );
     //col = float3( 1, 1, 1 );
 
-    float lighting = PSIn.NdotL * 0.8 + 0.1;
+    float NdotL = saturate( dot( PSIn.Normal, - SConstants.LightDirection.xyz ) );
+
+    float lighting = NdotL * 0.8 + 0.1;
     col *= lighting;
 
     //PSOut.Color.r = PSIn.UV.x;

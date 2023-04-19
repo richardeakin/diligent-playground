@@ -13,7 +13,6 @@ namespace dg = Diligent;
 class ComputeParticles final : public dg::SampleBase {
 public:
     virtual void ModifyEngineInitInfo(const ModifyEngineInitInfoAttribs& Attribs) override final;
-
     virtual void Initialize(const dg::SampleInitInfo& InitInfo) override final;
     virtual void WindowResize(dg::Uint32 Width, dg::Uint32 Height) override final;
     virtual void Update(double CurrTime, double ElapsedTime) override final;
@@ -22,11 +21,12 @@ public:
     virtual const dg::Char* GetSampleName() const override final { return "ComputeParticles"; }
 
 private:
-    void CreateRenderParticlePSO();
-    void CreateUpdateParticlePSO();
-    void CreateParticleBuffers();
-    void CreateConsantBuffer();
-    void UpdateUI();
+    void initRenderParticlePSO();
+    void initUpdateParticlePSO();
+    void initParticleBuffers();
+    void initConsantBuffer();
+    void initTestSolid();
+    void updateUI();
 
     dg::RefCntAutoPtr<dg::IPipelineState>         mRenderParticlePSO;
     dg::RefCntAutoPtr<dg::IShaderResourceBinding> mRenderParticleSRB;
@@ -49,15 +49,15 @@ private:
     float   mSimulationSpeed = 1;
     float   mParticleScale = 1;
     bool    mDrawBackground = true;
-    bool    mDrawTestSolid = false;
+    bool    mDrawTestSolid = true;
     bool    mDrawParticles = true;
     bool    mUpdateParticles = true;
 
     std::unique_ptr<ju::Canvas> mBackgroundCanvas;
-    std::unique_ptr<ju::Solid>   mCube, mParticleCube;
+    std::unique_ptr<ju::Solid>   mTestSolid, mParticleSolid;
 
     dg::float4x4                mViewProjMatrix;
-    dg::float4x4                mWorldViewProjMatrix; // TODO: get rid of this, no need for both
+    //dg::float4x4                mWorldViewProjMatrix; // TODO: get rid of this, no need for both
 
     dg::FirstPersonCamera mCamera;
 

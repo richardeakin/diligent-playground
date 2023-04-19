@@ -14,8 +14,8 @@ namespace ju {
 
 namespace {
 
-struct VSConstants {
-    float4x4 WorldViewProj;
+struct SceneConstants {
+    float4x4 ModelViewProj;
     float4x4 NormalTranform;
     float4   LightDirection;
 };
@@ -31,22 +31,22 @@ Solid::Solid( const Options &options )
     if( mOptions.pixelPath.empty() ) {
         mOptions.pixelPath = "shaders/solids/solid.psh";
     }
-    if( mOptions.name.empty() ) {
-        mOptions.name = "Solid";
-    }
 
+    // TODO: need two separate buffers here - one for SceneConstants and one for ModelConstants
+    
     // create dynamic uniform buffer
     {
         BufferDesc CBDesc;
-        CBDesc.Name           = "VS constants CB";
-        CBDesc.Size           = sizeof(VSConstants);
+        CBDesc.Name           = "SceneConstants CB";
+        CBDesc.Size           = sizeof(SceneConstants);
         CBDesc.Usage          = USAGE_DYNAMIC;
         CBDesc.BindFlags      = BIND_UNIFORM_BUFFER;
         CBDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
-        app::global()->renderDevice->CreateBuffer( CBDesc, nullptr, &mVSConstants );
+        app::global()->renderDevice->CreateBuffer( CBDesc, nullptr, &mSceneConstants );
     }
 
-    mOptions.staticShaderVars.push_back( { SHADER_TYPE_VERTEX, "VSConstants", mVSConstants } );
+    mOptions.staticShaderVars.push_back( { SHADER_TYPE_VERTEX, "SConstants", mSceneConstants } );
+    mOptions.staticShaderVars.push_back( { SHADER_TYPE_PIXEL, "SConstants", mSceneConstants } );
 
     watchShadersDir();
 }
@@ -137,14 +137,32 @@ void Solid::initPipelineState()
 
     global->renderDevice->CreateGraphicsPipelineState( PSOCreateInfo, &mPSO );
 
+    if( ! mPSO ) {
+        LOG_ERROR_MESSAGE( __FUNCTION__, "|(", mOptions.name, ") Failed to create PSO for Solid named: ", mOptions.name );
+        return;
+    }
+
     //m_pPSO->GetStaticVariableByName( SHADER_TYPE_VERTEX, "VSConstants" )->Set( m_VSConstants );
     for( const auto &var : mOptions.staticShaderVars ) {
-        mPSO->GetStaticVariableByName( var.shaderType, var.name )->Set( var.object );
+        auto result = mPSO->GetStaticVariableByName( var.shaderType, var.name );
+        if( result ) {
+            result->Set( var.object );
+        }
+        else {
+            LOG_ERROR_MESSAGE( __FUNCTION__, "|(", mOptions.name, ") Failed to set static shader var with name: ", var.name, ", shader type: ", var.shaderType );
+        }
     }
+
     mPSO->CreateShaderResourceBinding( &mSRB, true );
 
-    for( const auto &s : mOptions.shaderResourceVars ) {
-        mSRB->GetVariableByName( s.desc.ShaderStages, s.desc.Name )->Set( s.object );
+    for( const auto &var : mOptions.shaderResourceVars ) {
+        auto result = mSRB->GetVariableByName( var.desc.ShaderStages, var.desc.Name );
+        if( result ) {
+            result->Set( var.object );
+        }
+        else {
+            LOG_ERROR_MESSAGE( __FUNCTION__, "|(", mOptions.name, ") Failed to set shader var with name: ", var.desc.Name, ", shader type: ", var.desc.ShaderStages );
+        }
     }
 }
 
@@ -212,6 +230,8 @@ void Solid::initIndexBuffer( const std::vector<Uint32> &indices )
     IBData.pData    = indices.data();
     IBData.DataSize = bufferDesc.Size;
     app::global()->renderDevice->CreateBuffer( bufferDesc, &IBData, &mIndexBuffer );
+
+    mNumIndices = indices.size();
 }
 
 void Solid::watchShadersDir()
@@ -261,13 +281,18 @@ void Solid::update( double deltaSeconds )
     }
 }
 
-void Solid::draw( IDeviceContext* context, const float4x4 &mvp, uint32_t numInstances )
+void Solid::draw( IDeviceContext* context, const float4x4 &viewProjectionMatrix, uint32_t numInstances )
 {
+    if( ! mPSO || ! mSRB ) {
+        return;
+    }
+
+    auto mvp = viewProjectionMatrix * mTransform; // TODO: should be other way around?
     // Update constant buffer
     {
         // Map the buffer and write current world-view-projection matrix
-        MapHelper<VSConstants> CBConstants( context, mVSConstants, MAP_WRITE, MAP_FLAG_DISCARD );
-        CBConstants->WorldViewProj = mvp.Transpose();
+        MapHelper<SceneConstants> CBConstants( context, mSceneConstants, MAP_WRITE, MAP_FLAG_DISCARD );
+        CBConstants->ModelViewProj = mvp.Transpose();
 
         // We need to do inverse-transpose, but we also need to transpose the matrix
         // before writing it to the buffer
@@ -291,7 +316,7 @@ void Solid::draw( IDeviceContext* context, const float4x4 &mvp, uint32_t numInst
 
     DrawIndexedAttribs DrawAttrs;     // This is an indexed draw call
     DrawAttrs.IndexType  = VT_UINT32; // Index type
-    DrawAttrs.NumIndices = 36; // TODO: make property and set from initIndexBuffer
+    DrawAttrs.NumIndices = mNumIndices;
     DrawAttrs.NumInstances = numInstances;
     // Verify the state of vertex and index buffers
     DrawAttrs.Flags = DRAW_FLAG_VERIFY_ALL;
@@ -325,9 +350,6 @@ Cube::Cube( const Options &options )
     }
 
     initPipelineState();
-
-    const Uint32 NumVertices = 4 * 6;
-    const Uint32 NumIndices  = 3 * 2 * 6;
 
     const std::vector<float3> positions = {
         float3{-1, -1, -1}, float3{-1, +1, -1}, float3{+1, +1, -1}, float3{+1, -1, -1}, // Bottom
@@ -368,5 +390,60 @@ Cube::Cube( const Options &options )
     initVertexBuffer( positions, texcoords, normals );
     initIndexBuffer( indices );
 }
+
+// --------------------------------------------------------------------------------------------------
+// Pyramid
+// --------------------------------------------------------------------------------------------------
+
+Pyramid::Pyramid( const Options &options )
+    : Solid( options )
+{
+    if( mOptions.name.empty() ) {
+        mOptions.name = "Pyramid";
+    }
+
+    initPipelineState();
+
+    const std::vector<float3> positions = {
+        float3{ -1, -1, +1 }, // bottom left front
+        float3{ +1, -1, +1 }, // bottom right front
+        float3{ +1, -1, -1 }, // bottom right rear
+        float3{ -1, -1, -1 }, // bottom left rear
+        float3{  0, +1,  0 }, // top center
+    };
+
+    // texcoords are funky but whatever. Goes x = 0:1:0:1:0 around the base, 0:1 from the bottom to top
+    const std::vector<float2> texcoords = {
+        float2{ 0,  0 }, // bottom left front
+        float2{ +1, 0 }, // bottom right front
+        float2{ 0,  0 }, // bottom right rear
+        float2{ 1,  0 }, // bottom left rear
+        float2{ 0, +1 }, // top center
+    };
+
+    // TODO: fix these, not yet sure what they should be
+    const std::vector<float3> normals = {
+        float3{ -1, -1, +1 }, // bottom left front
+        float3{ +1, -1, +1 }, // bottom right front
+        float3{ +1, -1, -1 }, // bottom right rear
+        float3{ -1, -1, -1 }, // bottom left rear
+        float3{  0, +1,  0 }, // top center
+    };
+
+    // TODO: add bottom two triangles
+    // - I think they will need different normals
+    const std::vector<Uint32> indices = {
+        0, 1, 4, // front
+        1, 2, 4, // right
+        2, 3, 4, // rear
+        3, 0, 4, // left
+        0, 3, 2, // bottom 1
+        0, 2, 1
+    };
+
+    initVertexBuffer( positions, texcoords, normals );
+    initIndexBuffer( indices );
+}
+
 
 } // namespace ju

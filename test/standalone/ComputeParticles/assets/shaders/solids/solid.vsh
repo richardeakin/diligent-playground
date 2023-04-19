@@ -1,8 +1,8 @@
 
-cbuffer VSConstants {
-    float4x4 WorldViewProj;
-    float4x4 NormalTranform;
-    float4   LightDirection;
+#include "shaders/solids/solid.fxh"
+
+cbuffer SConstants {
+    SceneConstants SConstants;
 };
 
 struct VSInput {
@@ -11,17 +11,11 @@ struct VSInput {
     float2 UV  : ATTRIB2;
 };
 
-struct PSInput { 
-    float4 Pos : SV_POSITION;
-    float2 UV  : TEX_COORD; 
-    float  NdotL : N_DOT_L;
-};
-
 void main( in VSInput VSIn, out PSInput PSIn ) 
 {
-    PSIn.Pos = mul( float4( VSIn.Pos, 1.0 ), WorldViewProj );
+    PSIn.Pos = mul( float4( VSIn.Pos, 1.0 ), SConstants.ModelViewProj );
     PSIn.UV  = VSIn.UV;
 
-    float3 N = mul( float4( VSIn.Normal, 0.0 ), NormalTranform ).xyz;
-    PSIn.NdotL = saturate( dot( N, - LightDirection.xyz ) );
+    PSIn.Normal = mul( float4( VSIn.Normal, 0.0 ), SConstants.NormalTranform ).xyz;
+    //PSIn.NdotL = saturate( dot( N, - LightDirection.xyz ) );
 }
