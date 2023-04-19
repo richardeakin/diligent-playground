@@ -104,7 +104,7 @@ void ComputeParticles::Initialize( const SampleInitInfo& InitInfo )
 
     // make a test cube
     {
-        ju::Cube::Options options;
+        ju::Solid::Options options;
         options.components = ju::VERTEX_COMPONENT_FLAG_POS_NORM_UV;
         mCube = std::make_unique<ju::Cube>( options );
     }
@@ -113,7 +113,7 @@ void ComputeParticles::Initialize( const SampleInitInfo& InitInfo )
     {
         IBufferView* particleAttribsBufferSRV = mParticleAttribsBuffer->GetDefaultView( BUFFER_VIEW_SHADER_RESOURCE );
 
-        ju::Cube::Options options;
+        ju::Solid::Options options;
         options.components = ju::VERTEX_COMPONENT_FLAG_POS_NORM_UV;
         options.vertPath = "shaders/particles/particle_solid.vsh";
         options.pixelPath = "shaders/particles/particle_solid.psh";
@@ -575,7 +575,7 @@ void ComputeParticles::Render()
     drawParticles();
 
     if( mCube && mDrawTestSolid ) {
-        mCube->render( m_pImmediateContext, mWorldViewProjMatrix );
+        mCube->draw( m_pImmediateContext, mWorldViewProjMatrix );
     }
 }
 
@@ -629,7 +629,7 @@ void ComputeParticles::drawParticles()
     m_pImmediateContext->CommitShaderResources( mRenderParticleSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
 
     if( mParticleType == ParticleType::Cube && mParticleCube ) {
-        mParticleCube->render( m_pImmediateContext, mWorldViewProjMatrix, mNumParticles );
+        mParticleCube->draw( m_pImmediateContext, mWorldViewProjMatrix, mNumParticles );
     }
     else {
         DrawAttribs drawAttrs;

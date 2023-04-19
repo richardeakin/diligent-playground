@@ -54,7 +54,7 @@ private:
     bool    mUpdateParticles = true;
 
     std::unique_ptr<ju::Canvas> mBackgroundCanvas;
-    std::unique_ptr<ju::Cube>   mCube, mParticleCube;
+    std::unique_ptr<ju::Solid>   mCube, mParticleCube;
 
     dg::float4x4                mViewProjMatrix;
     dg::float4x4                mWorldViewProjMatrix; // TODO: get rid of this, no need for both

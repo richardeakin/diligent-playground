@@ -14,61 +14,6 @@ namespace ju {
 
 namespace {
 
-//      (-1,+1,+1)________________(+1,+1,+1)                  Z
-//               /|              /|                           |      Y
-//              / |             / |                           |     /
-//             /  |            /  |                           |    /
-//            /   |           /   |                           |   /
-//(-1,-1,+1) /____|__________/(+1,-1,+1)                      |  /
-//           |    |__________|____|                           | /
-//           |   /(-1,+1,-1) |    /(+1,+1,-1)                 |----------------> X
-//           |  /            |   /
-//           | /             |  /
-//           |/              | /
-//           /_______________|/
-//        (-1,-1,-1)       (+1,-1,-1)
-//
-
-const Uint32 NumVertices = 4 * 6;
-const Uint32 NumIndices  = 3 * 2 * 6;
-
-const std::array<float3, NumVertices> Positions = {
-    float3{-1, -1, -1}, float3{-1, +1, -1}, float3{+1, +1, -1}, float3{+1, -1, -1}, // Bottom
-    float3{-1, -1, -1}, float3{-1, -1, +1}, float3{+1, -1, +1}, float3{+1, -1, -1}, // Front
-    float3{+1, -1, -1}, float3{+1, -1, +1}, float3{+1, +1, +1}, float3{+1, +1, -1}, // Right
-    float3{+1, +1, -1}, float3{+1, +1, +1}, float3{-1, +1, +1}, float3{-1, +1, -1}, // Back
-    float3{-1, +1, -1}, float3{-1, +1, +1}, float3{-1, -1, +1}, float3{-1, -1, -1}, // Left
-    float3{-1, -1, +1}, float3{+1, -1, +1}, float3{+1, +1, +1}, float3{-1, +1, +1}  // Top
-};
-
-const std::array<float2, NumVertices> Texcoords = {
-    float2{0, 1}, float2{0, 0}, float2{1, 0}, float2{1, 1}, // Bottom
-    float2{0, 1}, float2{0, 0}, float2{1, 0}, float2{1, 1}, // Front
-    float2{0, 1}, float2{1, 1}, float2{1, 0}, float2{0, 0}, // Right
-    float2{0, 1}, float2{0, 0}, float2{1, 0}, float2{1, 1}, // Back
-    float2{1, 0}, float2{0, 0}, float2{0, 1}, float2{1, 1}, // Left
-    float2{1, 1}, float2{0, 1}, float2{0, 0}, float2{1, 0}  // Top
-};
-
-const std::array<float3, NumVertices> Normals = {
-    float3{0, 0, -1}, float3{0, 0, -1}, float3{0, 0, -1}, float3{0, 0, -1}, // Bottom
-    float3{0, -1, 0}, float3{0, -1, 0}, float3{0, -1, 0}, float3{0, -1, 0}, // Front
-    float3{+1, 0, 0}, float3{+1, 0, 0}, float3{+1, 0, 0}, float3{+1, 0, 0}, // Right
-    float3{0, +1, 0}, float3{0, +1, 0}, float3{0, +1, 0}, float3{0, +1, 0}, // Back
-    float3{-1, 0, 0}, float3{-1, 0, 0}, float3{-1, 0, 0}, float3{-1, 0, 0}, // Left
-    float3{0, 0, +1}, float3{0, 0, +1}, float3{0, 0, +1}, float3{0, 0, +1}  // Top
-};
-
-const std::array<Uint32, NumIndices> Indices =
-{
-    2,0,1,    2,3,0,
-    4,6,5,    4,7,6,
-    8,10,9,   8,11,10,
-    12,14,13, 12,15,14,
-    16,18,17, 16,19,18,
-    20,21,22, 20,22,23
-};
-
 struct VSConstants {
     float4x4 WorldViewProj;
     float4x4 NormalTranform;
@@ -77,7 +22,7 @@ struct VSConstants {
 
 } // anon
 
-Cube::Cube( const Options &options )
+Solid::Solid( const Options &options )
     : mOptions( options )
 {
     if( mOptions.vertPath.empty() ) {
@@ -87,7 +32,7 @@ Cube::Cube( const Options &options )
         mOptions.pixelPath = "shaders/solids/solid.psh";
     }
     if( mOptions.name.empty() ) {
-        mOptions.name = "Cube";
+        mOptions.name = "Solid";
     }
 
     // create dynamic uniform buffer
@@ -103,10 +48,11 @@ Cube::Cube( const Options &options )
 
     mOptions.staticShaderVars.push_back( { SHADER_TYPE_VERTEX, "VSConstants", mVSConstants } );
 
-    initPipelineState();
-    initVertexBuffer();
-    initIndexBuffer();
     watchShadersDir();
+}
+
+Solid::~Solid()
+{
 }
 
 //void Cube::setShaderResourceVar( dg::SHADER_TYPE shaderType, const dg::Char* name, dg::IDeviceObject* object )
@@ -116,7 +62,7 @@ Cube::Cube( const Options &options )
 //    }
 //}
 
-void Cube::initPipelineState()
+void Solid::initPipelineState()
 {
     mPSO.Release();
     mSRB.Release();
@@ -124,7 +70,8 @@ void Cube::initPipelineState()
     auto global = app::global();
 
     GraphicsPipelineStateCreateInfo PSOCreateInfo;
-    PSOCreateInfo.PSODesc.Name = "Cube PSO";
+    auto nameStr = mOptions.name + " PSO";
+    PSOCreateInfo.PSODesc.Name = nameStr.c_str();
     PSOCreateInfo.PSODesc.PipelineType = PIPELINE_TYPE_GRAPHICS;
 
     PSOCreateInfo.GraphicsPipeline.NumRenderTargets             = 1;
@@ -201,67 +148,73 @@ void Cube::initPipelineState()
     }
 }
 
-void Cube::initVertexBuffer()
+void Solid::initVertexBuffer( const std::vector<float3> &positions, const std::vector<float2> &texcoords, const std::vector<float3> &normals )
 {
+    VERIFY_EXPR( positions.size() == texcoords.size() );
+    VERIFY_EXPR( positions.size() == normals.size() );
     VERIFY_EXPR( mOptions.components != VERTEX_COMPONENT_FLAG_NONE );
     const Uint32 TotalVertexComponents =
         ( (mOptions.components & VERTEX_COMPONENT_FLAG_POSITION) ? 3 : 0 ) +
         ( (mOptions.components & VERTEX_COMPONENT_FLAG_NORMAL) ? 3 : 0 ) +
         ( (mOptions.components & VERTEX_COMPONENT_FLAG_TEXCOORD) ? 2 : 0 );
 
-    std::vector<float> VertexData(size_t{TotalVertexComponents} * NumVertices);
+    const Uint32 numVertices = positions.size();
 
-    auto it = VertexData.begin();
-    for( Uint32 v = 0; v < NumVertices; ++v ) {
+    std::vector<float> vertexData( size_t{TotalVertexComponents} * numVertices );
+
+    auto it = vertexData.begin();
+    for( Uint32 v = 0; v < numVertices; ++v ) {
         if( mOptions.components & VERTEX_COMPONENT_FLAG_POSITION ) {
-            const auto& Pos{Positions[v]};
+            const auto& Pos{positions[v]};
             *(it++) = Pos.x;
             *(it++) = Pos.y;
             *(it++) = Pos.z;
         }
         if( mOptions.components & VERTEX_COMPONENT_FLAG_NORMAL ) {
-            const auto& N{Normals[v]};
+            const auto& N{normals[v]};
             *(it++) = N.x;
             *(it++) = N.y;
             *(it++) = N.z;
         }
         if( mOptions.components & VERTEX_COMPONENT_FLAG_TEXCOORD ) {
-            const auto& UV{Texcoords[v]};
+            const auto& UV{texcoords[v]};
             *(it++) = UV.x;
             *(it++) = UV.y;
         }
     }
-    VERIFY_EXPR(it == VertexData.end());
+    VERIFY_EXPR( it == vertexData.end() );
 
     // Create a vertex buffer that stores cube vertices
-    BufferDesc VertBuffDesc;
-    VertBuffDesc.Name      = "Cube vertex buffer";
-    VertBuffDesc.Usage     = USAGE_IMMUTABLE;
-    VertBuffDesc.BindFlags = BIND_VERTEX_BUFFER;
-    VertBuffDesc.Size      = static_cast<Uint64>(VertexData.size() * sizeof(VertexData[0]));
+    BufferDesc bufferDesc;
+    auto nameStr = mOptions.name + " vertex buffer";
+    bufferDesc.Name      = nameStr.c_str();
+    bufferDesc.Usage     = USAGE_IMMUTABLE;
+    bufferDesc.BindFlags = BIND_VERTEX_BUFFER;
+    bufferDesc.Size      = static_cast<Uint64>(vertexData.size() * sizeof(vertexData[0]));
 
     BufferData VBData;
-    VBData.pData    = VertexData.data();
-    VBData.DataSize = VertBuffDesc.Size;
+    VBData.pData    = vertexData.data();
+    VBData.DataSize = bufferDesc.Size;
 
-    app::global()->renderDevice->CreateBuffer(VertBuffDesc, &VBData, &mVertexBuffer);
+    app::global()->renderDevice->CreateBuffer( bufferDesc, &VBData, &mVertexBuffer );
 }
 
-void Cube::initIndexBuffer()
+void Solid::initIndexBuffer( const std::vector<Uint32> &indices )
 {
-    BufferDesc IndBuffDesc;
-    IndBuffDesc.Name      = "Cube index buffer";
-    IndBuffDesc.Usage     = USAGE_IMMUTABLE;
-    IndBuffDesc.BindFlags = BIND_INDEX_BUFFER;
-    IndBuffDesc.Size      = sizeof(Indices);
+    BufferDesc bufferDesc;
+    auto nameStr = mOptions.name + " index buffer";
+    bufferDesc.Name      = nameStr.c_str();
+    bufferDesc.Usage     = USAGE_IMMUTABLE;
+    bufferDesc.BindFlags = BIND_INDEX_BUFFER;
+    bufferDesc.Size      = indices.size() * sizeof(indices[0]);
 
     BufferData IBData;
-    IBData.pData    = Indices.data();
-    IBData.DataSize = NumIndices * sizeof(Indices[0]);
-    app::global()->renderDevice->CreateBuffer(IndBuffDesc, &IBData, &mIndexBuffer);
+    IBData.pData    = indices.data();
+    IBData.DataSize = bufferDesc.Size;
+    app::global()->renderDevice->CreateBuffer( bufferDesc, &IBData, &mIndexBuffer );
 }
 
-void Cube::watchShadersDir()
+void Solid::watchShadersDir()
 {
     auto shaderDir = mOptions.pixelPath.parent_path();
 
@@ -293,7 +246,7 @@ void Cube::watchShadersDir()
     }
 }
 
-void Cube::reloadOnAssetsUpdated()
+void Solid::reloadOnAssetsUpdated()
 {
     LOG_INFO_MESSAGE( __FUNCTION__, "| re-initializing shader assets (", mOptions.name, ")" );
 
@@ -301,19 +254,19 @@ void Cube::reloadOnAssetsUpdated()
     mShaderAssetsMarkedDirty = false;
 }
 
-void Cube::update( double deltaSeconds )
+void Solid::update( double deltaSeconds )
 {
     if( mShaderAssetsMarkedDirty ) {
         reloadOnAssetsUpdated();
     }
 }
 
-void Cube::render( IDeviceContext* context, const float4x4 &mvp, uint32_t numInstances )
+void Solid::draw( IDeviceContext* context, const float4x4 &mvp, uint32_t numInstances )
 {
     // Update constant buffer
     {
         // Map the buffer and write current world-view-projection matrix
-        MapHelper<VSConstants> CBConstants( context, mVSConstants, MAP_WRITE, MAP_FLAG_DISCARD);
+        MapHelper<VSConstants> CBConstants( context, mVSConstants, MAP_WRITE, MAP_FLAG_DISCARD );
         CBConstants->WorldViewProj = mvp.Transpose();
 
         // We need to do inverse-transpose, but we also need to transpose the matrix
@@ -326,9 +279,9 @@ void Cube::render( IDeviceContext* context, const float4x4 &mvp, uint32_t numIns
 
     // Bind vertex and index buffers
     const Uint64 offset   = 0;
-    IBuffer*     pBuffs[] = {mVertexBuffer};
-    context->SetVertexBuffers(0, 1, pBuffs, &offset, RESOURCE_STATE_TRANSITION_MODE_TRANSITION, SET_VERTEX_BUFFERS_FLAG_RESET);
-    context->SetIndexBuffer(mIndexBuffer, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+    IBuffer*     pBuffs[] = { mVertexBuffer };
+    context->SetVertexBuffers( 0, 1, pBuffs, &offset, RESOURCE_STATE_TRANSITION_MODE_TRANSITION, SET_VERTEX_BUFFERS_FLAG_RESET );
+    context->SetIndexBuffer( mIndexBuffer, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
 
     // Set the pipeline state
     context->SetPipelineState(mPSO);
@@ -338,12 +291,82 @@ void Cube::render( IDeviceContext* context, const float4x4 &mvp, uint32_t numIns
 
     DrawIndexedAttribs DrawAttrs;     // This is an indexed draw call
     DrawAttrs.IndexType  = VT_UINT32; // Index type
-    DrawAttrs.NumIndices = 36;
+    DrawAttrs.NumIndices = 36; // TODO: make property and set from initIndexBuffer
     DrawAttrs.NumInstances = numInstances;
     // Verify the state of vertex and index buffers
     DrawAttrs.Flags = DRAW_FLAG_VERIFY_ALL;
-    context->DrawIndexed(DrawAttrs);
+    context->DrawIndexed( DrawAttrs );
 }
 
+// --------------------------------------------------------------------------------------------------
+// Cube
+// --------------------------------------------------------------------------------------------------
+
+//      (-1,+1,+1)________________(+1,+1,+1)                  Z
+//               /|              /|                           |      Y
+//              / |             / |                           |     /
+//             /  |            /  |                           |    /
+//            /   |           /   |                           |   /
+//(-1,-1,+1) /____|__________/(+1,-1,+1)                      |  /
+//           |    |__________|____|                           | /
+//           |   /(-1,+1,-1) |    /(+1,+1,-1)                 |----------------> X
+//           |  /            |   /
+//           | /             |  /
+//           |/              | /
+//           /_______________|/
+//        (-1,-1,-1)       (+1,-1,-1)
+//
+
+Cube::Cube( const Options &options )
+    : Solid( options )
+{
+    if( mOptions.name.empty() ) {
+        mOptions.name = "Cube";
+    }
+
+    initPipelineState();
+
+    const Uint32 NumVertices = 4 * 6;
+    const Uint32 NumIndices  = 3 * 2 * 6;
+
+    const std::vector<float3> positions = {
+        float3{-1, -1, -1}, float3{-1, +1, -1}, float3{+1, +1, -1}, float3{+1, -1, -1}, // Bottom
+        float3{-1, -1, -1}, float3{-1, -1, +1}, float3{+1, -1, +1}, float3{+1, -1, -1}, // Front
+        float3{+1, -1, -1}, float3{+1, -1, +1}, float3{+1, +1, +1}, float3{+1, +1, -1}, // Right
+        float3{+1, +1, -1}, float3{+1, +1, +1}, float3{-1, +1, +1}, float3{-1, +1, -1}, // Back
+        float3{-1, +1, -1}, float3{-1, +1, +1}, float3{-1, -1, +1}, float3{-1, -1, -1}, // Left
+        float3{-1, -1, +1}, float3{+1, -1, +1}, float3{+1, +1, +1}, float3{-1, +1, +1}  // Top
+    };
+
+    const std::vector<float2> texcoords = {
+        float2{0, 1}, float2{0, 0}, float2{1, 0}, float2{1, 1}, // Bottom
+        float2{0, 1}, float2{0, 0}, float2{1, 0}, float2{1, 1}, // Front
+        float2{0, 1}, float2{1, 1}, float2{1, 0}, float2{0, 0}, // Right
+        float2{0, 1}, float2{0, 0}, float2{1, 0}, float2{1, 1}, // Back
+        float2{1, 0}, float2{0, 0}, float2{0, 1}, float2{1, 1}, // Left
+        float2{1, 1}, float2{0, 1}, float2{0, 0}, float2{1, 0}  // Top
+    };
+
+    const std::vector<float3> normals = {
+        float3{0, 0, -1}, float3{0, 0, -1}, float3{0, 0, -1}, float3{0, 0, -1}, // Bottom
+        float3{0, -1, 0}, float3{0, -1, 0}, float3{0, -1, 0}, float3{0, -1, 0}, // Front
+        float3{+1, 0, 0}, float3{+1, 0, 0}, float3{+1, 0, 0}, float3{+1, 0, 0}, // Right
+        float3{0, +1, 0}, float3{0, +1, 0}, float3{0, +1, 0}, float3{0, +1, 0}, // Back
+        float3{-1, 0, 0}, float3{-1, 0, 0}, float3{-1, 0, 0}, float3{-1, 0, 0}, // Left
+        float3{0, 0, +1}, float3{0, 0, +1}, float3{0, 0, +1}, float3{0, 0, +1}  // Top
+    };
+
+    const std::vector<Uint32> indices = {
+        2,0,1,    2,3,0,
+        4,6,5,    4,7,6,
+        8,10,9,   8,11,10,
+        12,14,13, 12,15,14,
+        16,18,17, 16,19,18,
+        20,21,22, 20,22,23
+    };
+
+    initVertexBuffer( positions, texcoords, normals );
+    initIndexBuffer( indices );
+}
 
 } // namespace ju

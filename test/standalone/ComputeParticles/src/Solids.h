@@ -45,7 +45,7 @@ struct ShaderResourceVar {
 	dg::IDeviceObject*				object = nullptr;
 };
 
-class Cube {
+class Solid {
 public:
 	struct Options {
 		fs::path				vertPath;
@@ -58,22 +58,23 @@ public:
 
 		//std::function<void>	oReInitFn;
 	};
-	Cube( const Options &options = Options() );
+	Solid( const Options &options = Options() );
+	virtual ~Solid();
 
 	// this is used for the structured buffer (ParticleAttribs), which is set after the SRB is already constructed.
 	//void setShaderResourceVar( dg::SHADER_TYPE shaderType, const dg::Char* name, dg::IDeviceObject* object );
 
-	void update( double deltaSeconds );
-	void render( dg::IDeviceContext* context, const dg::float4x4 &mvp, uint32_t numInstances = 1 );
+	virtual void update( double deltaSeconds );
+	virtual void draw( dg::IDeviceContext* context, const dg::float4x4 &mvp, uint32_t numInstances = 1 );
 
 	void setTransform( const dg::float4x4 &m )	{ mTransform = m; }
 
 	void setLightDir( const dg::float3 &dir )	{ mLightDirection = dir; }
 
-private:
+protected:
 	void initPipelineState();
-	void initVertexBuffer();
-	void initIndexBuffer();
+	void initVertexBuffer( const std::vector<dg::float3> &positions, const std::vector<dg::float2> &texcoords, const std::vector<dg::float3> &normals );
+	void initIndexBuffer( const std::vector<dg::Uint32> &indices );
 
 	void watchShadersDir();
 	void reloadOnAssetsUpdated();
@@ -93,4 +94,9 @@ private:
 	bool                    mShaderAssetsMarkedDirty = false;
 };
 
+class Cube : public Solid {
+public:
+	Cube( const Options &options = Options() );
+
+};
 } // namespace ju
