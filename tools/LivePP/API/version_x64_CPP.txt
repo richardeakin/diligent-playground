@@ -1,2 +1,2 @@
-Live++ for Windows C++, 2.1.3
-Released on April 3, 2023
+Live++ for Windows C++, 2.1.4
+Released on April 18, 2023
