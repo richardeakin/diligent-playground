@@ -412,20 +412,20 @@ Pyramid::Pyramid( const Options &options )
     };
 
     const std::vector<float2> texcoords = {
-        float2{ 0,  0 }, float2{ 0.5f,  1 }, float2{ 1, 0 }, // front
-        float2{ 0,  0 }, float2{ 0.5f,  1 }, float2{ 1, 0 }, // right
-        float2{ 0,  0 }, float2{ 0.5f,  1 }, float2{ 1, 0 }, // rear
-        float2{ 0,  0 }, float2{ 0.5f,  1 }, float2{ 1, 0 }, // left
-        float2{ 0,  0 }, float2{ 1,  0 }, float2{ 0.0f,  0 }, // bottom 1
-        float2{ 0,  0 }, float2{ 1,  0 }, float2{ 1.0f,  0 }, // bottom 2
+        float2{ 0, 0 }, float2{ 0.5f, 1 }, float2{ 1, 0 }, // front
+        float2{ 0, 0 }, float2{ 0.5f, 1 }, float2{ 1, 0 }, // right
+        float2{ 0, 0 }, float2{ 0.5f, 1 }, float2{ 1, 0 }, // rear
+        float2{ 0, 0 }, float2{ 0.5f, 1 }, float2{ 1, 0 }, // left
+        float2{ 0, 0 }, float2{ 1,    0 }, float2{ 0, 0 }, // bottom 1
+        float2{ 0, 0 }, float2{ 1,    0 }, float2{ 1, 0 }, // bottom 2
     };
 
-    // TODO: fix this with simple trig
+    // TODO: fix this with simple trig (60degrees)
     const float a = 1.0f;
     const std::vector<float3> normals = {
-        float3{ 0,  0,  a }, float3{  0,  0,  a }, float3{  0,  0,  a }, // front
+        float3{ 0,  0,  -a }, float3{  0,  0,  -a }, float3{  0,  0,  -a }, // front
         float3{ a,  0,  0 }, float3{  a,  0,  0 }, float3{  a,  0,  0 }, // right
-        float3{ 0,  0, -a }, float3{  0,  0, -a }, float3{  0,  0, -a }, // rear
+        float3{ 0,  0, a }, float3{  0,  0, a }, float3{  0,  0, a }, // rear
         float3{ -a, 0,  0 }, float3{ -a,  0,  0 }, float3{ -a,  0,  0 }, // left
         float3{ 0, -1,  0 }, float3{  0, -1,  0 }, float3{  0, -1,  0 }, // bottom 1
         float3{ 0, -1,  0 }, float3{  0, -1,  0 }, float3{  0, -1,  0 }, // bottom 2
