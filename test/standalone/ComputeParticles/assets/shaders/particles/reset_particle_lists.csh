@@ -15,7 +15,8 @@ void main( uint3 Gid  : SV_GroupID,
            uint3 GTid : SV_GroupThreadID )
 {
     uint uiGlobalThreadIdx = Gid.x * uint(THREAD_GROUP_SIZE) + GTid.x;
-    if( uiGlobalThreadIdx < uint( Constants.gridSize.x * Constants.gridSize.y ) ) {
+    //if( uiGlobalThreadIdx < uint( Constants.gridSize.x * Constants.gridSize.y ) ) {
+    if( uiGlobalThreadIdx < Constants.numParticles ) {
         ParticleListHead[uiGlobalThreadIdx] = -1;
     }
 }

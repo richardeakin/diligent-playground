@@ -25,8 +25,8 @@ void main( in  PSInput  PSIn, out PSOutput PSOut )
     float lighting = NdotL * 0.8 + 0.1;
     col *= lighting;
 
-    PSOut.Color = float4( PSIn.UV.x, PSIn.UV.y, 0.0, 1.0 );
-    // PSOut.Color = float4( col, 1.0 );
+    //PSOut.Color = float4( PSIn.UV.x, PSIn.UV.y, 0.0, 1.0 );
+    PSOut.Color = float4( col, 1.0 );
     // PSOut.Color.r = 0;
     // PSOut.Color = float4( 1, 0, 0, 1 );
 }

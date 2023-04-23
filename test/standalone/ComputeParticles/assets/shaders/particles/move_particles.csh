@@ -34,7 +34,7 @@ void main( uint3 Gid  : SV_GroupID,
     Particles[iParticleIdx] = Particle;
 
     // Bin particles. TODO: make grid 3D. May have to use .w for the id then
-    int GridIdx = GetGridLocation( Particle.pos.xy, Constants.gridSize ).z;
+    int GridIdx = GetGridLocation( Particle.pos, Constants.gridSize ).w;
     int OriginalListIdx;
     InterlockedExchange( ParticleListHead[GridIdx], iParticleIdx, OriginalListIdx );
     ParticleLists[iParticleIdx] = OriginalListIdx;

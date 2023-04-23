@@ -41,16 +41,16 @@ private:
     dg::RefCntAutoPtr<dg::IBuffer>                mParticleAttribsBuffer;
     dg::RefCntAutoPtr<dg::IBuffer>                mParticleListsBuffer;
     dg::RefCntAutoPtr<dg::IBuffer>                mParticleListHeadsBuffer;
-    //dg::RefCntAutoPtr<dg::IResourceMapping>       mResMapping;
 
-    int     mNumParticles    = 2000;
+    int     mNumParticles    = 1000;
+    dg::int3 mGridSize       = { 10, 10, 10 };
     int     mThreadGroupSize = 256;
     float   mTimeDelta       = 0;
     float   mSimulationSpeed = 1;
     float   mParticleScale = 1;
     bool    mDrawBackground = true;
-    bool    mDrawTestSolid = true;
-    bool    mDrawParticles = false;
+    bool    mDrawTestSolid = false;
+    bool    mDrawParticles = true;
     bool    mUpdateParticles = true;
 
     std::unique_ptr<ju::Canvas> mBackgroundCanvas;
@@ -66,7 +66,7 @@ private:
         Pyramid
     };
 
-    ParticleType mParticleType = ParticleType::Pyramid;
+    ParticleType mParticleType = ParticleType::Cube;
 
     void initCamera();
 

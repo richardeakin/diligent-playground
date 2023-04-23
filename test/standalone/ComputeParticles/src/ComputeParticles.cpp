@@ -55,7 +55,7 @@ struct ParticleConstants {
     float padding1;
 
     float scale;
-    int2  gridSize;
+    int3  gridSize;
 };
 
 struct BackgroundPixelConstants {
@@ -602,11 +602,7 @@ void ComputeParticles::updateParticles()
         ConstData->numParticles = static_cast<Uint32>( mNumParticles );
         ConstData->deltaTime     = std::min( mTimeDelta, 1.f / 60.f) * mSimulationSpeed;
         ConstData->scale = mParticleScale;
-
-        // TODO: update for 3D
-        int iParticleGridWidth          = static_cast<int>( std::sqrt(static_cast<float>( mNumParticles ) ) / mParticleScale );
-        ConstData->gridSize.x = iParticleGridWidth;
-        ConstData->gridSize.y = mNumParticles / iParticleGridWidth;
+        ConstData->gridSize = mGridSize;
     }
 
     if( mUpdateParticles ) {
@@ -671,6 +667,8 @@ void ComputeParticles::updateUI()
             }
             im::SliderFloat( "speed", &mSimulationSpeed, 0.1f, 5.f );
             im::DragFloat( "scale", &mParticleScale, 0.01f, 0.001f, 100.0f );
+
+            im::Text( "grid size: [%d, %0d, %d]", mGridSize.x, mGridSize.y, mGridSize.y );
 
             static std::vector<const char*> types = { "sprite", "cube", "pyramid" };
             int t = (int)mParticleType;

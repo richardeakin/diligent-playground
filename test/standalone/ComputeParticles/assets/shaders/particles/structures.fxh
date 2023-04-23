@@ -26,7 +26,7 @@ struct ParticleConstants {
     float  padding1;
 
     float  scale;
-    int2   gridSize; // TODO: make 3D
+    int3   gridSize;
 };
 
 // matches struct from solids/solid.fxh

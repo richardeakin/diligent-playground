@@ -63,7 +63,7 @@ void main( uint3 Gid  : SV_GroupID,
     int iParticleIdx = int(uiGlobalThreadIdx);
     ParticleAttribs Particle = Particles[iParticleIdx];
     
-    int2 i2GridPos = GetGridLocation(Particle.pos.xy, Constants.gridSize).xy; // TODO: use 3D pos
+    int2 i2GridPos = GetGridLocation( Particle.pos, Constants.gridSize ).xy; // TODO: use 3D pos
     int GridWidth  = Constants.gridSize.x;
     int GridHeight = Constants.gridSize.y;
 
