@@ -121,7 +121,13 @@ void ComputeParticles::Initialize( const SampleInitInfo& InitInfo )
         options.name = "Particle Cube";
         options.shaderResourceVars.push_back( { { SHADER_TYPE_VERTEX, "Particles", SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE }, particleAttribsBufferSRV } );
         options.staticShaderVars.push_back( { SHADER_TYPE_VERTEX, "PConstants", mParticleConstants } );
-        mParticleSolid = std::make_unique<ju::Cube>( options );
+
+        if( mParticleType == ParticleType::Cube ) {
+            mParticleSolid = std::make_unique<ju::Cube>( options );
+        }
+        else {
+            mParticleSolid = std::make_unique<ju::Pyramid>( options );
+        }
     }
 
     initCamera();
@@ -591,7 +597,7 @@ void ComputeParticles::updateParticles()
     // appears we always need to update this buffer or an assert failure happens (stale buffer)
     {
         // Map the buffer and write current world-view-projection matrix
-        MapHelper<ParticleConstants> ConstData(m_pImmediateContext, mParticleConstants, MAP_WRITE, MAP_FLAG_DISCARD);
+        MapHelper<ParticleConstants> ConstData( m_pImmediateContext, mParticleConstants, MAP_WRITE, MAP_FLAG_DISCARD );
         ConstData->viewProj = mViewProjMatrix.Transpose();
         ConstData->numParticles = static_cast<Uint32>( mNumParticles );
         ConstData->deltaTime     = std::min( mTimeDelta, 1.f / 60.f) * mSimulationSpeed;
