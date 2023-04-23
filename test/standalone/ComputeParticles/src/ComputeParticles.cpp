@@ -426,8 +426,8 @@ void ComputeParticles::initConsantBuffer()
 
 void ComputeParticles::initCamera()
 {
-    mCamera.SetPos( float3{ 0, 0, 10 } );
-    mCamera.SetLookAt( float3{ 0, 0, -1 } );
+    mCamera.SetPos( float3{ 0, 0, -10 } );
+    mCamera.SetLookAt( float3{ 0, 0, 1 } );
     mCamera.SetRotationSpeed( CameraRotationSpeed );
     mCamera.SetMoveSpeed( CameraMoveSpeed );
     mCamera.SetSpeedUpScales( CameraSpeedUp.x, CameraSpeedUp.y );

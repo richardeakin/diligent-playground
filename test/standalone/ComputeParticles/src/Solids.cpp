@@ -403,20 +403,19 @@ Pyramid::Pyramid( const Options &options )
     initPipelineState();
 
     const std::vector<float3> positions = {
-        float3{ -1, -1, +1 }, float3{ +1, -1, +1 }, float3{  0, +1,  0 }, // front
-        float3{ +1, -1, +1 }, float3{ +1, -1, -1 }, float3{  0, +1,  0 }, // right
-        float3{ +1, -1, -1 }, float3{ -1, -1, -1 }, float3{  0, +1,  0 }, // rear
-        float3{ -1, -1, -1 }, float3{ -1, -1, +1 }, float3{  0, +1,  0 }, // left
-        float3{ -1, -1, +1 }, float3{ +1, -1, +1 }, float3{ -1, -1,  -1 }, // bottom 1
-        float3{ -1, -1, -1 }, float3{ +1, -1, +1 }, float3{ +1, -1,  -1 }, // bottom 2
+        float3{ -1, -1, -1 }, float3{  0, +1,  0 }, float3{ +1, -1, -1 }, // front
+        float3{ +1, -1, -1 }, float3{  0, +1,  0 }, float3{ +1, -1, +1 }, // right
+        float3{ +1, -1, +1 }, float3{  0, +1,  0 }, float3{ -1, -1, +1 }, // rear
+        float3{ -1, -1, +1 }, float3{  0, +1,  0 }, float3{ -1, -1, -1 }, // left
+        float3{ -1, -1, -1 }, float3{ +1, -1, -1 }, float3{ -1, -1, +1 }, // bottom 1
+        float3{ -1, -1, +1 }, float3{ +1, -1, -1 }, float3{ +1, -1, +1 }, // bottom 2
     };
 
-    // texcoords are funky but whatever. Goes x = 0:1:0:1:0 around the base, 0:1 from the bottom to top
     const std::vector<float2> texcoords = {
-        float2{ 0,  0 }, float2{ 1,  0 }, float2{ 0.5f,  1 }, // front
-        float2{ 0,  0 }, float2{ 1,  0 }, float2{ 0.5f,  1 }, // right
-        float2{ 0,  0 }, float2{ 1,  0 }, float2{ 0.5f,  1 }, // rear
-        float2{ 0,  0 }, float2{ 1,  0 }, float2{ 0.5f,  1 }, // left
+        float2{ 0,  0 }, float2{ 0.5f,  1 }, float2{ 1, 0 }, // front
+        float2{ 0,  0 }, float2{ 0.5f,  1 }, float2{ 1, 0 }, // right
+        float2{ 0,  0 }, float2{ 0.5f,  1 }, float2{ 1, 0 }, // rear
+        float2{ 0,  0 }, float2{ 0.5f,  1 }, float2{ 1, 0 }, // left
         float2{ 0,  0 }, float2{ 1,  0 }, float2{ 0.0f,  0 }, // bottom 1
         float2{ 0,  0 }, float2{ 1,  0 }, float2{ 1.0f,  0 }, // bottom 2
     };
