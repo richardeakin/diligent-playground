@@ -18,5 +18,5 @@ void main( in  PSInput  PSIn, out PSOutput PSOut )
     float intensity = sqrt( saturate( 1.0 - r ) );
     float3 Color = lerp( float3( 0.0, 0.63, 0.9 ), float3( 1.0, 0.78, 0.05 ), PSIn.Temp );
     PSOut.Color = float4( Color * intensity, sqrt( intensity ) );
-    //PSOut.Color = float4(1, 0, 0, 1);
+    PSOut.Color = float4(1, 0, 0, 1);
 }

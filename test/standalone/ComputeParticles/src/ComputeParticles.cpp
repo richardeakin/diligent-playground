@@ -487,8 +487,8 @@ void ComputeParticles::WindowResize( Uint32 Width, Uint32 Height )
     LOG_INFO_MESSAGE( "ComputeParticles::WindowResize| size: [", Width, ", ", Height, "]" );
 
     // Update projection matrix.
-    float AspectRatio = static_cast<float>(Width) / static_cast<float>(Height);
-    mCamera.SetProjAttribs(1.f, 1000.f, AspectRatio, PI_F / 4.f, m_pSwapChain->GetDesc().PreTransform, m_pDevice->GetDeviceInfo().IsGLDevice());
+    float aspectRatio = static_cast<float>(Width) / static_cast<float>(Height);
+    mCamera.SetProjAttribs( 0.1f, 1000.0f, aspectRatio, PI_F / 4.0f, m_pSwapChain->GetDesc().PreTransform, m_pDevice->GetDeviceInfo().IsGLDevice() );
 
     // TODO: re-enable once Canvas pixel shader is reworked to be drawing in pixel coordinates
     //if( mBackgroundCanvas ) {
@@ -691,12 +691,18 @@ void ComputeParticles::updateUI()
             if( im::Button("reset") ) {
                 initCamera();
             }
+            // TODO: draw this with 3 axes (may need a quaternion, need to look at the author's examples)
+            float3 camPos = mCamera.GetPos();
+            if( im::DragFloat3( "pos##cam", &camPos.x, 0.01f ) ) {
+                mCamera.SetPos( camPos );
+            }
             im::Text( "view dir: [%0.02f, %0.02f, %0.02f]", mCamera.GetWorldAhead().x, mCamera.GetWorldAhead().y, mCamera.GetWorldAhead().z );
+            im::gizmo3D( "##ViewDir", mCamera.GetWorldAhead(), ImGui::GetTextLineHeight() * 5 );
         }
 
         if( im::CollapsingHeader( "Scene", ImGuiTreeNodeFlags_DefaultOpen ) ) {
             im::Text( "light dir: [%0.02f, %0.02f, %0.02f]", LightDir.x, LightDir.y, LightDir.z );
-            im::gizmo3D( "##LightDirection", LightDir, ImGui::GetTextLineHeight() * 10 );
+            im::gizmo3D( "##LightDirection", LightDir, ImGui::GetTextLineHeight() * 5 );
 
             im::Separator();
             im::Text( "Test Solid" );

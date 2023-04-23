@@ -88,8 +88,8 @@ protected:
 
 	Options	mOptions;
 
-	dg::float3      mLightDirection  = dg::float3(0, 1, 0); // TODO: this should be part of a global constants buffer
-	dg::float4x4	mTransform;
+	dg::float3      mLightDirection  = dg::float3( 0, 1, 0 ); // TODO: this should be part of a global constants buffer
+	dg::float4x4	mTransform = dg::float4x4::Identity();
 
 	ju::FileWatchHandle     mShadersDirWatchHandle;
 	bool                    mShaderAssetsMarkedDirty = false;

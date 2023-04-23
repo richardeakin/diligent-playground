@@ -15,9 +15,9 @@ namespace ju {
 namespace {
 
 struct SceneConstants {
-    float4x4 ModelViewProj;
-    float4x4 NormalTranform;
-    float4   LightDirection;
+    float4x4 MVP;
+    float4x4 normalTranform;
+    float4   lightDirection;
 };
 
 } // anon
@@ -287,18 +287,15 @@ void Solid::draw( IDeviceContext* context, const float4x4 &viewProjectionMatrix,
         return;
     }
 
-    auto mvp = viewProjectionMatrix * mTransform; // TODO: should be other way around?
     // Update constant buffer
     {
-        // Map the buffer and write current world-view-projection matrix
+        auto mvp = mTransform * viewProjectionMatrix;
         MapHelper<SceneConstants> CBConstants( context, mSceneConstants, MAP_WRITE, MAP_FLAG_DISCARD );
-        CBConstants->ModelViewProj = mvp.Transpose();
+        CBConstants->MVP = mvp.Transpose();
 
-        // We need to do inverse-transpose, but we also need to transpose the matrix
-        // before writing it to the buffer
-        auto NormalMatrix          = mTransform.RemoveTranslation().Inverse();
-        CBConstants->NormalTranform = NormalMatrix;
-        CBConstants->LightDirection = mLightDirection;
+        // We need to do inverse-transpose, but we also need to transpose the matrix before writing it to the buffer
+        CBConstants->normalTranform = mTransform.RemoveTranslation().Inverse();;
+        CBConstants->lightDirection = mLightDirection;
     }
 
 
