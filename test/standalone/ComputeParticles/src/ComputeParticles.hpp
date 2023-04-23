@@ -49,15 +49,14 @@ private:
     float   mSimulationSpeed = 1;
     float   mParticleScale = 1;
     bool    mDrawBackground = true;
-    bool    mDrawTestSolid = false;
-    bool    mDrawParticles = true;
+    bool    mDrawTestSolid = true;
+    bool    mDrawParticles = false;
     bool    mUpdateParticles = true;
 
     std::unique_ptr<ju::Canvas> mBackgroundCanvas;
     std::unique_ptr<ju::Solid>   mTestSolid, mParticleSolid;
 
     dg::float4x4                mViewProjMatrix;
-    //dg::float4x4                mWorldViewProjMatrix; // TODO: get rid of this, no need for both
 
     dg::FirstPersonCamera mCamera;
 
@@ -67,7 +66,7 @@ private:
         Pyramid
     };
 
-    ParticleType mParticleType = ParticleType::Cube;
+    ParticleType mParticleType = ParticleType::Pyramid;
 
     void initCamera();
 

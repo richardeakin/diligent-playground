@@ -15,8 +15,6 @@ struct VSInput {
     float3 Normal : ATTRIB1;
     float2 UV  : ATTRIB2;
 
-    // TODO: are these set automatically by DX?
-    //uint VertID : SV_VertexID;
     uint InstID : SV_InstanceID;
 };
 
@@ -29,24 +27,14 @@ struct PSInput {
 
 void main( in VSInput VSIn, out PSInput PSIn )
 {
-    //float4 pos_uv[4];
-    //pos_uv[0] = float4(-1.0,+1.0, 0.0,0.0);
-    //pos_uv[1] = float4(-1.0,-1.0, 0.0,1.0);
-    //pos_uv[2] = float4(+1.0,+1.0, 1.0,0.0);
-    //pos_uv[3] = float4(+1.0,-1.0, 1.0,1.0);
-
     ParticleAttribs Attribs = Particles[VSIn.InstID];
 
     float3 pos = VSIn.Pos;
     pos = pos * Attribs.size * PConstants.scale + Attribs.pos;
-
-    //PSIn.Pos = mul( float4( pos, 1.0 ), Constants.viewProj );
-    //PSIn.uv = pos_uv[VSIn.VertID].zw;
 
     PSIn.Pos = mul( float4( pos, 1.0 ), SConstants.ModelViewProj );
     PSIn.UV  = VSIn.UV;
     PSIn.Temp = Attribs.temperature;
 
     PSIn.Normal = mul( float4( VSIn.Normal, 0.0 ), SConstants.NormalTranform ).xyz;
-    // PSIn.NdotL = saturate( dot( N, -SConstants.LightDirection.xyz ) );
 }

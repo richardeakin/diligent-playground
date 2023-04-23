@@ -171,14 +171,15 @@ void Solid::initVertexBuffer( const std::vector<float3> &positions, const std::v
     VERIFY_EXPR( positions.size() == texcoords.size() );
     VERIFY_EXPR( positions.size() == normals.size() );
     VERIFY_EXPR( mOptions.components != VERTEX_COMPONENT_FLAG_NONE );
-    const Uint32 TotalVertexComponents =
+
+    const Uint32 totalVertexComponents =
         ( (mOptions.components & VERTEX_COMPONENT_FLAG_POSITION) ? 3 : 0 ) +
         ( (mOptions.components & VERTEX_COMPONENT_FLAG_NORMAL) ? 3 : 0 ) +
         ( (mOptions.components & VERTEX_COMPONENT_FLAG_TEXCOORD) ? 2 : 0 );
 
     const Uint32 numVertices = positions.size();
 
-    std::vector<float> vertexData( size_t{TotalVertexComponents} * numVertices );
+    std::vector<float> vertexData( size_t{totalVertexComponents} * numVertices );
 
     auto it = vertexData.begin();
     for( Uint32 v = 0; v < numVertices; ++v ) {
@@ -402,40 +403,42 @@ Pyramid::Pyramid( const Options &options )
     initPipelineState();
 
     const std::vector<float3> positions = {
-        float3{ -1, -1, +1 }, // bottom left front
-        float3{ +1, -1, +1 }, // bottom right front
-        float3{ +1, -1, -1 }, // bottom right rear
-        float3{ -1, -1, -1 }, // bottom left rear
-        float3{  0, +1,  0 }, // top center
+        float3{ -1, -1, +1 }, float3{ +1, -1, +1 }, float3{  0, +1,  0 }, // front
+        float3{ +1, -1, +1 }, float3{ +1, -1, -1 }, float3{  0, +1,  0 }, // right
+        float3{ +1, -1, -1 }, float3{ -1, -1, -1 }, float3{  0, +1,  0 }, // rear
+        float3{ -1, -1, -1 }, float3{ -1, -1, +1 }, float3{  0, +1,  0 }, // left
+        float3{ -1, -1, +1 }, float3{ +1, -1, +1 }, float3{ -1, -1,  -1 }, // bottom 1
+        float3{ -1, -1, -1 }, float3{ +1, -1, +1 }, float3{ +1, -1,  -1 }, // bottom 2
     };
 
     // texcoords are funky but whatever. Goes x = 0:1:0:1:0 around the base, 0:1 from the bottom to top
     const std::vector<float2> texcoords = {
-        float2{ 0,  0 }, // bottom left front
-        float2{ +1, 0 }, // bottom right front
-        float2{ 0,  0 }, // bottom right rear
-        float2{ 1,  0 }, // bottom left rear
-        float2{ 0, +1 }, // top center
+        float2{ 0,  0 }, float2{ 1,  0 }, float2{ 0.5f,  1 }, // front
+        float2{ 0,  0 }, float2{ 1,  0 }, float2{ 0.5f,  1 }, // right
+        float2{ 0,  0 }, float2{ 1,  0 }, float2{ 0.5f,  1 }, // rear
+        float2{ 0,  0 }, float2{ 1,  0 }, float2{ 0.5f,  1 }, // left
+        float2{ 0,  0 }, float2{ 1,  0 }, float2{ 0.0f,  0 }, // bottom 1
+        float2{ 0,  0 }, float2{ 1,  0 }, float2{ 1.0f,  0 }, // bottom 2
     };
 
-    // TODO: fix these, not yet sure what they should be
+    // TODO: fix this with simple trig
+    const float a = 1.0f;
     const std::vector<float3> normals = {
-        float3{ -1, -1, +1 }, // bottom left front
-        float3{ +1, -1, +1 }, // bottom right front
-        float3{ +1, -1, -1 }, // bottom right rear
-        float3{ -1, -1, -1 }, // bottom left rear
-        float3{  0, +1,  0 }, // top center
+        float3{ 0,  0,  a }, float3{  0,  0,  a }, float3{  0,  0,  a }, // front
+        float3{ a,  0,  0 }, float3{  a,  0,  0 }, float3{  a,  0,  0 }, // right
+        float3{ 0,  0, -a }, float3{  0,  0, -a }, float3{  0,  0, -a }, // rear
+        float3{ -a, 0,  0 }, float3{ -a,  0,  0 }, float3{ -a,  0,  0 }, // left
+        float3{ 0, -1,  0 }, float3{  0, -1,  0 }, float3{  0, -1,  0 }, // bottom 1
+        float3{ 0, -1,  0 }, float3{  0, -1,  0 }, float3{  0, -1,  0 }, // bottom 2
     };
 
-    // TODO: add bottom two triangles
-    // - I think they will need different normals
     const std::vector<Uint32> indices = {
-        0, 1, 4, // front
-        1, 2, 4, // right
-        2, 3, 4, // rear
-        3, 0, 4, // left
-        0, 3, 2, // bottom 1
-        0, 2, 1
+        0, 1, 2,    // front
+        3, 4, 5,    // right
+        6, 7, 8,    // rear
+        9, 10, 11,  // left
+        12, 13, 14, // bottom 1
+        15, 16, 17  // bottom 2
     };
 
     initVertexBuffer( positions, texcoords, normals );
