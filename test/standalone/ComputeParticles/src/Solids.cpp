@@ -420,13 +420,13 @@ Pyramid::Pyramid( const Options &options )
         float2{ 0, 0 }, float2{ 1,    0 }, float2{ 1, 0 }, // bottom 2
     };
 
-    // TODO: fix this with simple trig (60degrees)
-    const float a = 1.0f;
+    // FIXME: normals need to be corrected
+    const float a = 0.523599f; // 30 degrees
     const std::vector<float3> normals = {
-        float3{ 0,  0,  -a }, float3{  0,  0,  -a }, float3{  0,  0,  -a }, // front
-        float3{ a,  0,  0 }, float3{  a,  0,  0 }, float3{  a,  0,  0 }, // right
-        float3{ 0,  0, a }, float3{  0,  0, a }, float3{  0,  0, a }, // rear
-        float3{ -a, 0,  0 }, float3{ -a,  0,  0 }, float3{ -a,  0,  0 }, // left
+        float3{ 0,  a / 1.0f,  -a }, float3{  0, a / 1.0f,  -a }, float3{  0,  a / 1.0f,  -a }, // front
+        float3{ a,  a / 1.0f,  0 }, float3{   a,  a / 1.0f,  0 }, float3{  a,  a / 1.0f,  0 }, // right
+        float3{ 0,  a / 1.0f, a }, float3{   0,  a / 1.0f, a }, float3{  0,  a / 1.0f, a }, // rear
+        float3{ -a, a / 1.0f,  1 }, float3{ -a,  a / 1.0f,  1 }, float3{ -a,  a / 1.0f,  1 }, // left
         float3{ 0, -1,  0 }, float3{  0, -1,  0 }, float3{  0, -1,  0 }, // bottom 1
         float3{ 0, -1,  0 }, float3{  0, -1,  0 }, float3{  0, -1,  0 }, // bottom 2
     };
