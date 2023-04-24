@@ -796,6 +796,18 @@ void ComputeParticles::updateUI()
 
     if( im::Begin( "DebugCopyParticles", &mDebugCopyParticles ) ) {
         im::Text( "count: %d", mNumParticles );
+
+        // TODO: use im::BeginTable
+        static int start = 0;
+        static int end = 10;
+        for( int i = start; i < end; i++ ) {
+            const auto &p = DebugParticleData.at( i );
+            im::Text( "[%d] pos: [%0.03f, %0.03f, %0.03f]", i, p.pos.x, p.pos.y, p.pos.z );
+            im::SameLine();
+            im::Text( " speed: [%0.03f, %0.03f, %0.03f]", i, p.speed.x, p.speed.y, p.speed.z );
+            im::SameLine();
+            im::Text( " collisions %d, temp: %0.03f", p.numCollisions, p.temperature );
+        }
     }
     im::End(); // DebugCopyParticles
 }
