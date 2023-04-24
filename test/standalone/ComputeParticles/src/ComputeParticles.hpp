@@ -42,6 +42,11 @@ private:
     dg::RefCntAutoPtr<dg::IBuffer>                mParticleListsBuffer;
     dg::RefCntAutoPtr<dg::IBuffer>                mParticleListHeadsBuffer;
 
+
+    dg::RefCntAutoPtr<dg::IBuffer>              mParticleAttribsStaging;
+    dg::RefCntAutoPtr<dg::IFence>               mFenceParticleAttribsAvailable;
+    dg::Uint64                                  mFenceParticleAttribsValue = 1; // Can't signal 0
+
     int     mNumParticles    = 1000;
     dg::int3 mGridSize       = { 10, 10, 10 };
     int     mThreadGroupSize = 256;
@@ -52,6 +57,7 @@ private:
     bool    mDrawTestSolid = false;
     bool    mDrawParticles = true;
     bool    mUpdateParticles = true;
+    bool    mDebugCopyParticles = true;
 
     std::unique_ptr<ju::Canvas> mBackgroundCanvas;
     std::unique_ptr<ju::Solid>   mTestSolid, mParticleSolid;

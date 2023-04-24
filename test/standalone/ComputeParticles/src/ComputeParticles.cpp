@@ -82,6 +82,8 @@ dg::float3      LightDir  = normalize( float3( 1, -0.5f, -0.1f ) );
 ju::FileWatchHandle     ShadersDirWatchHandle;
 bool                    ShaderAssetsMarkedDirty = false;
 
+std::vector<ParticleAttribs> DebugParticleData;
+
 } // anon
 
 void ComputeParticles::ModifyEngineInitInfo( const ModifyEngineInitInfoAttribs& Attribs )
@@ -375,6 +377,26 @@ void ComputeParticles::initParticleBuffers()
     IBufferView* pParticleAttribsBufferSRV = mParticleAttribsBuffer->GetDefaultView( BUFFER_VIEW_SHADER_RESOURCE );
     IBufferView* pParticleAttribsBufferUAV = mParticleAttribsBuffer->GetDefaultView( BUFFER_VIEW_UNORDERED_ACCESS );
 
+    // make a staging buffer to read back
+    {
+        BufferDesc BuffDescStaging;
+
+        BuffDescStaging.Name           = "ParticleAttribs staging buffer";
+        BuffDescStaging.Usage          = USAGE_STAGING;
+        BuffDescStaging.BindFlags      = BIND_NONE;
+        BuffDescStaging.Mode           = BUFFER_MODE_UNDEFINED;
+        BuffDescStaging.CPUAccessFlags = CPU_ACCESS_READ;
+        BuffDescStaging.Size           = sizeof(ParticleAttribs) * mNumParticles;
+
+        m_pDevice->CreateBuffer( BuffDescStaging, nullptr, &mParticleAttribsStaging );
+        VERIFY_EXPR( mParticleAttribsStaging != nullptr );
+
+        FenceDesc FDesc;
+        FDesc.Name = "ParticleAttribs available";
+        FDesc.Type = FENCE_TYPE_GENERAL; // TODO: is this necessary? MeshShaders tutorial did not use it
+        m_pDevice->CreateFence( FDesc, &mFenceParticleAttribsAvailable );
+    }
+
     BuffDesc.ElementByteStride = sizeof(int);
     BuffDesc.Mode              = BUFFER_MODE_FORMATTED;
     BuffDesc.Size              = Uint64{BuffDesc.ElementByteStride} * static_cast<Uint64>( mNumParticles );
@@ -626,6 +648,35 @@ void ComputeParticles::updateParticles()
         m_pImmediateContext->CommitShaderResources( mCollideParticlesSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
         m_pImmediateContext->DispatchCompute( dispatchAttribs );
     }
+
+    if( mDebugCopyParticles ) {
+        DebugParticleData.resize( mNumParticles );
+
+        m_pImmediateContext->CopyBuffer( mParticleAttribsBuffer, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION,
+            mParticleAttribsStaging, 0, mNumParticles * sizeof(ParticleAttribs), RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+
+        // We should use synchronizations to safely access the mapped memory.
+        // TODO: re-enable this, but not crucial when looking at debug data
+        //m_pImmediateContext->EnqueueSignal( mFenceParticleAttribsAvailable, mFenceParticleAttribsValue++ );
+        //m_pImmediateContext->Flush(); // TODO: needed?
+
+        //// TODO: check if this causes the main loop to wait
+        //m_pImmediateContext->DeviceWaitForFence( mFenceParticleAttribsAvailable, mFenceParticleAttribsValue );
+
+        {
+            // TODO: should MapHelper<T> be type ParticleAttribs (take out the vector)?
+            //MapHelper<std::vector<ParticleAttribs>> stagingData( m_pImmediateContext, mParticleAttribsBuffer, MAP_READ, MAP_FLAG_DO_NOT_WAIT );
+            MapHelper<ParticleAttribs> stagingData( m_pImmediateContext, mParticleAttribsStaging, MAP_READ, MAP_FLAG_DO_NOT_WAIT );
+            if( stagingData ) {
+                //m_VisibleCubes =sStagingData[AvailableFrameId % m_StatisticsHistorySize].visibleCubes;
+                // TODO: copy in one op to debug buffer
+                for( size_t i = 0; i < mNumParticles; i++ ) {
+                    const ParticleAttribs &p = stagingData[i];
+                    DebugParticleData.at( i ) = p; 
+                }
+            }
+        }
+    }
 }
 
 void ComputeParticles::drawParticles()
@@ -660,6 +711,8 @@ void ComputeParticles::updateUI()
             im::Checkbox( "update", &mUpdateParticles );
             im::SameLine();
             im::Checkbox( "draw", &mDrawParticles );
+            im::Checkbox( "debug particle data", &mDebugCopyParticles );
+
 
             if( im::InputInt("count", &mNumParticles, 100, 1000, ImGuiInputTextFlags_EnterReturnsTrue ) ) {
                 mNumParticles = std::min( std::max( mNumParticles, 100 ), 100000 );
@@ -739,5 +792,10 @@ void ComputeParticles::updateUI()
             }
         }
     }
-    im::End();
+    im::End(); // Settings
+
+    if( im::Begin( "DebugCopyParticles", &mDebugCopyParticles ) ) {
+        im::Text( "count: %d", mNumParticles );
+    }
+    im::End(); // DebugCopyParticles
 }

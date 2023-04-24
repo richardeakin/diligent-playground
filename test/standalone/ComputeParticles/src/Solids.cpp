@@ -149,7 +149,7 @@ void Solid::initPipelineState()
             result->Set( var.object );
         }
         else {
-            LOG_ERROR_MESSAGE( __FUNCTION__, "|(", mOptions.name, ") Failed to set static shader var with name: ", var.name, ", shader type: ", var.shaderType );
+            LOG_WARNING_MESSAGE( __FUNCTION__, "|(", mOptions.name, ") Failed to set static shader var with name: ", var.name, ", shader type: ", var.shaderType );
         }
     }
 
