@@ -25,7 +25,7 @@ private:
     void initUpdateParticlePSO();
     void initParticleBuffers();
     void initConsantBuffer();
-    void initTestSolid();
+    void initSolids();
     void updateUI();
 
     dg::RefCntAutoPtr<dg::IPipelineState>         mRenderParticlePSO;

@@ -69,9 +69,9 @@ struct BackgroundPixelConstants {
 };
 
 bool UseFirstPersonCamera = true;
-bool TestSolidRotate = false;
 float3 TestSolidTranslate = { 0, 0, 0 };
 float3 TestSolidScale = { 1, 1, 1 };
+QuaternionF TestSolidRotation = {0, 0, 0, 1};
 
 float CameraRotationSpeed = 0.005f;
 float CameraMoveSpeed = 8.0f;
@@ -110,28 +110,7 @@ void ComputeParticles::Initialize( const SampleInitInfo& InitInfo )
     m_pEngineFactory->CreateDefaultShaderSourceStreamFactory( nullptr, &global->shaderSourceFactory );
 
     mBackgroundCanvas = std::make_unique<ju::Canvas>( sizeof(BackgroundPixelConstants) );
-    initTestSolid();
-
-    // make the cube that will get used for instanced drawing of particles
-    {
-        IBufferView* particleAttribsBufferSRV = mParticleAttribsBuffer->GetDefaultView( BUFFER_VIEW_SHADER_RESOURCE );
-
-        ju::Solid::Options options;
-        options.components = ju::VERTEX_COMPONENT_FLAG_POS_NORM_UV;
-        options.vertPath = "shaders/particles/particle_solid.vsh";
-        options.pixelPath = "shaders/particles/particle_solid.psh";
-        options.name = "Particle Cube";
-        options.shaderResourceVars.push_back( { { SHADER_TYPE_VERTEX, "Particles", SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE }, particleAttribsBufferSRV } );
-        options.staticShaderVars.push_back( { SHADER_TYPE_VERTEX, "PConstants", mParticleConstants } );
-
-        if( mParticleType == ParticleType::Cube ) {
-            mParticleSolid = std::make_unique<ju::Cube>( options );
-        }
-        else {
-            mParticleSolid = std::make_unique<ju::Pyramid>( options );
-        }
-    }
-
+    initSolids();
     initCamera();
     watchShadersDir();
 }
@@ -322,7 +301,7 @@ void ComputeParticles::initUpdateParticlePSO()
     }
 }
 
-void ComputeParticles::initTestSolid()
+void ComputeParticles::initSolids()
 {
     ju::Solid::Options options;
     options.components = ju::VERTEX_COMPONENT_FLAG_POS_NORM_UV;
@@ -332,6 +311,26 @@ void ComputeParticles::initTestSolid()
     }
     else {
         mTestSolid = std::make_unique<ju::Cube>( options );
+    }
+
+    // make the Solid that will get used for instanced drawing of particles
+    {
+        IBufferView* particleAttribsBufferSRV = mParticleAttribsBuffer->GetDefaultView( BUFFER_VIEW_SHADER_RESOURCE );
+
+        ju::Solid::Options options;
+        options.components = ju::VERTEX_COMPONENT_FLAG_POS_NORM_UV;
+        options.vertPath = "shaders/particles/particle_solid.vsh";
+        options.pixelPath = "shaders/particles/particle_solid.psh";
+        options.name = "Particle Cube";
+        options.shaderResourceVars.push_back( { { SHADER_TYPE_VERTEX, "Particles", SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE }, particleAttribsBufferSRV } );
+        options.staticShaderVars.push_back( { SHADER_TYPE_VERTEX, "PConstants", mParticleConstants } );
+
+        if( mParticleType == ParticleType::Cube ) {
+            mParticleSolid = std::make_unique<ju::Cube>( options );
+        }
+        else {
+            mParticleSolid = std::make_unique<ju::Pyramid>( options );
+        }
     }
 }
 
@@ -539,9 +538,10 @@ void ComputeParticles::Update( double CurrTime, double ElapsedTime )
     // Build a transform matrix for the test solid
     float4x4 modelTransform = float4x4::Identity();
     modelTransform *= float4x4::Scale( TestSolidScale );
-    if( TestSolidRotate )  {
-        modelTransform *= float4x4::RotationY( static_cast<float>(CurrTime) * 1.0f) * float4x4::RotationX( -PI_F * 0.1f );
-    }
+    //if( TestSolidRotate )  {
+    //    modelTransform *= float4x4::RotationY( static_cast<float>(CurrTime) * 1.0f) * float4x4::RotationX( -PI_F * 0.1f );
+    //}
+    modelTransform *= TestSolidRotation.ToMatrix();
 
     modelTransform *= float4x4::Translation( TestSolidTranslate );
 
@@ -729,7 +729,7 @@ void ComputeParticles::updateUI()
                 LOG_INFO_MESSAGE( "solid type changed" );
                 mParticleType = (ParticleType)t;
 
-                initTestSolid();
+                initSolids();
                 initRenderParticlePSO();
             }
         }
@@ -764,8 +764,9 @@ void ComputeParticles::updateUI()
             im::Separator();
             im::Text( "Test Solid" );
             im::Checkbox( "draw##test solid", &mDrawTestSolid );
-            im::Checkbox( "rotate##solid", &TestSolidRotate );
+            //im::Checkbox( "rotate##solid", &TestSolidRotate );
             im::DragFloat3( "translate##solid", &TestSolidTranslate.x, 0.01f );
+            im::gizmo3D( "##TestSolidRotation", TestSolidRotation, ImGui::GetTextLineHeight() * 7 );
 
             static bool lockDims = true;
             if( lockDims ) {
@@ -797,16 +798,19 @@ void ComputeParticles::updateUI()
     if( im::Begin( "DebugCopyParticles", &mDebugCopyParticles ) ) {
         im::Text( "count: %d", mNumParticles );
 
-        // TODO: use im::BeginTable
-        static int start = 0;
-        static int end = 10;
-        for( int i = start; i < end; i++ ) {
-            const auto &p = DebugParticleData.at( i );
-            im::Text( "[%d] pos: [%0.03f, %0.03f, %0.03f]", i, p.pos.x, p.pos.y, p.pos.z );
-            im::SameLine();
-            im::Text( " speed: [%0.03f, %0.03f, %0.03f]", i, p.speed.x, p.speed.y, p.speed.z );
-            im::SameLine();
-            im::Text( " collisions %d, temp: %0.03f", p.numCollisions, p.temperature );
+
+        if( ! DebugParticleData.empty() ) {
+            // TODO: use im::BeginTable
+            static int start = 0;
+            static int end = 10;
+            for( int i = start; i < end; i++ ) {
+                const auto &p = DebugParticleData.at( i );
+                im::Text( "[%d] pos: [%0.03f, %0.03f, %0.03f]", i, p.pos.x, p.pos.y, p.pos.z );
+                im::SameLine();
+                im::Text( " speed: [%0.03f, %0.03f, %0.03f]", i, p.speed.x, p.speed.y, p.speed.z );
+                im::SameLine();
+                im::Text( " collisions %d, temp: %0.03f", p.numCollisions, p.temperature );
+            }
         }
     }
     im::End(); // DebugCopyParticles
