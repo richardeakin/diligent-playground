@@ -8,6 +8,8 @@
 #include "common/src/Canvas.h"
 #include "Solids.h"
 
+#define DEBUG_PARTICLE_BUFFERS 0
+
 namespace dg = Diligent;
 
 class ComputeParticles final : public dg::SampleBase {
@@ -42,22 +44,24 @@ private:
     dg::RefCntAutoPtr<dg::IBuffer>                mParticleListsBuffer;
     dg::RefCntAutoPtr<dg::IBuffer>                mParticleListHeadsBuffer;
 
-
+#if DEBUG_PARTICLE_BUFFERS
     dg::RefCntAutoPtr<dg::IBuffer>              mParticleAttribsStaging;
     dg::RefCntAutoPtr<dg::IFence>               mFenceParticleAttribsAvailable;
     dg::Uint64                                  mFenceParticleAttribsValue = 1; // Can't signal 0
+    bool    mDebugCopyParticles = false;
+#endif
 
-    int     mNumParticles    = 1000;
+    int     mNumParticles    = 100; // was: 1000
     dg::int3 mGridSize       = { 10, 10, 10 };
     int     mThreadGroupSize = 256;
     float   mTimeDelta       = 0;
-    float   mSimulationSpeed = 1;
-    float   mParticleScale = 1;
+    float   mSimulationSpeed = 0.5f;
+    float   mParticleScale = 2;
     bool    mDrawBackground = true;
     bool    mDrawTestSolid = false;
     bool    mDrawParticles = true;
     bool    mUpdateParticles = true;
-    bool    mDebugCopyParticles = false;
+
 
     std::unique_ptr<ju::Canvas> mBackgroundCanvas;
     std::unique_ptr<ju::Solid>   mTestSolid, mParticleSolid;

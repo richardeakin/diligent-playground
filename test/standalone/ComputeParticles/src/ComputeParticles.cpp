@@ -349,7 +349,7 @@ void ComputeParticles::initSolids()
         options.components = ju::VERTEX_COMPONENT_FLAG_POS_NORM_UV;
         options.vertPath = "shaders/particles/particle_solid.vsh";
         options.pixelPath = "shaders/particles/particle_solid.psh";
-        options.name = "Particle Cube";
+        options.name = "Particle Solid";
         options.shaderResourceVars.push_back( { { SHADER_TYPE_VERTEX, "Particles", SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE }, particleAttribsBufferSRV } );
         options.staticShaderVars.push_back( { SHADER_TYPE_VERTEX, "PConstants", mParticleConstants } );
 
@@ -367,6 +367,9 @@ void ComputeParticles::initParticleBuffers()
     mParticleAttribsBuffer.Release();
     mParticleListHeadsBuffer.Release();
     mParticleListsBuffer.Release();
+#if DEBUG_PARTICLE_BUFFERS
+    mParticleAttribsStaging.Release();
+#endif
 
     BufferDesc BuffDesc;
     BuffDesc.Name              = "Particle attribs buffer";
@@ -404,6 +407,7 @@ void ComputeParticles::initParticleBuffers()
     IBufferView* pParticleAttribsBufferSRV = mParticleAttribsBuffer->GetDefaultView( BUFFER_VIEW_SHADER_RESOURCE );
     IBufferView* pParticleAttribsBufferUAV = mParticleAttribsBuffer->GetDefaultView( BUFFER_VIEW_UNORDERED_ACCESS );
 
+#if DEBUG_PARTICLE_BUFFERS
     // make a staging buffer to read back
     {
         BufferDesc BuffDescStaging;
@@ -423,6 +427,7 @@ void ComputeParticles::initParticleBuffers()
         FDesc.Type = FENCE_TYPE_GENERAL; // TODO: is this necessary? MeshShaders tutorial did not use it
         m_pDevice->CreateFence( FDesc, &mFenceParticleAttribsAvailable );
     }
+#endif
 
     BuffDesc.ElementByteStride = sizeof(int);
     BuffDesc.Mode              = BUFFER_MODE_FORMATTED;
@@ -684,6 +689,7 @@ void ComputeParticles::updateParticles()
         m_pImmediateContext->DispatchCompute( dispatchAttribs );
     }
 
+#if DEBUG_PARTICLE_BUFFERS
     if( mDebugCopyParticles ) {
         DebugParticleData.resize( mNumParticles );
 
@@ -712,6 +718,7 @@ void ComputeParticles::updateParticles()
             }
         }
     }
+#endif
 }
 
 void ComputeParticles::drawParticles()
@@ -746,10 +753,11 @@ void ComputeParticles::updateUI()
             im::Checkbox( "update", &mUpdateParticles );
             im::SameLine();
             im::Checkbox( "draw", &mDrawParticles );
+#if DEBUG_PARTICLE_BUFFERS
             im::Checkbox( "debug particle data", &mDebugCopyParticles );
+#endif
 
-
-            if( im::InputInt("count", &mNumParticles, 100, 1000, ImGuiInputTextFlags_EnterReturnsTrue ) ) {
+            if( im::InputInt( "count", &mNumParticles, 100, 1000, ImGuiInputTextFlags_EnterReturnsTrue ) ) {
                 mNumParticles = std::min( std::max( mNumParticles, 100 ), 100000 );
                 initParticleBuffers();
             }
@@ -766,6 +774,9 @@ void ComputeParticles::updateUI()
 
                 initSolids();
                 initRenderParticlePSO();
+            }
+            if( im::Button( "init particle buffers" ) ) {
+                initParticleBuffers();
             }
         }
 
@@ -837,6 +848,7 @@ void ComputeParticles::updateUI()
     }
     im::End(); // Settings
 
+#if DEBUG_PARTICLE_BUFFERS
     im::SetNextWindowPos( { 400, 20 }, ImGuiCond_FirstUseEver );
     im::SetNextWindowSize( { 800, 700 }, ImGuiCond_FirstUseEver );
 
@@ -889,4 +901,5 @@ void ComputeParticles::updateUI()
 
         im::End(); // DebugCopyParticles
     }
+#endif
 }

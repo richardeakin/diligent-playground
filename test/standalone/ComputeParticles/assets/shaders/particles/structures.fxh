@@ -25,7 +25,7 @@ struct ParticleConstants {
     float  padding0;
     float  padding1;
 
-    float  scale;
+    float  scale; // TODO: make float3 so I can use (0.4, 1, 0.4) to shape the pyramid
     int3   gridSize;
 };
 
