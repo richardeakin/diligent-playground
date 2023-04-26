@@ -861,10 +861,8 @@ void ComputeParticles::updateUI()
 
             static ImGuiTableFlags flags = ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_Hideable;
             flags |= ImGuiTableFlags_ScrollY;
-            //flags |= ImGuiTableFlags_Resizable;
             flags |= ImGuiTableFlags_SizingFixedFit;
 
-            // TODO: fix width of columns
             if( im::BeginTable( "table_ParticleAttribs", 5, flags ) ) {
                 ImGuiTableColumnFlags columnFlags = ImGuiTableColumnFlags_WidthFixed; 
                 im::TableSetupScrollFreeze( 0, 1 ); // Make top row always visible
@@ -875,9 +873,8 @@ void ComputeParticles::updateUI()
                 im::TableSetupColumn( "temp", ImGuiTableColumnFlags_None );
                 im::TableHeadersRow();
 
-                // Demonstrate using clipper for large vertical lists
                 ImGuiListClipper clipper;
-				clipper.Begin( maxRows );
+				clipper.Begin( std::min( maxRows, mNumParticles ) );
 				while( clipper.Step() ) {
 					for( int row = clipper.DisplayStart; row<clipper.DisplayEnd; row++ ) {
 						im::TableNextRow();
