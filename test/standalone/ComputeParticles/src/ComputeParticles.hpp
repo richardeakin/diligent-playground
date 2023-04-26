@@ -57,7 +57,7 @@ private:
     bool    mDrawTestSolid = false;
     bool    mDrawParticles = true;
     bool    mUpdateParticles = true;
-    bool    mDebugCopyParticles = true;
+    bool    mDebugCopyParticles = false;
 
     std::unique_ptr<ju::Canvas> mBackgroundCanvas;
     std::unique_ptr<ju::Solid>   mTestSolid, mParticleSolid;
@@ -72,7 +72,7 @@ private:
         Pyramid
     };
 
-    ParticleType mParticleType = ParticleType::Cube;
+    ParticleType mParticleType = ParticleType::Pyramid;
 
     void initCamera();
 

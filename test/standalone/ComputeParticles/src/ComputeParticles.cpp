@@ -70,8 +70,8 @@ struct BackgroundPixelConstants {
 
 bool UseFirstPersonCamera = true;
 float3 TestSolidTranslate = { 0, 0, 0 };
-float3 TestSolidScale = { 1, 1, 1 };
-float3 TestSolidLookAt = { 1, 0, 0 };
+float3 TestSolidScale = { 0.4f, 1, 0.4f };
+float3 TestSolidLookAt = { 0, 1, 0 };
 bool TestSolidUseLookAt = true;
 QuaternionF TestSolidRotation = {0, 0, 0, 1};
 
@@ -85,6 +85,32 @@ ju::FileWatchHandle     ShadersDirWatchHandle;
 bool                    ShaderAssetsMarkedDirty = false;
 
 std::vector<ParticleAttribs> DebugParticleData;
+
+// returns a quaternion that rotates vector a to vector b
+QuaternionF GetRotationQuat( const float3 &a, const float3 &b, const float3 &up )
+{   
+    //ASSERT_VECTOR_NORMALIZED(a);
+    //ASSERT_VECTOR_NORMALIZED(b);
+
+	float dotAB = dot( a, b );
+	// test for dot = -1
+	if( fabsf( dotAB - (-1.0f) ) < 0.000001f ) {
+		// vector a and b point exactly in the opposite direction, 
+		// so it is a 180 degrees turn around the up-axis
+		return QuaternionF( up.x, up.y, up.z, PI );
+	}
+	// test for dot = 1
+    if( fabsf( dotAB - (1.0f) ) < 0.000001f ) {
+        // vector a and b point exactly in the same direction
+		// so we return the identity quaternion
+		return QuaternionF( 0.0f, 0.0f, 0.0f, 1.0f );
+	}
+
+	float rotAngle = acos( dotAB );
+	float3 rotAxis = cross( a, b );
+	rotAxis = normalize( rotAxis );
+    return QuaternionF::RotationFromAxisAngle( rotAxis, rotAngle );
+}
 
 } // anon
 
@@ -545,8 +571,7 @@ void ComputeParticles::Update( double CurrTime, double ElapsedTime )
     //}
     if( TestSolidUseLookAt ) {
         TestSolidLookAt = normalize( TestSolidLookAt );
-        // TODO NEXT: fix this
-        auto rot = QuaternionF::RotationFromAxisAngle( TestSolidLookAt, PI / 2.0f );
+        auto rot = GetRotationQuat( float3( 0, 1, 0 ), TestSolidLookAt, float3( 0, 1, 0 ) );
         modelTransform *= rot.ToMatrix();
     }
     else {
@@ -666,7 +691,7 @@ void ComputeParticles::updateParticles()
             mParticleAttribsStaging, 0, mNumParticles * sizeof(ParticleAttribs), RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
 
         // We should use synchronizations to safely access the mapped memory.
-        // TODO: re-enable this, but not crucial when looking at debug data
+        // TODO: fix and re-enable this, but not crucial when looking at debug data
         //m_pImmediateContext->EnqueueSignal( mFenceParticleAttribsAvailable, mFenceParticleAttribsValue++ );
         //m_pImmediateContext->Flush(); // TODO: needed?
 
@@ -777,7 +802,7 @@ void ComputeParticles::updateUI()
             im::SameLine();
             im::Checkbox( "use lookat##solid", &TestSolidUseLookAt );
             if( TestSolidUseLookAt ) {
-                im::DragFloat3( "lookat##solid", &TestSolidLookAt.x, 0.01f );
+                im::DragFloat3( "lookat dir##solid", &TestSolidLookAt.x, 0.01f );
                 im::gizmo3D( "##TestSolidLookAt", TestSolidLookAt, ImGui::GetTextLineHeight() * 7 );
             }
             else {
@@ -785,7 +810,7 @@ void ComputeParticles::updateUI()
             }
             im::DragFloat3( "translate##solid", &TestSolidTranslate.x, 0.01f );
 
-            static bool lockDims = true;
+            static bool lockDims = false;
             if( lockDims ) {
                 if( im::DragFloat( "scale##solids1", &TestSolidScale.x, 0.01f, 0.001f, 1000.0f ) ) {
                     TestSolidScale = float3( TestSolidScale.x, TestSolidScale.x, TestSolidScale.x );
@@ -815,7 +840,7 @@ void ComputeParticles::updateUI()
     im::SetNextWindowPos( { 400, 20 }, ImGuiCond_FirstUseEver );
     im::SetNextWindowSize( { 800, 700 }, ImGuiCond_FirstUseEver );
 
-    if( im::Begin( "DebugCopyParticles", &mDebugCopyParticles ) ) {
+    if( mDebugCopyParticles && im::Begin( "DebugCopyParticles", &mDebugCopyParticles ) ) {
         im::Text( "count: %d", mNumParticles );
 
 
@@ -861,6 +886,7 @@ void ComputeParticles::updateUI()
                 im::EndTable();
             }
         }
+
+        im::End(); // DebugCopyParticles
     }
-    im::End(); // DebugCopyParticles
 }
