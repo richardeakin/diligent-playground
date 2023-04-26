@@ -71,6 +71,8 @@ struct BackgroundPixelConstants {
 bool UseFirstPersonCamera = true;
 float3 TestSolidTranslate = { 0, 0, 0 };
 float3 TestSolidScale = { 1, 1, 1 };
+float3 TestSolidLookAt = { 1, 0, 0 };
+bool TestSolidUseLookAt = true;
 QuaternionF TestSolidRotation = {0, 0, 0, 1};
 
 float CameraRotationSpeed = 0.005f;
@@ -541,7 +543,15 @@ void ComputeParticles::Update( double CurrTime, double ElapsedTime )
     //if( TestSolidRotate )  {
     //    modelTransform *= float4x4::RotationY( static_cast<float>(CurrTime) * 1.0f) * float4x4::RotationX( -PI_F * 0.1f );
     //}
-    modelTransform *= TestSolidRotation.ToMatrix();
+    if( TestSolidUseLookAt ) {
+        TestSolidLookAt = normalize( TestSolidLookAt );
+        // TODO NEXT: fix this
+        auto rot = QuaternionF::RotationFromAxisAngle( TestSolidLookAt, PI / 2.0f );
+        modelTransform *= rot.ToMatrix();
+    }
+    else {
+        modelTransform *= TestSolidRotation.ToMatrix();
+    }
 
     modelTransform *= float4x4::Translation( TestSolidTranslate );
 
@@ -764,9 +774,16 @@ void ComputeParticles::updateUI()
             im::Separator();
             im::Text( "Test Solid" );
             im::Checkbox( "draw##test solid", &mDrawTestSolid );
-            //im::Checkbox( "rotate##solid", &TestSolidRotate );
+            im::SameLine();
+            im::Checkbox( "use lookat##solid", &TestSolidUseLookAt );
+            if( TestSolidUseLookAt ) {
+                im::DragFloat3( "lookat##solid", &TestSolidLookAt.x, 0.01f );
+                im::gizmo3D( "##TestSolidLookAt", TestSolidLookAt, ImGui::GetTextLineHeight() * 7 );
+            }
+            else {
+                im::gizmo3D( "##TestSolidRotation", TestSolidRotation, ImGui::GetTextLineHeight() * 7 );
+            }
             im::DragFloat3( "translate##solid", &TestSolidTranslate.x, 0.01f );
-            im::gizmo3D( "##TestSolidRotation", TestSolidRotation, ImGui::GetTextLineHeight() * 7 );
 
             static bool lockDims = true;
             if( lockDims ) {
@@ -795,21 +812,53 @@ void ComputeParticles::updateUI()
     }
     im::End(); // Settings
 
+    im::SetNextWindowPos( { 400, 20 }, ImGuiCond_FirstUseEver );
+    im::SetNextWindowSize( { 800, 700 }, ImGuiCond_FirstUseEver );
+
     if( im::Begin( "DebugCopyParticles", &mDebugCopyParticles ) ) {
         im::Text( "count: %d", mNumParticles );
 
 
         if( ! DebugParticleData.empty() ) {
-            // TODO: use im::BeginTable
-            static int start = 0;
-            static int end = 10;
-            for( int i = start; i < end; i++ ) {
-                const auto &p = DebugParticleData.at( i );
-                im::Text( "[%d] pos: [%0.03f, %0.03f, %0.03f]", i, p.pos.x, p.pos.y, p.pos.z );
-                im::SameLine();
-                im::Text( " speed: [%0.03f, %0.03f, %0.03f]", i, p.speed.x, p.speed.y, p.speed.z );
-                im::SameLine();
-                im::Text( " collisions %d, temp: %0.03f", p.numCollisions, p.temperature );
+            static int maxRows = 1000;
+
+            static ImGuiTableFlags flags = ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_Hideable;
+            flags |= ImGuiTableFlags_ScrollY;
+            //flags |= ImGuiTableFlags_Resizable;
+            flags |= ImGuiTableFlags_SizingFixedFit;
+
+            // TODO: fix width of columns
+            if( im::BeginTable( "table_ParticleAttribs", 5, flags ) ) {
+                ImGuiTableColumnFlags columnFlags = ImGuiTableColumnFlags_WidthFixed; 
+                im::TableSetupScrollFreeze( 0, 1 ); // Make top row always visible
+                im::TableSetupColumn( "index", columnFlags, 34 );
+                im::TableSetupColumn( "pos", columnFlags, 180 );
+                im::TableSetupColumn( "speed", columnFlags, 180 );
+                im::TableSetupColumn( "collisions", ImGuiTableColumnFlags_None );
+                im::TableSetupColumn( "temp", ImGuiTableColumnFlags_None );
+                im::TableHeadersRow();
+
+                // Demonstrate using clipper for large vertical lists
+                ImGuiListClipper clipper;
+				clipper.Begin( maxRows );
+				while( clipper.Step() ) {
+					for( int row = clipper.DisplayStart; row<clipper.DisplayEnd; row++ ) {
+						im::TableNextRow();
+                        const auto &p = DebugParticleData.at( row );
+                        int column = 0;
+                        im::TableSetColumnIndex( column++ );
+                        im::Text( "%d", row );
+                        im::TableSetColumnIndex( column++ );
+                        im::Text( "[%6.3f, %6.3f, %6.3f]", p.pos.x, p.pos.y, p.pos.z );
+                        im::TableSetColumnIndex( column++ );
+                        im::Text( "[%6.3f, %6.3f, %6.3f]", p.speed.x, p.speed.y, p.speed.z );
+                        im::TableSetColumnIndex( column++ );
+                        im::Text( " %d", p.numCollisions );
+                        im::TableSetColumnIndex( column++ );
+                        im::Text( "%0.03f", p.temperature );
+                    }
+				}
+                im::EndTable();
             }
         }
     }
