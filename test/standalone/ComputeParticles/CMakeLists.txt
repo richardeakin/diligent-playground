@@ -36,6 +36,7 @@ set(SHADERS
     assets/shaders/solids/solid.fxh
     assets/shaders/canvas/canvas.vsh
     assets/shaders/canvas/canvas.psh
+    assets/shaders/Quaternion.hlsl
 )
 
 set(ASSETS)

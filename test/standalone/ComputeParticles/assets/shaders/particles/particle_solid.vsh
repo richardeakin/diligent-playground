@@ -1,4 +1,5 @@
 #include "shaders/particles/structures.fxh"
+#include "shaders/Quaternion.hlsl"
 
 cbuffer SConstants {
     SceneConstants SConstants;
@@ -33,6 +34,18 @@ void main( in VSInput VSIn, out PSInput PSIn )
     pos = pos * Attribs.size * PConstants.scale + Attribs.pos;
 
     PSIn.Pos = mul( float4( pos, 1.0 ), SConstants.ModelViewProj );
+
+    // scale pyramid to look more like an arrow
+    pos.x *= 0.4;
+    pos.z *= 0.4;
+
+    // rotate in the direction of current speed
+    float3 lookAtDir = normalize( Attribs.speed );
+    //float4x4 lookAtMat = look_at_matrix( lookAtDir, float3( 0, 1, 0 ) );
+    float4 posRotated = mul( float4( pos, 1.0 ), lookAtMat );
+    PSIn.Pos = mul( posRotated, SConstants.ModelViewProj );
+
+    //PSIn.Pos = mul( float4( pos, 1.0 ), SConstants.ModelViewProj );
     PSIn.UV  = VSIn.UV;
     PSIn.Temp = Attribs.temperature;
 
