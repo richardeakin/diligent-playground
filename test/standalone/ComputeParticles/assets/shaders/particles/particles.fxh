@@ -30,19 +30,22 @@ void ClampParticlePosition( inout float3 pos, inout float3 speed, in float size 
     }
 }
 
+int Grid3DTo1D( in int3 loc, in int3 gridSize )
+{
+    return loc.x + loc.y * gridSize.x + loc.z * gridSize.x * gridSize.y;
+}
+
 #if 1
-// TODO NEXT: update for a 3D grid position
 // returns 3D grid position in .xyz, flattened position in .w
 int4 GetGridLocation( float3 pos, int3 gridSize )
 {
-    int4 gridPos;
-    gridPos.x = clamp(int((pos.x + 1.0) * 0.5 * float(gridSize.x)), 0, gridSize.x - 1);
-    gridPos.y = clamp(int((pos.y + 1.0) * 0.5 * float(gridSize.y)), 0, gridSize.y - 1);
-    gridPos.z = clamp(int((pos.z + 1.0) * 0.5 * float(gridSize.z)), 0, gridSize.z - 1);
+    int4 loc;
+    loc.x = clamp(int((pos.x + 1.0) * 0.5 * float(gridSize.x)), 0, gridSize.x - 1);
+    loc.y = clamp(int((pos.y + 1.0) * 0.5 * float(gridSize.y)), 0, gridSize.y - 1);
+    loc.z = clamp(int((pos.z + 1.0) * 0.5 * float(gridSize.z)), 0, gridSize.z - 1);
 
-    // TODO NEXT: figure out what Z is used here for before converting to 3D
-    gridPos.w = gridPos.x + gridPos.y * gridSize.x + gridPos.z * gridSize.x * gridSize.y;
-    return gridPos;
+    loc.w = Grid3DTo1D( loc, gridSize );
+    return loc;
 }
 
 #else

@@ -21,26 +21,26 @@ Buffer<int>                         ParticleLists;
 void CollideParticles(inout ParticleAttribs P0, in ParticleAttribs P1)
 {
     // TODO: update for 3D
-    float2 R01 = ( P1.pos.xy - P0.pos.xy ) / Constants.scale;
+    float3 R01 = ( P1.pos - P0.pos ) / Constants.scale;
     float d01 = length( R01 );
     R01 /= d01;
     if( d01 < P0.size + P1.size ) {
 #if UPDATE_SPEED
         // The math for speed update is only valid for two-particle collisions.
         if( P0.numCollisions == 1 && P1.numCollisions == 1 ) {
-            float v0 = dot( P0.speed.xy, R01 );
-            float v1 = dot( P1.speed.xy, R01 );
+            float v0 = dot( P0.speed, R01 );
+            float v1 = dot( P1.speed, R01 );
 
             float m0 = P0.size * P0.size;
             float m1 = P1.size * P1.size;
 
             float new_v0 = ((m0 - m1) * v0 + 2.0 * m1 * v1) / (m0 + m1);
-            P0.newSpeed += float3( (new_v0 - v0) * R01, 0 ); // TODO: compute for .z too
+            P0.newSpeed += (new_v0 - v0) * R01;
         }
 #else
         {
             // Move the particle away
-            P0.newPos += float3( -R01 * (P0.size + P1.size - d01) * Constants.scale * 0.51, 0 ); // TODO: use z
+            P0.newPos += -R01 * (P0.size + P1.size - d01) * Constants.scale * 0.51;
 
             // Set our fake temperature to 1 to indicate collision
             P0.temperature = 1.0;
@@ -63,9 +63,8 @@ void main( uint3 Gid  : SV_GroupID,
     int iParticleIdx = int(uiGlobalThreadIdx);
     ParticleAttribs Particle = Particles[iParticleIdx];
     
-    int2 i2GridPos = GetGridLocation( Particle.pos, Constants.gridSize ).xy; // TODO: use 3D pos
-    int GridWidth  = Constants.gridSize.x;
-    int GridHeight = Constants.gridSize.y;
+    const int3 gridSize = Constants.gridSize;
+    const int4 gridLoc = GetGridLocation( Particle.pos, Constants.gridSize );
 
 #if ! UPDATE_SPEED
     Particle.newPos       = Particle.pos;
@@ -75,19 +74,23 @@ void main( uint3 Gid  : SV_GroupID,
     // Only update speed when there is single collision with another particle.
     if( Particle.numCollisions == 1 ) {
 #endif
-        for( int y = max( i2GridPos.y - 1, 0 ); y <= min( i2GridPos.y + 1, GridHeight - 1 ); ++y ) {
-            for( int x = max( i2GridPos.x - 1, 0 ); x <= min(i2GridPos.x + 1, GridWidth - 1 ); ++x ) {
-                int AnotherParticleIdx = ParticleListHead.Load(x + y * GridWidth);
-                while( AnotherParticleIdx >= 0 ) {
-                    if( iParticleIdx != AnotherParticleIdx ) {
-                        ParticleAttribs AnotherParticle = Particles[AnotherParticleIdx];
-                        CollideParticles( Particle, AnotherParticle );
-                    }
+        int z = 0; // FIXME: traversing in z is causing a runtime crash
+        //for( int z = max( gridLoc.z - 1, 0 ); z <= min( gridLoc.z + 1, gridSize.z - 1 ); ++z ) {
+            for( int y = max( gridLoc.y - 1, 0 ); y <= min( gridLoc.y + 1, gridSize.y - 1 ); ++y ) {
+                for( int x = max( gridLoc.x - 1, 0 ); x <= min( gridLoc.x + 1, gridSize.x - 1 ); ++x ) {
+                    int neighborIndex = Grid3DTo1D( int3( x, y, z ), gridSize );
+                    int AnotherParticleIdx = ParticleListHead.Load( neighborIndex );
+                    while( AnotherParticleIdx >= 0 ) {
+                        if( iParticleIdx != AnotherParticleIdx ) {
+                            ParticleAttribs AnotherParticle = Particles[AnotherParticleIdx];
+                            CollideParticles( Particle, AnotherParticle );
+                        }
 
-                    AnotherParticleIdx = ParticleLists.Load(AnotherParticleIdx);
+                        AnotherParticleIdx = ParticleLists.Load( AnotherParticleIdx );
+                    }
                 }
             }
-        }
+        //}
 #if UPDATE_SPEED
     }
     else if( Particle.numCollisions > 1 ) {

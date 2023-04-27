@@ -26,7 +26,7 @@ struct PSInput {
     float3 Normal : NORMAL;
 };
 
-float4 GetRotationFromAxisAngle( in float3 axis, float angle )
+float4 GetRotationFromAxisAngle( in float3 axis, in float angle )
 {
     float4 result = float4( 0, 0, 0, 1 );
     const float norm = length( axis );
@@ -83,7 +83,8 @@ void main( in VSInput VSIn, out PSInput PSIn )
     float4 lookAtQuat = GetRotationQuat( float3( 0, 1, 0 ), lookAtDir, float3( 0, 1, 0 ) );
     //float4 lookAtQuat = q_look_at( lookAtDir, float3( 0, 1, 0 ) );
     float4x4 lookAtMat = quaternion_to_matrix( lookAtQuat );
-    float4 posRotated = mul( float4( pos, 1.0 ), lookAtMat );
+    //float4 posRotated = mul( float4( pos, 1.0 ), lookAtMat );
+    float4 posRotated = mul( lookAtMat, float4( pos, 1.0 ) ); // TODO: figure out why post multiplying the pos fixes directions
 
     posRotated += float4( Attribs.pos, 0 );
     PSIn.Pos = mul( posRotated, SConstants.ModelViewProj );
@@ -93,5 +94,6 @@ void main( in VSInput VSIn, out PSInput PSIn )
     PSIn.UV  = VSIn.UV;
     PSIn.Temp = Attribs.temperature;
 
+    // TODO: normal also needs to be rotated
     PSIn.Normal = mul( float4( VSIn.Normal, 0.0 ), SConstants.NormalTranform ).xyz;
 }

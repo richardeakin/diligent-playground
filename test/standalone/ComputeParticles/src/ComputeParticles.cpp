@@ -331,14 +331,17 @@ void ComputeParticles::initUpdateParticlePSO()
 
 void ComputeParticles::initSolids()
 {
-    ju::Solid::Options options;
-    options.components = ju::VERTEX_COMPONENT_FLAG_POS_NORM_UV;
+    // make a Solid for testing
+    {
+        ju::Solid::Options options;
+        options.components = ju::VERTEX_COMPONENT_FLAG_POS_NORM_UV;
 
-    if( mParticleType == ParticleType::Pyramid ) {
-        mTestSolid = std::make_unique<ju::Pyramid>( options );
-    }
-    else {
-        mTestSolid = std::make_unique<ju::Cube>( options );
+        if( mParticleType == ParticleType::Pyramid ) {
+            mTestSolid = std::make_unique<ju::Pyramid>( options );
+        }
+        else {
+            mTestSolid = std::make_unique<ju::Cube>( options );
+        }
     }
 
     // make the Solid that will get used for instanced drawing of particles
