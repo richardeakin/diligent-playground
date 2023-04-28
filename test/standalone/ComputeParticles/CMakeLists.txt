@@ -9,6 +9,7 @@ set(SOURCE
     src/AppGlobal.cpp
     ../common/src/Canvas.cpp
     ../common/src/LivePP.cpp
+    ../common/src/Profiler.cpp
 )
 
 set(INCLUDE
@@ -19,6 +20,7 @@ set(INCLUDE
     ../common/src/LivePP.h
     ../common/src/FileWatch.h
     ../common/src/FileWatch-Monkman.hpp
+    ../common/src/Profiler.h
 )
 
 set(SHADERS

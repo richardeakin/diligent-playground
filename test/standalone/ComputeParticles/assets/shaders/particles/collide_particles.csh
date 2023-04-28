@@ -1,6 +1,8 @@
 #include "shaders/particles/structures.fxh"
 #include "shaders/particles/particles.fxh"
 
+#define BINNING_ENABLED 0
+
 cbuffer Constants {
     ParticleConstants Constants;
 };
@@ -74,23 +76,32 @@ void main( uint3 Gid  : SV_GroupID,
     // Only update speed when there is single collision with another particle.
     if( Particle.numCollisions == 1 ) {
 #endif
-        int z = 0; // FIXME: traversing in z is causing a runtime crash
-        //for( int z = max( gridLoc.z - 1, 0 ); z <= min( gridLoc.z + 1, gridSize.z - 1 ); ++z ) {
-            for( int y = max( gridLoc.y - 1, 0 ); y <= min( gridLoc.y + 1, gridSize.y - 1 ); ++y ) {
-                for( int x = max( gridLoc.x - 1, 0 ); x <= min( gridLoc.x + 1, gridSize.x - 1 ); ++x ) {
-                    int neighborIndex = Grid3DTo1D( int3( x, y, z ), gridSize );
-                    int AnotherParticleIdx = ParticleListHead.Load( neighborIndex );
-                    while( AnotherParticleIdx >= 0 ) {
-                        if( iParticleIdx != AnotherParticleIdx ) {
-                            ParticleAttribs AnotherParticle = Particles[AnotherParticleIdx];
-                            CollideParticles( Particle, AnotherParticle );
-                        }
 
-                        AnotherParticleIdx = ParticleLists.Load( AnotherParticleIdx );
+#if BINNING_ENABLED
+    {
+    int z = 0; // FIXME: traversing in z is causing a runtime crash. could mean a loop
+    //for( int z = max( gridLoc.z - 1, 0 ); z <= min( gridLoc.z + 1, gridSize.z - 1 ); ++z ) {
+        for( int y = max( gridLoc.y - 1, 0 ); y <= min( gridLoc.y + 1, gridSize.y - 1 ); ++y ) {
+            for( int x = max( gridLoc.x - 1, 0 ); x <= min( gridLoc.x + 1, gridSize.x - 1 ); ++x ) {
+                int neighborIndex = Grid3DTo1D( int3( x, y, z ), gridSize );
+                int AnotherParticleIdx = ParticleListHead.Load( neighborIndex );
+                while( AnotherParticleIdx >= 0 ) {
+                    if( iParticleIdx != AnotherParticleIdx ) {
+                        ParticleAttribs AnotherParticle = Particles[AnotherParticleIdx];
+                        CollideParticles( Particle, AnotherParticle );
                     }
+
+                    AnotherParticleIdx = ParticleLists.Load( AnotherParticleIdx );
                 }
             }
-        //}
+        }
+    }
+#else
+    for( int i = 0; i < Constants.numParticles; i++ ) {
+        CollideParticles( Particle, Particles[i] );
+    }
+#endif
+
 #if UPDATE_SPEED
     }
     else if( Particle.numCollisions > 1 ) {

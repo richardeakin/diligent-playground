@@ -140,6 +140,9 @@ void ComputeParticles::Initialize( const SampleInitInfo& InitInfo )
     mBackgroundCanvas = std::make_unique<ju::Canvas>( sizeof(BackgroundPixelConstants) );
     initSolids();
     initCamera();
+
+    mProfiler = std::make_unique<ju::Profiler>( m_pDevice );
+
     watchShadersDir();
 }
 
@@ -472,8 +475,17 @@ void ComputeParticles::initParticleBuffers()
     mCollideParticlesSRB.Release();
     mCollideParticlesPSO->CreateShaderResourceBinding( &mCollideParticlesSRB, true );
     mCollideParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "Particles" )->Set( pParticleAttribsBufferUAV );
-    mCollideParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "ParticleListHead" )->Set( pParticleListHeadsBufferSRV );
-    mCollideParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "ParticleLists" )->Set( pParticleListsBufferSRV );
+    //mCollideParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "ParticleListHead" )->Set( pParticleListHeadsBufferSRV );
+    //mCollideParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "ParticleLists" )->Set( pParticleListsBufferSRV );
+
+    auto listHead =  mCollideParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "ParticleListHead" );
+    if( listHead ) {
+        listHead->Set( pParticleListHeadsBufferSRV );
+    }
+    auto lists = mCollideParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "ParticleLists" );
+    if( lists ) {
+        lists->Set( pParticleListsBufferSRV );
+    }
 }
 
 void ComputeParticles::initConsantBuffer()
@@ -629,6 +641,8 @@ void ComputeParticles::Update( double CurrTime, double ElapsedTime )
 // Render a frame
 void ComputeParticles::Render()
 {
+    mProfiler->begin( m_pImmediateContext, "render" );
+
     auto* pRTV = m_pSwapChain->GetCurrentBackBufferRTV();
     auto* pDSV = m_pSwapChain->GetDepthBufferDSV();
     // Clear the back buffer
@@ -655,6 +669,8 @@ void ComputeParticles::Render()
     if( mTestSolid && mDrawTestSolid ) {
         mTestSolid->draw( m_pImmediateContext, mViewProjMatrix );
     }
+
+    mProfiler->end( m_pImmediateContext, "render" );
 }
 
 void ComputeParticles::updateParticles()
@@ -902,4 +918,8 @@ void ComputeParticles::updateUI()
         im::End(); // DebugCopyParticles
     }
 #endif
+
+    if( mProfilingUIEnabled && mProfiler ) {
+        mProfiler->updateUI( &mProfilingUIEnabled );
+    }
 }

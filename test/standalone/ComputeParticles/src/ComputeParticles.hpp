@@ -6,6 +6,7 @@
 #include "FirstPersonCamera.hpp"
 
 #include "common/src/Canvas.h"
+#include "common/src/Profiler.h"
 #include "Solids.h"
 
 #define DEBUG_PARTICLE_BUFFERS 1
@@ -27,8 +28,15 @@ private:
     void initUpdateParticlePSO();
     void initParticleBuffers();
     void initConsantBuffer();
+    void initCamera();
     void initSolids();
     void updateUI();
+
+    void watchShadersDir();
+    void reloadOnAssetsUpdated();
+
+    void updateParticles();
+    void drawParticles();
 
     dg::RefCntAutoPtr<dg::IPipelineState>         mRenderParticlePSO;
     dg::RefCntAutoPtr<dg::IShaderResourceBinding> mRenderParticleSRB;
@@ -78,11 +86,6 @@ private:
 
     ParticleType mParticleType = ParticleType::Pyramid;
 
-    void initCamera();
-
-    void watchShadersDir();
-    void reloadOnAssetsUpdated();
-
-    void updateParticles();
-    void drawParticles();
+    std::unique_ptr<ju::Profiler>   mProfiler;
+    bool                            mProfilingUIEnabled = true;
 };
