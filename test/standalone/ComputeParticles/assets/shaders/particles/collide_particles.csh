@@ -1,7 +1,7 @@
 #include "shaders/particles/structures.fxh"
 #include "shaders/particles/particles.fxh"
 
-#define BINNING_ENABLED 0
+#define BINNING_ENABLED 1
 
 cbuffer Constants {
     ParticleConstants Constants;

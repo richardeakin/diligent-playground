@@ -60,11 +60,11 @@ private:
 #endif
 
     int     mNumParticles    = 100; // was: 1000
+    float   mParticleScale   = 1;
+    float   mSimulationSpeed = 0.5f;
     dg::int3 mGridSize       = { 10, 10, 10 };
     int     mThreadGroupSize = 256;
     float   mTimeDelta       = 0;
-    float   mSimulationSpeed = 0.5f;
-    float   mParticleScale = 2;
     bool    mDrawBackground = true;
     bool    mDrawTestSolid = false;
     bool    mDrawParticles = true;
@@ -87,5 +87,5 @@ private:
     ParticleType mParticleType = ParticleType::Pyramid;
 
     std::unique_ptr<ju::Profiler>   mProfiler;
-    bool                            mProfilingUIEnabled = true;
+    bool                            mProfilingUIEnabled = false  ;
 };

@@ -97,7 +97,7 @@ QuaternionF GetRotationQuat( const float3 &a, const float3 &b, const float3 &up 
 	if( fabsf( dotAB - (-1.0f) ) < 0.000001f ) {
 		// vector a and b point exactly in the opposite direction, 
 		// so it is a 180 degrees turn around the up-axis
-		return QuaternionF( up.x, up.y, up.z, PI );
+		return QuaternionF( up.x, up.y, up.z, PI_F );
 	}
 	// test for dot = 1
     if( fabsf( dotAB - (1.0f) ) < 0.000001f ) {
@@ -118,7 +118,9 @@ void ComputeParticles::ModifyEngineInitInfo( const ModifyEngineInitInfoAttribs& 
 {
     SampleBase::ModifyEngineInitInfo( Attribs );
 
-    Attribs.EngineCI.Features.ComputeShaders = DEVICE_FEATURE_STATE_ENABLED;
+    Attribs.EngineCI.Features.ComputeShaders    = DEVICE_FEATURE_STATE_ENABLED;
+    Attribs.EngineCI.Features.TimestampQueries  = DEVICE_FEATURE_STATE_OPTIONAL;
+    Attribs.EngineCI.Features.DurationQueries   = DEVICE_FEATURE_STATE_OPTIONAL;
 }
 
 void ComputeParticles::Initialize( const SampleInitInfo& InitInfo )
@@ -375,6 +377,7 @@ void ComputeParticles::initParticleBuffers()
     mParticleListsBuffer.Release();
 #if DEBUG_PARTICLE_BUFFERS
     mParticleAttribsStaging.Release();
+    mFenceParticleAttribsAvailable.Release();
 #endif
 
     BufferDesc BuffDesc;
@@ -641,8 +644,6 @@ void ComputeParticles::Update( double CurrTime, double ElapsedTime )
 // Render a frame
 void ComputeParticles::Render()
 {
-    mProfiler->begin( m_pImmediateContext, "render" );
-
     auto* pRTV = m_pSwapChain->GetCurrentBackBufferRTV();
     auto* pDSV = m_pSwapChain->GetDepthBufferDSV();
     // Clear the back buffer
@@ -669,12 +670,12 @@ void ComputeParticles::Render()
     if( mTestSolid && mDrawTestSolid ) {
         mTestSolid->draw( m_pImmediateContext, mViewProjMatrix );
     }
-
-    mProfiler->end( m_pImmediateContext, "render" );
 }
 
 void ComputeParticles::updateParticles()
 {
+    mProfiler->begin( m_pImmediateContext, "update particles" );
+
     // appears we always need to update this buffer or an assert failure happens (stale buffer)
     {
         // Map the buffer and write current world-view-projection matrix
@@ -738,6 +739,8 @@ void ComputeParticles::updateParticles()
         }
     }
 #endif
+
+    mProfiler->end( m_pImmediateContext, "update particles" );
 }
 
 void ComputeParticles::drawParticles()
@@ -745,6 +748,8 @@ void ComputeParticles::drawParticles()
     if( ! mDrawParticles ) {
         return;
     }
+
+    mProfiler->begin( m_pImmediateContext, "draw particles" );
 
     m_pImmediateContext->SetPipelineState( mRenderParticlePSO );
     m_pImmediateContext->CommitShaderResources( mRenderParticleSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
@@ -758,6 +763,8 @@ void ComputeParticles::drawParticles()
     else {
         mParticleSolid->draw( m_pImmediateContext, mViewProjMatrix, mNumParticles );
     }
+
+    mProfiler->end( m_pImmediateContext, "draw particles" );
 }
 
 // ------------------------------------------------------------------------------------------------------------
@@ -768,6 +775,7 @@ void ComputeParticles::updateUI()
 {
     im::SetNextWindowPos( ImVec2( 10, 10 ), ImGuiCond_FirstUseEver );
     if( im::Begin( "Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize ) ) {
+        im::Checkbox( "profiling ui", &mProfilingUIEnabled );
         if( im::CollapsingHeader( "Particles", ImGuiTreeNodeFlags_DefaultOpen ) ) {
             im::Checkbox( "update", &mUpdateParticles );
             im::SameLine();
@@ -819,7 +827,8 @@ void ComputeParticles::updateUI()
                 mCamera.SetPos( camPos );
             }
             im::Text( "view dir: [%0.02f, %0.02f, %0.02f]", mCamera.GetWorldAhead().x, mCamera.GetWorldAhead().y, mCamera.GetWorldAhead().z );
-            im::gizmo3D( "##ViewDir", mCamera.GetWorldAhead(), ImGui::GetTextLineHeight() * 5 );
+            auto viewDir = mCamera.GetWorldAhead();
+            im::gizmo3D( "##ViewDir", viewDir, ImGui::GetTextLineHeight() * 5 );
         }
 
         if( im::CollapsingHeader( "Scene", ImGuiTreeNodeFlags_DefaultOpen ) ) {

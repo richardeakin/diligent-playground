@@ -18,7 +18,7 @@ Profiler::Profiler( IRenderDevice* device )
 
 	// TODO: pass in expected queries as optional param
 	// TODO: make num queries grow to fit
-	mQuerier = make_unique<DurationQueryHelper>( mDevice, 10 );
+	mQuerier = make_unique<DurationQueryHelper>( mDevice, 10, 10 );
 }
 
 Profiler::~Profiler()
@@ -72,7 +72,7 @@ void Profiler::updateUI( bool *open )
 	auto displayTimeFn = []( const pair<string,double> &t ) {
 		im::Text( "%s", t.first.c_str() );
 		im::NextColumn();
-		im::Text( "%6.3f", (float)t.second );
+		im::Text( "%6.3f", float( t.second * 1000.0 ) );
 		im::NextColumn();
 	};
 
