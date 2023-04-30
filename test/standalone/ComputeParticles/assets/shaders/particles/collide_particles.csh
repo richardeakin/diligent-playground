@@ -105,8 +105,7 @@ void main( uint3 Gid  : SV_GroupID,
 #if UPDATE_SPEED
     }
     else if( Particle.numCollisions > 1 ) {
-        // If there are multiple collisions, reverse the particle move direction to
-        // avoid particle crowding.
+        // If there are multiple collisions, reverse the particle move direction to avoid particle crowding.
         Particle.newSpeed = -Particle.speed;
     }
 #else

@@ -129,6 +129,9 @@ void ComputeParticles::Initialize( const SampleInitInfo& InitInfo )
 
     SampleBase::Initialize( InitInfo );
 
+    ImGuiIO& io    = ImGui::GetIO();
+    io.IniFilename = "imgui.ini";
+
     initConsantBuffer();
     initRenderParticlePSO();
     initUpdateParticlePSO();
@@ -644,11 +647,10 @@ void ComputeParticles::Update( double CurrTime, double ElapsedTime )
 // Render a frame
 void ComputeParticles::Render()
 {
+    const float ClearColor[] = {0.350f, 0.350f, 0.350f, 1.0f};
+
     auto* rtv = m_pSwapChain->GetCurrentBackBufferRTV();
     auto* dsv = m_pSwapChain->GetDepthBufferDSV();
-    // Clear the back buffer
-    const float ClearColor[] = {0.350f, 0.350f, 0.350f, 1.0f};
-    // Let the engine perform required state transitions
     m_pImmediateContext->ClearRenderTarget( rtv, ClearColor, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
     m_pImmediateContext->ClearDepthStencil( dsv, CLEAR_DEPTH_FLAG, 1.f, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
 
@@ -773,8 +775,12 @@ void ComputeParticles::drawParticles()
 
 void ComputeParticles::updateUI()
 {
+    if( ! mUIEnabled )
+        return;
+
     im::SetNextWindowPos( ImVec2( 10, 10 ), ImGuiCond_FirstUseEver );
     if( im::Begin( "Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize ) ) {
+        im::Checkbox( "ui", &mUIEnabled );
         im::Checkbox( "profiling ui", &mProfilingUIEnabled );
         if( im::CollapsingHeader( "Particles", ImGuiTreeNodeFlags_DefaultOpen ) ) {
             im::Checkbox( "update", &mUpdateParticles );
