@@ -59,7 +59,8 @@ private:
     bool    mDebugCopyParticles = false;
 #endif
 
-    int     mNumParticles    = 100; // was: 1000
+    bool    mUIEnabled = true;  
+    int     mNumParticles    = 1000; // was: 1000
     float   mParticleScale   = 1;
     float   mSimulationSpeed = 0.5f;
     dg::int3 mGridSize       = { 10, 10, 10 };
