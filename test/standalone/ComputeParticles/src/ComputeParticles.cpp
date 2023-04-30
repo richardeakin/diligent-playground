@@ -84,7 +84,11 @@ dg::float3      LightDir  = normalize( float3( 1, -0.5f, -0.1f ) );
 ju::FileWatchHandle     ShadersDirWatchHandle;
 bool                    ShaderAssetsMarkedDirty = false;
 
-std::vector<ParticleAttribs> DebugParticleData;
+std::vector<ParticleAttribs> DebugParticleAttribsData;
+std::vector<int> DebugParticleListsData;
+std::vector<int> DebugParticleListsHeadData;
+static bool DebugShowParticleAttribsWindow = true;
+static bool DebugShowParticleListssWindow = true;
 
 // returns a quaternion that rotates vector a to vector b
 QuaternionF GetRotationQuat( const float3 &a, const float3 &b, const float3 &up )
@@ -380,6 +384,8 @@ void ComputeParticles::initParticleBuffers()
     mParticleListsBuffer.Release();
 #if DEBUG_PARTICLE_BUFFERS
     mParticleAttribsStaging.Release();
+    mParticleListsStaging.Release();
+    mParticleListsHeadStaging.Release();
     mFenceParticleAttribsAvailable.Release();
 #endif
 
@@ -419,28 +425,6 @@ void ComputeParticles::initParticleBuffers()
     IBufferView* pParticleAttribsBufferSRV = mParticleAttribsBuffer->GetDefaultView( BUFFER_VIEW_SHADER_RESOURCE );
     IBufferView* pParticleAttribsBufferUAV = mParticleAttribsBuffer->GetDefaultView( BUFFER_VIEW_UNORDERED_ACCESS );
 
-#if DEBUG_PARTICLE_BUFFERS
-    // make a staging buffer to read back
-    {
-        BufferDesc BuffDescStaging;
-
-        BuffDescStaging.Name           = "ParticleAttribs staging buffer";
-        BuffDescStaging.Usage          = USAGE_STAGING;
-        BuffDescStaging.BindFlags      = BIND_NONE;
-        BuffDescStaging.Mode           = BUFFER_MODE_UNDEFINED;
-        BuffDescStaging.CPUAccessFlags = CPU_ACCESS_READ;
-        BuffDescStaging.Size           = sizeof(ParticleAttribs) * mNumParticles;
-
-        m_pDevice->CreateBuffer( BuffDescStaging, nullptr, &mParticleAttribsStaging );
-        VERIFY_EXPR( mParticleAttribsStaging != nullptr );
-
-        FenceDesc FDesc;
-        FDesc.Name = "ParticleAttribs available";
-        FDesc.Type = FENCE_TYPE_GENERAL; // TODO: is this necessary? MeshShaders tutorial did not use it
-        m_pDevice->CreateFence( FDesc, &mFenceParticleAttribsAvailable );
-    }
-#endif
-
     BuffDesc.ElementByteStride = sizeof(int);
     BuffDesc.Mode              = BUFFER_MODE_FORMATTED;
     BuffDesc.Size              = Uint64{BuffDesc.ElementByteStride} * static_cast<Uint64>( mNumParticles );
@@ -463,6 +447,37 @@ void ComputeParticles::initParticleBuffers()
         mParticleListHeadsBuffer->CreateView( ViewDesc, &pParticleListHeadsBufferSRV );
         mParticleListsBuffer->CreateView( ViewDesc, &pParticleListsBufferSRV );
     }
+
+#if DEBUG_PARTICLE_BUFFERS
+    // make a staging buffer to read back
+    {
+        BufferDesc bufferDescStaging;
+
+        bufferDescStaging.Name           = "ParticleAttribs staging buffer";
+        bufferDescStaging.Usage          = USAGE_STAGING;
+        bufferDescStaging.BindFlags      = BIND_NONE;
+        bufferDescStaging.Mode           = BUFFER_MODE_UNDEFINED;
+        bufferDescStaging.CPUAccessFlags = CPU_ACCESS_READ;
+        bufferDescStaging.Size           = sizeof(ParticleAttribs) * mNumParticles;
+        m_pDevice->CreateBuffer( bufferDescStaging, nullptr, &mParticleAttribsStaging );
+        VERIFY_EXPR( mParticleAttribsStaging != nullptr );
+
+        bufferDescStaging.Name           = "ParticleLists staging buffer";
+        bufferDescStaging.Size           = sizeof(int) * mNumParticles;
+        m_pDevice->CreateBuffer( bufferDescStaging, nullptr, &mParticleListsStaging );
+        VERIFY_EXPR( mParticleListsStaging != nullptr );
+
+        bufferDescStaging.Name           = "ParticleListsHead staging buffer";
+        bufferDescStaging.Size           = sizeof(int) * mNumParticles;
+        m_pDevice->CreateBuffer( bufferDescStaging, nullptr, &mParticleListsHeadStaging );
+        VERIFY_EXPR( mParticleListsStaging != nullptr );
+
+        FenceDesc fenceDesc;
+        fenceDesc.Name = "ParticleAttribs available";
+        fenceDesc.Type = FENCE_TYPE_GENERAL; // TODO: is this necessary? MeshShaders tutorial did not use it
+        m_pDevice->CreateFence( fenceDesc, &mFenceParticleAttribsAvailable );
+    }
+#endif
 
     mResetParticleListsSRB.Release();
     mResetParticleListsPSO->CreateShaderResourceBinding( &mResetParticleListsSRB, true );
@@ -713,10 +728,12 @@ void ComputeParticles::updateParticles()
 
 #if DEBUG_PARTICLE_BUFFERS
     if( mDebugCopyParticles ) {
-        DebugParticleData.resize( mNumParticles );
-
         m_pImmediateContext->CopyBuffer( mParticleAttribsBuffer, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION,
             mParticleAttribsStaging, 0, mNumParticles * sizeof(ParticleAttribs), RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+        m_pImmediateContext->CopyBuffer( mParticleListsBuffer, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION,
+            mParticleListsStaging, 0, mNumParticles * sizeof(int), RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+        m_pImmediateContext->CopyBuffer( mParticleListHeadsBuffer, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION,
+            mParticleListsHeadStaging, 0, mNumParticles * sizeof(int), RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
 
         // We should use synchronizations to safely access the mapped memory.
         // TODO: fix and re-enable this, but not crucial when looking at debug data
@@ -726,16 +743,34 @@ void ComputeParticles::updateParticles()
         //// TODO: check if this causes the main loop to wait
         //m_pImmediateContext->DeviceWaitForFence( mFenceParticleAttribsAvailable, mFenceParticleAttribsValue );
 
+        // TODO: copy with std::copy or memcopy
+        DebugParticleAttribsData.resize( mNumParticles );
         {
-            // TODO: should MapHelper<T> be type ParticleAttribs (take out the vector)?
-            //MapHelper<std::vector<ParticleAttribs>> stagingData( m_pImmediateContext, mParticleAttribsBuffer, MAP_READ, MAP_FLAG_DO_NOT_WAIT );
             MapHelper<ParticleAttribs> stagingData( m_pImmediateContext, mParticleAttribsStaging, MAP_READ, MAP_FLAG_DO_NOT_WAIT );
             if( stagingData ) {
-                //m_VisibleCubes =sStagingData[AvailableFrameId % m_StatisticsHistorySize].visibleCubes;
-                // TODO: copy in one op to debug buffer
                 for( size_t i = 0; i < mNumParticles; i++ ) {
                     const ParticleAttribs &p = stagingData[i];
-                    DebugParticleData.at( i ) = p; 
+                    DebugParticleAttribsData.at( i ) = p; 
+                }
+            }
+        }
+        DebugParticleListsData.resize( mNumParticles );
+        {
+            MapHelper<int> stagingData( m_pImmediateContext, mParticleListsStaging, MAP_READ, MAP_FLAG_DO_NOT_WAIT );
+            if( stagingData ) {
+                for( size_t i = 0; i < mNumParticles; i++ ) {
+                    const int &p = stagingData[i];
+                    DebugParticleListsData.at( i ) = p; 
+                }
+            }
+        }
+        DebugParticleListsHeadData.resize( mNumParticles );
+        {
+            MapHelper<int> stagingData( m_pImmediateContext, mParticleListsHeadStaging, MAP_READ, MAP_FLAG_DO_NOT_WAIT );
+            if( stagingData ) {
+                for( size_t i = 0; i < mNumParticles; i++ ) {
+                    const int &p = stagingData[i];
+                    DebugParticleListsHeadData.at( i ) = p; 
                 }
             }
         }
@@ -786,9 +821,6 @@ void ComputeParticles::updateUI()
             im::Checkbox( "update", &mUpdateParticles );
             im::SameLine();
             im::Checkbox( "draw", &mDrawParticles );
-#if DEBUG_PARTICLE_BUFFERS
-            im::Checkbox( "debug particle data", &mDebugCopyParticles );
-#endif
 
             if( im::InputInt( "count", &mNumParticles, 100, 1000, ImGuiInputTextFlags_EnterReturnsTrue ) ) {
                 mNumParticles = std::min( std::max( mNumParticles, 100 ), 100000 );
@@ -811,6 +843,15 @@ void ComputeParticles::updateUI()
             if( im::Button( "init particle buffers" ) ) {
                 initParticleBuffers();
             }
+#if DEBUG_PARTICLE_BUFFERS
+            im::Checkbox( "debug copy particles", &mDebugCopyParticles );
+            if( mDebugCopyParticles ) {
+                im::Indent();
+                im::Checkbox( "ParticleAttribs ui", &DebugShowParticleAttribsWindow );
+                im::Checkbox( "ParticleLists ui", &DebugShowParticleListssWindow );
+                im::Unindent();
+            }
+#endif
         }
 
         if( im::CollapsingHeader( "Camera", ImGuiTreeNodeFlags_DefaultOpen ) ) {
@@ -883,14 +924,27 @@ void ComputeParticles::updateUI()
     im::End(); // Settings
 
 #if DEBUG_PARTICLE_BUFFERS
+    if( mDebugCopyParticles ) {
+        updateDebugParticleDataUI();
+    }
+
+#endif
+
+    if( mProfilingUIEnabled && mProfiler ) {
+        mProfiler->updateUI( &mProfilingUIEnabled );
+    }
+}
+
+#if DEBUG_PARTICLE_BUFFERS
+void ComputeParticles::updateDebugParticleDataUI()
+{
     im::SetNextWindowPos( { 400, 20 }, ImGuiCond_FirstUseEver );
     im::SetNextWindowSize( { 800, 700 }, ImGuiCond_FirstUseEver );
 
-    if( mDebugCopyParticles && im::Begin( "DebugCopyParticles", &mDebugCopyParticles ) ) {
+    if( DebugShowParticleAttribsWindow && im::Begin( "ParticleAttribs", &DebugShowParticleAttribsWindow ) ) {
         im::Text( "count: %d", mNumParticles );
 
-
-        if( ! DebugParticleData.empty() ) {
+        if( ! DebugParticleAttribsData.empty() ) {
             static int maxRows = 1000;
 
             static ImGuiTableFlags flags = ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_Hideable;
@@ -908,11 +962,11 @@ void ComputeParticles::updateUI()
                 im::TableHeadersRow();
 
                 ImGuiListClipper clipper;
-				clipper.Begin( std::min( maxRows, mNumParticles ) );
-				while( clipper.Step() ) {
-					for( int row = clipper.DisplayStart; row<clipper.DisplayEnd; row++ ) {
-						im::TableNextRow();
-                        const auto &p = DebugParticleData.at( row );
+                clipper.Begin( std::min( maxRows, mNumParticles ) );
+                while( clipper.Step() ) {
+                    for( int row = clipper.DisplayStart; row<clipper.DisplayEnd; row++ ) {
+                        im::TableNextRow();
+                        const auto &p = DebugParticleAttribsData.at( row );
                         int column = 0;
                         im::TableSetColumnIndex( column++ );
                         im::Text( "%d", row );
@@ -925,16 +979,57 @@ void ComputeParticles::updateUI()
                         im::TableSetColumnIndex( column++ );
                         im::Text( "%0.03f", p.temperature );
                     }
-				}
+                }
                 im::EndTable();
             }
         }
 
-        im::End(); // DebugCopyParticles
+        im::End(); // ParticleAttribs
     }
-#endif
 
-    if( mProfilingUIEnabled && mProfiler ) {
-        mProfiler->updateUI( &mProfilingUIEnabled );
+    im::SetNextWindowPos( { 500, 40 }, ImGuiCond_FirstUseEver );
+    im::SetNextWindowSize( { 600, 600 }, ImGuiCond_FirstUseEver );
+
+    if( DebugShowParticleListssWindow && im::Begin( "ParticleLists", &DebugShowParticleListssWindow ) ) {
+        // TODO: show either as a table or tree
+
+        if( ! DebugParticleListsData.empty() && ! DebugParticleListsHeadData.empty() ) {
+            static int maxRows = 1000;
+
+            static ImGuiTableFlags flags = ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_Hideable;
+            flags |= ImGuiTableFlags_ScrollY;
+            flags |= ImGuiTableFlags_SizingFixedFit;
+
+            if( im::BeginTable( "table_ParticleAttribs", 3, flags ) ) {
+                ImGuiTableColumnFlags columnFlags = ImGuiTableColumnFlags_WidthFixed; 
+                im::TableSetupScrollFreeze( 0, 1 ); // Make top row always visible
+                im::TableSetupColumn( "index", columnFlags, 40 );
+                im::TableSetupColumn( "head", columnFlags, 40 );
+                im::TableSetupColumn( "next", columnFlags, 40 );
+                im::TableHeadersRow();
+
+                ImGuiListClipper clipper;
+                clipper.Begin( std::min( maxRows, mNumParticles ) );
+                while( clipper.Step() ) {
+                    for( int row = clipper.DisplayStart; row<clipper.DisplayEnd; row++ ) {
+                        im::TableNextRow();
+                        int headIndex = DebugParticleListsHeadData.at( row );
+                        int nextIndex = DebugParticleListsData.at( row );
+                        int column = 0;
+                        im::TableSetColumnIndex( column++ );
+                        im::Text( "%d", row );
+                        im::TableSetColumnIndex( column++ );
+                        im::Text( "%d", headIndex );
+                        im::TableSetColumnIndex( column++ );
+                        im::Text( "%d", nextIndex );
+                    }
+                }
+                im::EndTable();
+            }
+        }
+
+        im::End(); // ParticleAttribs
     }
+
 }
+#endif
