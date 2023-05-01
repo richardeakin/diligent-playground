@@ -11,10 +11,15 @@ struct ParticleAttribs {
     float3 newVel;
     float  padding3;
 
+    float3  accel;
+    float   padding4;
+    float3  newAccel;
+    float   padding5;
+
     float  size;
     float  temperature;
     int    numCollisions;
-    float  padding4;
+    float  padding6;
 };
 
 struct ParticleConstants {

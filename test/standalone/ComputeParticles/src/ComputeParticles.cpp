@@ -31,7 +31,7 @@ namespace {
 
 struct ParticleAttribs {
     float3 pos;
-    float  padding0; // TODO: try without padding between the positions
+    float  padding0;
     float3 newPos;
     float  padding1;
 
@@ -40,10 +40,15 @@ struct ParticleAttribs {
     float3 newVel;
     float  padding3;
 
+    float3  accel;
+    float   padding4;
+    float3  newAccel;
+    float   padding5;
+
     float size          = 0;
     float temperature   = 0;
     int   numCollisions = 0;
-    float padding4      = 0;
+    float padding6      = 0;
 };
 
 struct ParticleConstants {
@@ -952,12 +957,13 @@ void ComputeParticles::updateDebugParticleDataUI()
             flags |= ImGuiTableFlags_ScrollY;
             flags |= ImGuiTableFlags_SizingFixedFit;
 
-            if( im::BeginTable( "table_ParticleAttribs", 5, flags ) ) {
+            if( im::BeginTable( "table_ParticleAttribs", 6, flags ) ) {
                 ImGuiTableColumnFlags columnFlags = ImGuiTableColumnFlags_WidthFixed; 
                 im::TableSetupScrollFreeze( 0, 1 ); // Make top row always visible
                 im::TableSetupColumn( "index", columnFlags, 34 );
                 im::TableSetupColumn( "pos", columnFlags, 180 );
                 im::TableSetupColumn( "vel", columnFlags, 180 );
+                im::TableSetupColumn( "accel", columnFlags, 180 );
                 im::TableSetupColumn( "collisions", columnFlags, 50 );
                 im::TableSetupColumn( "temp", ImGuiTableColumnFlags_None );
                 im::TableHeadersRow();
@@ -975,6 +981,8 @@ void ComputeParticles::updateDebugParticleDataUI()
                         im::Text( "[%6.3f, %6.3f, %6.3f]", p.pos.x, p.pos.y, p.pos.z );
                         im::TableSetColumnIndex( column++ );
                         im::Text( "[%6.3f, %6.3f, %6.3f]", p.vel.x, p.vel.y, p.vel.z );
+                        im::TableSetColumnIndex( column++ );
+                        im::Text( "[%6.3f, %6.3f, %6.3f]", p.accel.x, p.accel.y, p.accel.z );
                         im::TableSetColumnIndex( column++ );
                         im::Text( " %d", p.numCollisions );
                         im::TableSetColumnIndex( column++ );
