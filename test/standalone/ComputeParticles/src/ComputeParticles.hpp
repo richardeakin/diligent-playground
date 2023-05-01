@@ -9,7 +9,7 @@
 #include "common/src/Profiler.h"
 #include "Solids.h"
 
-#define DEBUG_PARTICLE_BUFFERS 1
+#define DEBUG_PARTICLE_BUFFERS 0
 
 namespace dg = Diligent;
 
@@ -61,7 +61,7 @@ private:
 #endif
 
     bool    mUIEnabled = true;  
-    int     mNumParticles    = 1000; // was: 1000
+    int     mNumParticles    = 100; // was: 1000
     float   mParticleScale   = 1;
     float   mSimulationSpeed = 0.5f;
     dg::int3 mGridSize       = { 10, 10, 10 };
@@ -89,5 +89,5 @@ private:
     ParticleType mParticleType = ParticleType::Pyramid;
 
     std::unique_ptr<ju::Profiler>   mProfiler;
-    bool                            mProfilingUIEnabled = false  ;
+    bool                            mProfilingUIEnabled = true;
 };

@@ -1,7 +1,8 @@
 #include "shaders/particles/structures.fxh"
 #include "shaders/particles/particles.fxh"
 
-#define BINNING_ENABLED 1
+// 0: disabled, 1: only consider this particle's bin, 2: also consider neighboring bins
+#define BINNING_MODE 1
 
 cbuffer Constants {
     ParticleConstants Constants;
@@ -77,10 +78,31 @@ void main( uint3 Gid  : SV_GroupID,
     if( particle.numCollisions == 1 ) {
 #endif
 
-#if BINNING_ENABLED
+#if BINNING_MODE == 0
+        // brute-force try to collide all particles to eachother
+        for( int i = 0; i < Constants.numParticles; i++ ) {
+            if( i == particleId ) {
+                continue;
+            }
+            CollideParticles( particle, Particles[i] );
+        }
+#elif BINNING_MODE == 1
+        // only considering particles within the same bin
         {
-        int z = 0; // FIXME: traversing in z is causing a runtime crash. could mean a loop
-        //for( int z = max( gridLoc.z - 1, 0 ); z <= min( gridLoc.z + 1, gridSize.z - 1 ); ++z ) {
+            int anotherParticleId = ParticleListHead.Load( particleId );
+            while( anotherParticleId >= 0 ) {
+                if( particleId != anotherParticleId ) {
+                    ParticleAttribs anotherParticle = Particles[anotherParticleId];
+                    CollideParticles( particle, anotherParticle );
+                }
+
+                anotherParticleId = ParticleLists.Load( anotherParticleId );
+            }
+        }
+#else
+        //{
+        //int z = 0; // FIXME: traversing in z is causing a runtime crash. could mean a loop
+        for( int z = max( gridLoc.z - 1, 0 ); z <= min( gridLoc.z + 1, gridSize.z - 1 ); ++z ) {
             for( int y = max( gridLoc.y - 1, 0 ); y <= min( gridLoc.y + 1, gridSize.y - 1 ); ++y ) {
                 for( int x = max( gridLoc.x - 1, 0 ); x <= min( gridLoc.x + 1, gridSize.x - 1 ); ++x ) {
                     int neighborIndex = Grid3DTo1D( int3( x, y, z ), gridSize );
@@ -95,14 +117,6 @@ void main( uint3 Gid  : SV_GroupID,
                     }
                 }
             }
-        }
-#else
-        // brute-force try to collide all particles to eachother
-        for( int i = 0; i < Constants.numParticles; i++ ) {
-            if( i == particleId ) {
-                continue;
-            }
-            CollideParticles( particle, Particles[i] );
         }
 #endif
 
