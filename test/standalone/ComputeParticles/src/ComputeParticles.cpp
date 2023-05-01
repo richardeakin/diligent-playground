@@ -496,8 +496,6 @@ void ComputeParticles::initParticleBuffers()
     mCollideParticlesSRB.Release();
     mCollideParticlesPSO->CreateShaderResourceBinding( &mCollideParticlesSRB, true );
     mCollideParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "Particles" )->Set( pParticleAttribsBufferUAV );
-    //mCollideParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "ParticleListHead" )->Set( pParticleListHeadsBufferSRV );
-    //mCollideParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "ParticleLists" )->Set( pParticleListsBufferSRV );
 
     auto listHead =  mCollideParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "ParticleListHead" );
     if( listHead ) {
@@ -716,12 +714,12 @@ void ComputeParticles::updateParticles()
         m_pImmediateContext->CommitShaderResources( mMoveParticlesSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
         m_pImmediateContext->DispatchCompute( dispatchAttribs );
 
+        // next two passes use the same SRB
         m_pImmediateContext->SetPipelineState( mCollideParticlesPSO );
         m_pImmediateContext->CommitShaderResources( mCollideParticlesSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
         m_pImmediateContext->DispatchCompute( dispatchAttribs );
 
         m_pImmediateContext->SetPipelineState( mUpdateParticleSpeedPSO );
-        // Use the same SRB
         m_pImmediateContext->CommitShaderResources( mCollideParticlesSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
         m_pImmediateContext->DispatchCompute( dispatchAttribs );
     }
@@ -825,6 +823,7 @@ void ComputeParticles::updateUI()
             if( im::InputInt( "count", &mNumParticles, 100, 1000, ImGuiInputTextFlags_EnterReturnsTrue ) ) {
                 mNumParticles = std::min( std::max( mNumParticles, 100 ), 100000 );
                 initParticleBuffers();
+                initSolids(); // TODO: see comment for 'init particle buffers' button
             }
             im::SliderFloat( "speed", &mSimulationSpeed, 0.1f, 5.f );
             im::DragFloat( "scale", &mParticleScale, 0.01f, 0.001f, 100.0f );
@@ -842,6 +841,7 @@ void ComputeParticles::updateUI()
             }
             if( im::Button( "init particle buffers" ) ) {
                 initParticleBuffers();
+                initSolids(); // TODO: this is needed to update the ParticleAttribs var, try just setting that on mParticleSolid
             }
 #if DEBUG_PARTICLE_BUFFERS
             im::Checkbox( "debug copy particles", &mDebugCopyParticles );
