@@ -164,72 +164,68 @@ void ComputeParticles::initRenderParticlePSO()
 {
     mRenderParticlePSO.Release();
 
-    GraphicsPipelineStateCreateInfo PSOCreateInfo;
+    GraphicsPipelineStateCreateInfo psoCreateInfo;
 
-    PSOCreateInfo.PSODesc.Name = "Render particles PSO";
-    PSOCreateInfo.PSODesc.PipelineType = PIPELINE_TYPE_GRAPHICS;
+    psoCreateInfo.PSODesc.Name = "Render particles PSO";
+    psoCreateInfo.PSODesc.PipelineType = PIPELINE_TYPE_GRAPHICS;
 
-    // This tutorial will render to a single render target
-    PSOCreateInfo.GraphicsPipeline.NumRenderTargets             = 1;
-    PSOCreateInfo.GraphicsPipeline.RTVFormats[0]                = m_pSwapChain->GetDesc().ColorBufferFormat;
-    PSOCreateInfo.GraphicsPipeline.DSVFormat                    = m_pSwapChain->GetDesc().DepthBufferFormat;
-    PSOCreateInfo.GraphicsPipeline.PrimitiveTopology            = PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+    psoCreateInfo.GraphicsPipeline.NumRenderTargets             = 1;
+    psoCreateInfo.GraphicsPipeline.RTVFormats[0]                = m_pSwapChain->GetDesc().ColorBufferFormat;
+    psoCreateInfo.GraphicsPipeline.DSVFormat                    = m_pSwapChain->GetDesc().DepthBufferFormat;
+    psoCreateInfo.GraphicsPipeline.PrimitiveTopology            = PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
 
-    PSOCreateInfo.GraphicsPipeline.RasterizerDesc.CullMode      = CULL_MODE_NONE;
-    PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.DepthEnable = false;
+    psoCreateInfo.GraphicsPipeline.RasterizerDesc.CullMode      = CULL_MODE_NONE;
+    psoCreateInfo.GraphicsPipeline.DepthStencilDesc.DepthEnable = false;
 
-    auto& BlendDesc = PSOCreateInfo.GraphicsPipeline.BlendDesc;
-    BlendDesc.RenderTargets[0].BlendEnable = True;
-    BlendDesc.RenderTargets[0].SrcBlend    = BLEND_FACTOR_SRC_ALPHA;
-    BlendDesc.RenderTargets[0].DestBlend   = BLEND_FACTOR_INV_SRC_ALPHA;
+    auto& blendDesc = psoCreateInfo.GraphicsPipeline.BlendDesc;
+    blendDesc.RenderTargets[0].BlendEnable = True;
+    blendDesc.RenderTargets[0].SrcBlend    = BLEND_FACTOR_SRC_ALPHA;
+    blendDesc.RenderTargets[0].DestBlend   = BLEND_FACTOR_INV_SRC_ALPHA;
 
-    ShaderCreateInfo ShaderCI;
-    ShaderCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_HLSL;
-    ShaderCI.Desc.UseCombinedTextureSamplers = true; // needed for OpenGL support
+    ShaderCreateInfo shaderCI;
+    shaderCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_HLSL;
+    shaderCI.Desc.UseCombinedTextureSamplers = true; // needed for OpenGL support
     // TODO: enable these lines and see if any of my hlsl compile errors are fixed
     //ShaderCI.ShaderCompiler = SHADER_COMPILER_DXC; // use modern HLSL compiler
     //ShaderCI.HLSLVersion    = {6, 3};
 
-    // Create a shader source stream factory to load shaders from files.
-    RefCntAutoPtr<IShaderSourceInputStreamFactory> pShaderSourceFactory;
-    m_pEngineFactory->CreateDefaultShaderSourceStreamFactory( nullptr, &pShaderSourceFactory );
-    ShaderCI.pShaderSourceStreamFactory = pShaderSourceFactory;
-    // Create particle vertex shader
-    RefCntAutoPtr<IShader> pVS;
+    // TODO: use global one instead
+    RefCntAutoPtr<IShaderSourceInputStreamFactory> shaderSourceFactory;
+    m_pEngineFactory->CreateDefaultShaderSourceStreamFactory( nullptr, &shaderSourceFactory );
+    shaderCI.pShaderSourceStreamFactory = shaderSourceFactory;
+
+    RefCntAutoPtr<IShader> particleSpriteVS;
     {
-        ShaderCI.Desc.ShaderType = SHADER_TYPE_VERTEX;
-        ShaderCI.EntryPoint      = "main";
-        ShaderCI.Desc.Name       = "Particle VS";
-        ShaderCI.FilePath        = "shaders/particles/particle_sprite.vsh";
-        m_pDevice->CreateShader( ShaderCI, &pVS );
+        shaderCI.Desc.ShaderType = SHADER_TYPE_VERTEX;
+        shaderCI.EntryPoint      = "main";
+        shaderCI.Desc.Name       = "Particle VS";
+        shaderCI.FilePath        = "shaders/particles/particle_sprite.vsh";
+        m_pDevice->CreateShader( shaderCI, &particleSpriteVS );
     }
 
     // Create particle pixel shader
-    RefCntAutoPtr<IShader> pPS;
+    RefCntAutoPtr<IShader> particleSpritePS;
     {
-        ShaderCI.Desc.ShaderType = SHADER_TYPE_PIXEL;
-        ShaderCI.EntryPoint      = "main";
-        ShaderCI.Desc.Name       = "Particle PS";
-        ShaderCI.FilePath        = "shaders/particles/particle_sprite.psh";
+        shaderCI.Desc.ShaderType = SHADER_TYPE_PIXEL;
+        shaderCI.EntryPoint      = "main";
+        shaderCI.Desc.Name       = "Particle PS";
+        shaderCI.FilePath        = "shaders/particles/particle_sprite.psh";
 
-        m_pDevice->CreateShader( ShaderCI, &pPS );
+        m_pDevice->CreateShader( shaderCI, &particleSpritePS );
     }
 
-    PSOCreateInfo.pVS = pVS;
-    PSOCreateInfo.pPS = pPS;
+    psoCreateInfo.pVS = particleSpriteVS;
+    psoCreateInfo.pPS = particleSpritePS;
+    psoCreateInfo.PSODesc.ResourceLayout.DefaultVariableType = SHADER_RESOURCE_VARIABLE_TYPE_STATIC;
 
-    // Define variable type that will be used by default
-    PSOCreateInfo.PSODesc.ResourceLayout.DefaultVariableType = SHADER_RESOURCE_VARIABLE_TYPE_STATIC;
-
-    // Shader variables should typically be mutable, which means they are expected to change on a per-instance basis
-    ShaderResourceVariableDesc Vars[] = {
+    ShaderResourceVariableDesc vars[] = {
         { SHADER_TYPE_VERTEX, "Particles", SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE }
     };
 
-    PSOCreateInfo.PSODesc.ResourceLayout.Variables    = Vars;
-    PSOCreateInfo.PSODesc.ResourceLayout.NumVariables = _countof(Vars);
+    psoCreateInfo.PSODesc.ResourceLayout.Variables    = vars;
+    psoCreateInfo.PSODesc.ResourceLayout.NumVariables = _countof(vars);
 
-    m_pDevice->CreateGraphicsPipelineState( PSOCreateInfo, &mRenderParticlePSO );
+    m_pDevice->CreateGraphicsPipelineState( psoCreateInfo, &mRenderParticlePSO );
     if( mRenderParticlePSO ) {
         auto vc = mRenderParticlePSO->GetStaticVariableByName( SHADER_TYPE_VERTEX, "Constants" );
         if( vc ) {
@@ -242,87 +238,84 @@ void ComputeParticles::initUpdateParticlePSO()
 {
     mResetParticleListsPSO.Release();
     mMoveParticlesPSO.Release();
-    mCollideParticlesPSO.Release();
-    mUpdateParticleSpeedPSO.Release();
+    mInteractParticlesPSO.Release();
 
-    ShaderCreateInfo ShaderCI;
-    // Tell the system that the shader source code is in HLSL.
-    // For OpenGL, the engine will convert this into GLSL under the hood.
-    ShaderCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_HLSL;
+    // TODO: update variable names and cleanup unnecessary comments
 
-    // OpenGL backend requires emulated combined HLSL texture samplers (g_Texture + g_Texture_sampler combination)
-    ShaderCI.Desc.UseCombinedTextureSamplers = true;
+    ShaderCreateInfo shaderCI;
+    shaderCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_HLSL;
+    shaderCI.Desc.UseCombinedTextureSamplers = true; // for OpenGL
 
-    // Create a shader source stream factory to load shaders from files.
-    RefCntAutoPtr<IShaderSourceInputStreamFactory> pShaderSourceFactory;
-    m_pEngineFactory->CreateDefaultShaderSourceStreamFactory( nullptr, &pShaderSourceFactory );
-    ShaderCI.pShaderSourceStreamFactory = pShaderSourceFactory;
+    // TODO: use global one instead
+    RefCntAutoPtr<IShaderSourceInputStreamFactory> shaderSourceFactory;
+    m_pEngineFactory->CreateDefaultShaderSourceStreamFactory( nullptr, &shaderSourceFactory );
+    shaderCI.pShaderSourceStreamFactory = shaderSourceFactory;
 
-    ShaderMacroHelper Macros;
-    Macros.AddShaderMacro( "THREAD_GROUP_SIZE", mThreadGroupSize );
-    Macros.Finalize();
+    ShaderMacroHelper shaderMacros;
+    shaderMacros.AddShaderMacro( "THREAD_GROUP_SIZE", mThreadGroupSize );
+    shaderMacros.Finalize();
 
-    RefCntAutoPtr<IShader> pResetParticleListsCS;
+    RefCntAutoPtr<IShader> resetParticleListsCS;
     {
-        ShaderCI.Desc.ShaderType = SHADER_TYPE_COMPUTE;
-        ShaderCI.EntryPoint      = "main";
-        ShaderCI.Desc.Name       = "Reset particle lists CS";
-        ShaderCI.FilePath        = "shaders/particles/reset_particle_lists.csh";
-        ShaderCI.Macros          = Macros;
-        m_pDevice->CreateShader( ShaderCI, &pResetParticleListsCS );
+        shaderCI.Desc.ShaderType = SHADER_TYPE_COMPUTE;
+        shaderCI.EntryPoint      = "main";
+        shaderCI.Desc.Name       = "Reset Particle lists CS";
+        shaderCI.FilePath        = "shaders/particles/reset_particle_lists.csh";
+        shaderCI.Macros          = shaderMacros;
+        m_pDevice->CreateShader( shaderCI, &resetParticleListsCS );
     }
 
-    RefCntAutoPtr<IShader> pMoveParticlesCS;
+    RefCntAutoPtr<IShader> moveParticlesCS;
     {
-        ShaderCI.Desc.ShaderType = SHADER_TYPE_COMPUTE;
-        ShaderCI.EntryPoint      = "main";
-        ShaderCI.Desc.Name       = "Move particles CS";
-        ShaderCI.FilePath        = "shaders/particles/move_particles.csh";
-        ShaderCI.Macros          = Macros;
-        m_pDevice->CreateShader( ShaderCI, &pMoveParticlesCS );
+        shaderCI.Desc.ShaderType = SHADER_TYPE_COMPUTE;
+        shaderCI.EntryPoint      = "main";
+        shaderCI.Desc.Name       = "Move Particles CS";
+        shaderCI.FilePath        = "shaders/particles/move_particles.csh";
+        shaderCI.Macros          = shaderMacros;
+        m_pDevice->CreateShader( shaderCI, &moveParticlesCS );
     }
 
     RefCntAutoPtr<IShader> interactParticlesCS;
     {
-        ShaderCI.Desc.ShaderType = SHADER_TYPE_COMPUTE;
-        ShaderCI.EntryPoint      = "main";
-        ShaderCI.Desc.Name       = "Interact particles CS";
-        ShaderCI.FilePath        = "shaders/particles/interact_particles.csh";
-        ShaderCI.Macros          = Macros;
-        m_pDevice->CreateShader( ShaderCI, &interactParticlesCS );
+        shaderCI.Desc.ShaderType = SHADER_TYPE_COMPUTE;
+        shaderCI.EntryPoint      = "main";
+        shaderCI.Desc.Name       = "Interact Particles CS";
+        shaderCI.FilePath        = "shaders/particles/interact_particles.csh";
+        shaderCI.Macros          = shaderMacros;
+        m_pDevice->CreateShader( shaderCI, &interactParticlesCS );
     }
 
-    ComputePipelineStateCreateInfo PSOCreateInfo;
-    PipelineStateDesc&             PSODesc = PSOCreateInfo.PSODesc;
+    ComputePipelineStateCreateInfo psoCI;
+    PipelineStateDesc&             psoDesc = psoCI.PSODesc;
 
     // init compute pipeline
-    PSODesc.PipelineType = PIPELINE_TYPE_COMPUTE;
-    PSODesc.ResourceLayout.DefaultVariableType = SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE;
-    ShaderResourceVariableDesc Vars[] = {
+    psoDesc.PipelineType = PIPELINE_TYPE_COMPUTE;
+    psoDesc.ResourceLayout.DefaultVariableType = SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE;
+    ShaderResourceVariableDesc shaderVars[] = {
         { SHADER_TYPE_COMPUTE, "Constants", SHADER_RESOURCE_VARIABLE_TYPE_STATIC }
     };
-    PSODesc.ResourceLayout.Variables    = Vars;
-    PSODesc.ResourceLayout.NumVariables = _countof(Vars);
+    psoDesc.ResourceLayout.Variables    = shaderVars;
+    psoDesc.ResourceLayout.NumVariables = _countof(shaderVars);
 
-    PSODesc.Name      = "Reset particle lists PSO";
-    PSOCreateInfo.pCS = pResetParticleListsCS;
-    m_pDevice->CreateComputePipelineState( PSOCreateInfo, &mResetParticleListsPSO );
+    psoDesc.Name      = "Reset particle lists PSO";
+    psoCI.pCS = resetParticleListsCS;
+    m_pDevice->CreateComputePipelineState( psoCI, &mResetParticleListsPSO );
     if( auto var = mResetParticleListsPSO->GetStaticVariableByName( SHADER_TYPE_COMPUTE, "Constants" ) ) {
         var->Set( mParticleConstants );
     }
 
-    PSODesc.Name      = "Move particles PSO";
-    PSOCreateInfo.pCS = pMoveParticlesCS;
-    m_pDevice->CreateComputePipelineState( PSOCreateInfo, &mMoveParticlesPSO );
+    psoDesc.Name      = "Move particles PSO";
+    psoCI.pCS = moveParticlesCS;
+    m_pDevice->CreateComputePipelineState( psoCI, &mMoveParticlesPSO );
     if( mMoveParticlesPSO ) {
         if( auto var = mMoveParticlesPSO->GetStaticVariableByName( SHADER_TYPE_COMPUTE, "Constants" ) ) {
             var->Set( mParticleConstants );
         }
     }
 
-    PSODesc.Name      = "Interact particles PSO";
-    PSOCreateInfo.pCS = interactParticlesCS;
-    m_pDevice->CreateComputePipelineState( PSOCreateInfo, &mInteractParticlesPSO );
+    psoDesc.Name      = "Interact particles PSO";
+    psoCI.pCS = interactParticlesCS;
+    m_pDevice->CreateComputePipelineState( psoCI, &mInteractParticlesPSO );
     if( mInteractParticlesPSO ) {
         mInteractParticlesPSO->GetStaticVariableByName( SHADER_TYPE_COMPUTE, "Constants" )->Set( mParticleConstants );
     }
