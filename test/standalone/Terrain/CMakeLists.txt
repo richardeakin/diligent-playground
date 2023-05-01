@@ -11,7 +11,8 @@ set(SOURCE
 set(INCLUDE
     src/Terrain.hpp
     ../common/src/TexturedCube.hpp
-    ../common/src/FileWatch.hpp
+    ../common/src/FileWatch.h
+    ../common/src/FileWatch-Monkman.hpp
 )
 
 file(GLOB_RECURSE SHADERS

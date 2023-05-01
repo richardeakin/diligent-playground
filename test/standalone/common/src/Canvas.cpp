@@ -5,18 +5,17 @@
 #include "AppGlobal.h"
 #include "MapHelper.hpp"
 
-#include <filesystem>
-#include "../../common/src/FileWatch.hpp"
+#include "../../common/src/FileWatch.h"
 
 using namespace ju;
 using namespace Diligent;
 
 namespace {
 
-std::unique_ptr<filewatch::FileWatch<std::filesystem::path>> ShadersDirWatchHandle;
-bool                                                         ShaderAssetsMarkedDirty = false;
+ju::FileWatchHandle     ShadersDirWatchHandle;
+bool                    ShaderAssetsMarkedDirty = false;
 
-} // anon
+}// anon
 
 Canvas::Canvas( size_t sizePixelConstants )
 {
@@ -55,7 +54,7 @@ void Canvas::initPipelineState()
     PSOCreateInfo.GraphicsPipeline.RTVFormats[0]                = global->swapChainImageDesc->ColorBufferFormat;
     PSOCreateInfo.GraphicsPipeline.DSVFormat                    = global->swapChainImageDesc->DepthBufferFormat;
     PSOCreateInfo.GraphicsPipeline.PrimitiveTopology            = PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
-    PSOCreateInfo.GraphicsPipeline.RasterizerDesc.CullMode      = CULL_MODE_BACK;
+    PSOCreateInfo.GraphicsPipeline.RasterizerDesc.CullMode      = CULL_MODE_NONE;
     PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.DepthEnable = False;
 
     ShaderCreateInfo ShaderCI;
@@ -109,8 +108,8 @@ void Canvas::watchShadersDir()
     if( std::filesystem::exists( shaderDir ) ) {
         LOG_INFO_MESSAGE( __FUNCTION__, "| watching assets directory: ", shaderDir );
         try {
-            ShadersDirWatchHandle = std::make_unique<filewatch::FileWatch<std::filesystem::path>>( shaderDir,
-                [=](const std::filesystem::path &path, const filewatch::Event change_type ) {
+            ShadersDirWatchHandle = std::make_unique<FileWatchType>( shaderDir.string(),
+                [=](const PathType &path, const filewatch::Event change_type ) {
                     ShaderAssetsMarkedDirty = true;
                 }
             );

@@ -39,7 +39,7 @@
 #include "CommonlyUsedStates.h"
 #include "ShaderMacroHelper.hpp"
 
-#include "../../common/src/FileWatch.hpp"
+#include "../../common/src/FileWatch.h"
 #include "../../common/src/TexturedCube.hpp"
 #include "imgui.h"
 #include "ImGuiUtils.hpp"
@@ -60,8 +60,8 @@ struct Constants
 //static constexpr TEXTURE_FORMAT RenderTargetFormat = TEX_FORMAT_RGBA8_UNORM;
 static constexpr TEXTURE_FORMAT DepthBufferFormat  = TEX_FORMAT_D32_FLOAT;
 
-std::unique_ptr<filewatch::FileWatch<std::filesystem::path>> ShadersDirWatchHandle;
-bool                                                         ShaderAssetsMarkedDirty = false;
+ju::FileWatchHandle     ShadersDirWatchHandle;
+bool                    ShaderAssetsMarkedDirty = false;
 
 bool UseFirstPersonCamera = true;
 bool RotateCube = true;
@@ -280,24 +280,6 @@ void Terrain::InitCamera()
     m_Camera.SetSpeedUpScales(CameraSpeedUp.x, CameraSpeedUp.y);
 }
 
-namespace {
-// TODO: move to file in common folder
-const char* watchEventTypeToString( const filewatch::Event change_type )
-{
-    switch (change_type) {
-        case filewatch::Event::added:			return "added";
-        case filewatch::Event::removed:			return "removed";
-        case filewatch::Event::modified:		return "modified";
-        case filewatch::Event::renamed_old:		return "renamed_old";
-        case filewatch::Event::renamed_new:		return "renamed_new";
-        default: break;
-    };
-
-    return "(unknown)";
-}
-} // anonymous namespace
-
-
 void Terrain::WatchShadersDir()
 {
     // watch assets dir for shader changes
@@ -308,7 +290,7 @@ void Terrain::WatchShadersDir()
         try {
             ShadersDirWatchHandle = std::make_unique<filewatch::FileWatch<std::filesystem::path>>( shaderDir,
                 [=](const std::filesystem::path &path, const filewatch::Event change_type ) {
-                    //LOG_INFO_MESSAGE( __FUNCTION__, "| \t- file event type: ", watchEventTypeToString( change_type ) , ", path: " , path );
+                    //LOG_INFO_MESSAGE( __FUNCTION__, "| \t- file event type: ", ju::watchEventTypeToString( change_type ) , ", path: " , path );
                     //ReloadOnAssetsUpdated();
 
                     // TODO: filter out repeated events as per
@@ -541,10 +523,10 @@ void Terrain::UpdateUI()
             if( im::DragFloat( "move speed", &CameraMoveSpeed) ) {
                 m_Camera.SetMoveSpeed(CameraMoveSpeed);
             }
-            if( im::DragFloat( "rotate speed", &CameraRotationSpeed) ) {
+            if( im::DragFloat( "rotate speed", &CameraRotationSpeed ) ) {
                 m_Camera.SetRotationSpeed(CameraRotationSpeed);
             }
-            if( im::DragFloat2( "speed up scale", &CameraSpeedUp.x) ) {
+            if( im::DragFloat2( "speed up scale", &CameraSpeedUp.x ) ) {
                 m_Camera.SetSpeedUpScales(CameraSpeedUp.x, CameraSpeedUp.y);
             }
             if( im::Button("reset") ) {

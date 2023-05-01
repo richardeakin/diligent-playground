@@ -6,14 +6,16 @@
 #include "FirstPersonCamera.hpp"
 
 #include "common/src/Canvas.h"
-#include "Cube.h"
+#include "common/src/Profiler.h"
+#include "Solids.h"
+
+#define DEBUG_PARTICLE_BUFFERS 0
 
 namespace dg = Diligent;
 
 class ComputeParticles final : public dg::SampleBase {
 public:
     virtual void ModifyEngineInitInfo(const ModifyEngineInitInfoAttribs& Attribs) override final;
-
     virtual void Initialize(const dg::SampleInitInfo& InitInfo) override final;
     virtual void WindowResize(dg::Uint32 Width, dg::Uint32 Height) override final;
     virtual void Update(double CurrTime, double ElapsedTime) override final;
@@ -22,51 +24,70 @@ public:
     virtual const dg::Char* GetSampleName() const override final { return "ComputeParticles"; }
 
 private:
-    void CreateRenderParticlePSO();
-    void CreateUpdateParticlePSO();
-    void CreateParticleBuffers();
-    void CreateConsantBuffer();
-    void UpdateUI();
-
-    int m_NumParticles    = 2000;
-    int m_ThreadGroupSize = 256;
-
-    dg::RefCntAutoPtr<dg::IPipelineState>         m_pRenderParticlePSO;
-    dg::RefCntAutoPtr<dg::IShaderResourceBinding> m_pRenderParticleSRB;
-    dg::RefCntAutoPtr<dg::IPipelineState>         m_pResetParticleListsPSO;
-    dg::RefCntAutoPtr<dg::IShaderResourceBinding> m_pResetParticleListsSRB;
-    dg::RefCntAutoPtr<dg::IPipelineState>         m_pMoveParticlesPSO;
-    dg::RefCntAutoPtr<dg::IShaderResourceBinding> m_pMoveParticlesSRB;
-    dg::RefCntAutoPtr<dg::IPipelineState>         m_pCollideParticlesPSO;
-    dg::RefCntAutoPtr<dg::IShaderResourceBinding> m_pCollideParticlesSRB;
-    dg::RefCntAutoPtr<dg::IPipelineState>         m_pUpdateParticleSpeedPSO;
-    dg::RefCntAutoPtr<dg::IBuffer>                m_Constants;
-    dg::RefCntAutoPtr<dg::IBuffer>                m_pParticleAttribsBuffer;
-    dg::RefCntAutoPtr<dg::IBuffer>                m_pParticleListsBuffer;
-    dg::RefCntAutoPtr<dg::IBuffer>                m_pParticleListHeadsBuffer;
-    dg::RefCntAutoPtr<dg::IResourceMapping>       m_pResMapping;
-
-    float m_fTimeDelta       = 0;
-    float m_fSimulationSpeed = 1;
-
-    bool    mDrawBackground = true;
-    bool    mDrawCube = true;
-    bool    mDrawParticles = true;
-    bool    mUpdateParticles = true;
-
-    std::unique_ptr<ju::Canvas> mBackgroundCanvas;
-    std::unique_ptr<ju::Cube>   mCube;
-
-    dg::float4x4                m_WorldViewProjMatrix; // TODO: break out world transform and store in Cube as a separate const?
-
-    dg::FirstPersonCamera mCamera;
-
+    void initRenderParticlePSO();
+    void initUpdateParticlePSO();
+    void initParticleBuffers();
+    void initConsantBuffer();
     void initCamera();
+    void initSolids();
+    void updateUI();
 
     void watchShadersDir();
     void reloadOnAssetsUpdated();
 
     void updateParticles();
     void drawParticles();
-    void draw3D();
+    void updateDebugParticleDataUI();
+
+    dg::RefCntAutoPtr<dg::IPipelineState>         mRenderParticlePSO;
+    dg::RefCntAutoPtr<dg::IShaderResourceBinding> mRenderParticleSRB;
+    dg::RefCntAutoPtr<dg::IPipelineState>         mResetParticleListsPSO;
+    dg::RefCntAutoPtr<dg::IShaderResourceBinding> mResetParticleListsSRB;
+    dg::RefCntAutoPtr<dg::IPipelineState>         mMoveParticlesPSO;
+    dg::RefCntAutoPtr<dg::IShaderResourceBinding> mMoveParticlesSRB;
+    dg::RefCntAutoPtr<dg::IPipelineState>         mCollideParticlesPSO;
+    dg::RefCntAutoPtr<dg::IShaderResourceBinding> mCollideParticlesSRB;
+    dg::RefCntAutoPtr<dg::IPipelineState>         mUpdateParticleSpeedPSO;
+    dg::RefCntAutoPtr<dg::IBuffer>                mParticleConstants;
+    dg::RefCntAutoPtr<dg::IBuffer>                mParticleAttribsBuffer;
+    dg::RefCntAutoPtr<dg::IBuffer>                mParticleListsBuffer;
+    dg::RefCntAutoPtr<dg::IBuffer>                mParticleListHeadsBuffer;
+
+#if DEBUG_PARTICLE_BUFFERS
+    dg::RefCntAutoPtr<dg::IBuffer>              mParticleAttribsStaging, mParticleListsStaging, mParticleListsHeadStaging;
+    dg::RefCntAutoPtr<dg::IFence>               mFenceParticleAttribsAvailable;
+    dg::Uint64                                  mFenceParticleAttribsValue = 1; // Can't signal 0
+    bool    mDebugCopyParticles = false;
+#endif
+
+    bool    mUIEnabled = true;  
+    int     mNumParticles    = 100; // was: 1000
+    float   mParticleScale   = 1;
+    float   mSimulationSpeed = 0.5f;
+    dg::int3 mGridSize       = { 10, 10, 10 };
+    int     mThreadGroupSize = 256;
+    float   mTimeDelta       = 0;
+    bool    mDrawBackground = true;
+    bool    mDrawTestSolid = false;
+    bool    mDrawParticles = true;
+    bool    mUpdateParticles = true;
+
+
+    std::unique_ptr<ju::Canvas> mBackgroundCanvas;
+    std::unique_ptr<ju::Solid>   mTestSolid, mParticleSolid;
+
+    dg::float4x4                mViewProjMatrix;
+
+    dg::FirstPersonCamera mCamera;
+
+    enum ParticleType {
+        Sprite,
+        Cube,
+        Pyramid
+    };
+
+    ParticleType mParticleType = ParticleType::Pyramid;
+
+    std::unique_ptr<ju::Profiler>   mProfiler;
+    bool                            mProfilingUIEnabled = true;
 };

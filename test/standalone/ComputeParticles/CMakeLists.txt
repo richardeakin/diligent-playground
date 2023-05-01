@@ -5,32 +5,40 @@ set(APP_TARGET "ComputeParticles")
 
 set(SOURCE
     src/ComputeParticles.cpp
-    src/Cube.cpp
+    src/Solids.cpp
     src/AppGlobal.cpp
     ../common/src/Canvas.cpp
     ../common/src/LivePP.cpp
+    ../common/src/Profiler.cpp
 )
 
 set(INCLUDE
     src/ComputeParticles.hpp
-    src/Cube.h
+    src/Solids.h
     src/AppGlobal.h
     ../common/src/Canvas.h
     ../common/src/LivePP.h
+    ../common/src/FileWatch.h
+    ../common/src/FileWatch-Monkman.hpp
+    ../common/src/Profiler.h
 )
 
 set(SHADERS
-    assets/shaders/particles/particle.psh
-    assets/shaders/particles/particle.vsh
+    assets/shaders/particles/particle_sprite.psh
+    assets/shaders/particles/particle_sprite.vsh
+    assets/shaders/particles/particle_solid.psh
+    assets/shaders/particles/particle_solid.vsh
+    assets/shaders/particles/particles.fxh
     assets/shaders/particles/structures.fxh
     assets/shaders/particles/reset_particle_lists.csh
     assets/shaders/particles/collide_particles.csh
     assets/shaders/particles/move_particles.csh
-    assets/shaders/particles/particles.fxh
-    assets/shaders/cube/cube.vsh
-    assets/shaders/cube/cube.psh
+    assets/shaders/solids/solid.vsh
+    assets/shaders/solids/solid.psh
+    assets/shaders/solids/solid.fxh
     assets/shaders/canvas/canvas.vsh
     assets/shaders/canvas/canvas.psh
+    assets/shaders/Quaternion.hlsl
 )
 
 set(ASSETS)

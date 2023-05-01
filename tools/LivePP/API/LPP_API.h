@@ -29,6 +29,10 @@
 
 LPP_NAMESPACE_BEGIN
 
+// Connection callback function type.
+typedef void LppOnConnectionCallback(void* context, LppConnectionStatus status);
+typedef void LppOnConnectionFunction(void* context, LppOnConnectionCallback* callback);
+
 typedef void LppLogMessageFunctionANSI(const char* const message);
 typedef void LppLogMessageFunction(const wchar_t* const message);
 
@@ -73,6 +77,9 @@ typedef struct LppDefaultAgent
 {
 	// Internal platform-specific module. DO NOT USE!
 	LppAgentModule internalModuleDoNotUse;
+
+	// Calls the given callback with a user-supplied context and internal connection status after an attempt has been made to connect the Agent to the Bridge/Broker.
+	LppOnConnectionFunction* OnConnection;
 
 	// Logs a message to the Live++ UI.
 	LppLogMessageFunctionANSI* LogMessageANSI;
@@ -124,6 +131,9 @@ typedef struct LppSynchronizedAgent
 {
 	// Internal platform-specific module. DO NOT USE!
 	LppAgentModule internalModuleDoNotUse;
+
+	// Calls the given callback with a user-supplied context and internal connection status after an attempt has been made to connect the Agent to the Bridge/Broker.
+	LppOnConnectionFunction* OnConnection;
 
 	// Logs a message to the Live++ UI.
 	LppLogMessageFunctionANSI* LogMessageANSI;

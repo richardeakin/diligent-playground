@@ -1,25 +1,37 @@
 
-struct ParticleAttribs
-{
-    float2 f2Pos;
-    float2 f2NewPos;
+// TODO: try without padding between the positions
+struct ParticleAttribs {
+    float3 pos;
+    float  padding0;
+    float3 newPos;
+    float  padding1;
 
-    float2 f2Speed;
-    float2 f2NewSpeed;
+    float3 speed;
+    float  padding2;
+    float3 newSpeed;
+    float  padding3;
 
-    float  fSize;
-    float  fTemperature;
-    int    iNumCollisions;
-    float  fPadding0;
+    float  size;
+    float  temperature;
+    int    numCollisions;
+    float  padding4;
 };
 
-struct GlobalConstants
-{
-    uint   uiNumParticles;
-    float  fDeltaTime;
-    float  fDummy0;
-    float  fDummy1;
+struct ParticleConstants {
+    float4x4 viewProj; // TODO: should be removed? Or moved to the sprites-only buffer
 
-    float2 f2Scale;
-    int2   i2ParticleGridSize;
+    uint   numParticles;
+    float  deltaTime;
+    float  padding0;
+    float  padding1;
+
+    float  scale; // TODO: make float3 so I can use (0.4, 1, 0.4) to shape the pyramid
+    int3   gridSize;
+};
+
+// matches struct from solids/solid.fxh
+struct SceneConstants {
+    float4x4 ModelViewProj;
+    float4x4 NormalTranform;
+    float4   LightDirection;
 };

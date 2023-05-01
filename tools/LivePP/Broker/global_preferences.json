@@ -33,7 +33,7 @@
         "timeout": 2000
     },
     "Notifications": {
-        "areEnabled": false,
+        "areEnabled": true,
         "focusType": 0,
         "playSoundOnError": false,
         "playSoundOnSuccess": false,
