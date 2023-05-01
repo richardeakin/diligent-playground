@@ -1,0 +1,102 @@
+#include "shaders/particles/structures.fxh"
+#include "shaders/particles/particles.fxh"
+
+// 0: disabled, 1: only consider this particle's bin, 2: also consider neighboring bins
+#define BINNING_MODE 0
+
+cbuffer Constants {
+    ParticleConstants Constants;
+};
+
+#ifndef THREAD_GROUP_SIZE
+#   define THREAD_GROUP_SIZE 64
+#endif
+
+RWStructuredBuffer<ParticleAttribs> Particles;
+Buffer<int>                         ParticleListHead;
+Buffer<int>                         ParticleLists;
+
+void InteractParticles( inout ParticleAttribs p0, in ParticleAttribs p1 )
+{
+    float3 r10 = ( p1.pos - p0.pos );
+    float dist = length( r10 ); // TODO (optimiziation): use dist squared
+    if( dist < Constants.zoneRadius ) {
+        float F = ( Constants.zoneRadius / dist - 1.0f ) * 0.01f;
+        float3 d = normalize( r10 );
+        d *= F;
+        p0.newAccel += d; // add force
+
+        // TODO: try this after making p1 inout, but I think it will be problematic
+        // - will also have to write it back to Particles buffer
+        //p1.newAccel += -d; // subtract force
+    }
+}
+
+[numthreads(THREAD_GROUP_SIZE, 1, 1)]
+void main( uint3 Gid  : SV_GroupID,
+           uint3 GTid : SV_GroupThreadID )
+{
+    uint globalThreadId = Gid.x * uint(THREAD_GROUP_SIZE) + GTid.x;
+    if( globalThreadId >= Constants.numParticles )
+        return;
+
+    int particleId = int(globalThreadId);
+    ParticleAttribs particle = Particles[particleId];
+    
+    const int3 gridSize = Constants.gridSize;
+    const int4 gridLoc = GetGridLocation( particle.pos, Constants.gridSize );
+
+    // TODO: understand why I need to set newPos / newVel == old pos / vel here for them to move
+    // - might be wrong once move_particles is using integration
+    particle.newPos       = particle.pos; // TODO: line necessary for them to move?
+    particle.numCollisions = 0;
+    particle.newVel     = particle.vel; // TODO: needed?
+    
+#if BINNING_MODE == 0
+    // brute-force try to collide all particles to eachother
+    for( int i = 0; i < Constants.numParticles; i++ ) {
+        if( i == particleId ) {
+            continue;
+        }
+        //CollideParticles( particle, Particles[i] );
+        InteractParticles( particle, Particles[i] );
+    }
+#elif BINNING_MODE == 1
+    // only considering particles within the same bin
+    {
+        int anotherParticleId = ParticleListHead.Load( particleId );
+        while( anotherParticleId >= 0 ) {
+            if( particleId != anotherParticleId ) {
+                ParticleAttribs anotherParticle = Particles[anotherParticleId];
+                CollideParticles( particle, anotherParticle );
+            }
+
+            anotherParticleId = ParticleLists.Load( anotherParticleId );
+        }
+    }
+#else
+    //{
+    //int z = 0; // FIXME: traversing in z is causing a runtime crash. could mean a loop
+    for( int z = max( gridLoc.z - 1, 0 ); z <= min( gridLoc.z + 1, gridSize.z - 1 ); ++z ) {
+        for( int y = max( gridLoc.y - 1, 0 ); y <= min( gridLoc.y + 1, gridSize.y - 1 ); ++y ) {
+            for( int x = max( gridLoc.x - 1, 0 ); x <= min( gridLoc.x + 1, gridSize.x - 1 ); ++x ) {
+                int neighborIndex = Grid3DTo1D( int3( x, y, z ), gridSize );
+                int anotherParticleId = ParticleListHead.Load( neighborIndex );
+                while( anotherParticleId >= 0 ) {
+                    if( particleId != anotherParticleId ) {
+                        ParticleAttribs anotherParticle = Particles[anotherParticleId];
+                        CollideParticles( particle, anotherParticle );
+                    }
+
+                    anotherParticleId = ParticleLists.Load( anotherParticleId );
+                }
+            }
+        }
+    }
+#endif
+
+    // TODO: needed? think it is done in the move pass
+    //ClampParticlePosition( particle.newPos, particle.vel, particle.size * Constants.scale );
+
+    Particles[particleId] = particle;
+}

@@ -282,25 +282,14 @@ void ComputeParticles::initUpdateParticlePSO()
         m_pDevice->CreateShader( ShaderCI, &pMoveParticlesCS );
     }
 
-    RefCntAutoPtr<IShader> pCollideParticlesCS;
+    RefCntAutoPtr<IShader> interactParticlesCS;
     {
         ShaderCI.Desc.ShaderType = SHADER_TYPE_COMPUTE;
         ShaderCI.EntryPoint      = "main";
-        ShaderCI.Desc.Name       = "Collide particles CS";
-        ShaderCI.FilePath        = "shaders/particles/collide_particles.csh";
+        ShaderCI.Desc.Name       = "Interact particles CS";
+        ShaderCI.FilePath        = "shaders/particles/interact_particles.csh";
         ShaderCI.Macros          = Macros;
-        m_pDevice->CreateShader( ShaderCI, &pCollideParticlesCS );
-    }
-
-    RefCntAutoPtr<IShader> pUpdatedSpeedCS;
-    {
-        ShaderCI.Desc.ShaderType = SHADER_TYPE_COMPUTE;
-        ShaderCI.EntryPoint      = "main";
-        ShaderCI.Desc.Name       = "Update particle speed CS";
-        ShaderCI.FilePath        = "shaders/particles/collide_particles.csh";
-        Macros.AddShaderMacro( "UPDATE_SPEED", 1 );
-        ShaderCI.Macros = Macros;
-        m_pDevice->CreateShader( ShaderCI, &pUpdatedSpeedCS );
+        m_pDevice->CreateShader( ShaderCI, &interactParticlesCS );
     }
 
     ComputePipelineStateCreateInfo PSOCreateInfo;
@@ -331,18 +320,11 @@ void ComputeParticles::initUpdateParticlePSO()
         }
     }
 
-    PSODesc.Name      = "Collidse particles PSO";
-    PSOCreateInfo.pCS = pCollideParticlesCS;
-    m_pDevice->CreateComputePipelineState( PSOCreateInfo, &mCollideParticlesPSO );
-    if( mCollideParticlesPSO ) {
-        mCollideParticlesPSO->GetStaticVariableByName( SHADER_TYPE_COMPUTE, "Constants" )->Set( mParticleConstants );
-    }
-
-    PSODesc.Name      = "Update particle speed PSO";
-    PSOCreateInfo.pCS = pUpdatedSpeedCS;
-    m_pDevice->CreateComputePipelineState( PSOCreateInfo, &mUpdateParticleSpeedPSO );
-    if( mUpdateParticleSpeedPSO ) {
-        mUpdateParticleSpeedPSO->GetStaticVariableByName( SHADER_TYPE_COMPUTE, "Constants" )->Set( mParticleConstants );
+    PSODesc.Name      = "Interact particles PSO";
+    PSOCreateInfo.pCS = interactParticlesCS;
+    m_pDevice->CreateComputePipelineState( PSOCreateInfo, &mInteractParticlesPSO );
+    if( mInteractParticlesPSO ) {
+        mInteractParticlesPSO->GetStaticVariableByName( SHADER_TYPE_COMPUTE, "Constants" )->Set( mParticleConstants );
     }
 }
 
@@ -498,15 +480,15 @@ void ComputeParticles::initParticleBuffers()
     mMoveParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "ParticleListHead" )->Set( pParticleListHeadsBufferUAV );
     mMoveParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "ParticleLists" )->Set( pParticleListsBufferUAV );
 
-    mCollideParticlesSRB.Release();
-    mCollideParticlesPSO->CreateShaderResourceBinding( &mCollideParticlesSRB, true );
-    mCollideParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "Particles" )->Set( pParticleAttribsBufferUAV );
+    mInteractParticlesSRB.Release();
+    mInteractParticlesPSO->CreateShaderResourceBinding( &mInteractParticlesSRB, true );
+    mInteractParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "Particles" )->Set( pParticleAttribsBufferUAV );
 
-    auto listHead =  mCollideParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "ParticleListHead" );
+    auto listHead =  mInteractParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "ParticleListHead" );
     if( listHead ) {
         listHead->Set( pParticleListHeadsBufferSRV );
     }
-    auto lists = mCollideParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "ParticleLists" );
+    auto lists = mInteractParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "ParticleLists" );
     if( lists ) {
         lists->Set( pParticleListsBufferSRV );
     }
@@ -544,7 +526,7 @@ void ComputeParticles::watchShadersDir()
 
                     // make a list of files we actually want to update if changed and check that here
                     const static std::vector<PathType> checkFilenames = {
-                        "collide_particles.csh",
+                        "interact_particles.csh",
                         "move_particles.csh",
                         "reset_particles.csh",
                         "particle_sprite.vsh",
@@ -720,13 +702,8 @@ void ComputeParticles::updateParticles()
         m_pImmediateContext->CommitShaderResources( mMoveParticlesSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
         m_pImmediateContext->DispatchCompute( dispatchAttribs );
 
-        // next two passes use the same SRB
-        m_pImmediateContext->SetPipelineState( mCollideParticlesPSO );
-        m_pImmediateContext->CommitShaderResources( mCollideParticlesSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
-        m_pImmediateContext->DispatchCompute( dispatchAttribs );
-
-        m_pImmediateContext->SetPipelineState( mUpdateParticleSpeedPSO );
-        m_pImmediateContext->CommitShaderResources( mCollideParticlesSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+        m_pImmediateContext->SetPipelineState( mInteractParticlesPSO );
+        m_pImmediateContext->CommitShaderResources( mInteractParticlesSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
         m_pImmediateContext->DispatchCompute( dispatchAttribs );
     }
 

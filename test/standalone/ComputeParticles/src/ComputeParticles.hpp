@@ -45,9 +45,8 @@ private:
     dg::RefCntAutoPtr<dg::IShaderResourceBinding> mResetParticleListsSRB;
     dg::RefCntAutoPtr<dg::IPipelineState>         mMoveParticlesPSO;
     dg::RefCntAutoPtr<dg::IShaderResourceBinding> mMoveParticlesSRB;
-    dg::RefCntAutoPtr<dg::IPipelineState>         mCollideParticlesPSO;
-    dg::RefCntAutoPtr<dg::IShaderResourceBinding> mCollideParticlesSRB;
-    dg::RefCntAutoPtr<dg::IPipelineState>         mUpdateParticleSpeedPSO;
+    dg::RefCntAutoPtr<dg::IPipelineState>         mInteractParticlesPSO;
+    dg::RefCntAutoPtr<dg::IShaderResourceBinding> mInteractParticlesSRB;
     dg::RefCntAutoPtr<dg::IBuffer>                mParticleConstants;
     dg::RefCntAutoPtr<dg::IBuffer>                mParticleAttribsBuffer;
     dg::RefCntAutoPtr<dg::IBuffer>                mParticleListsBuffer;

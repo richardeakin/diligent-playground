@@ -27,7 +27,7 @@ void main( uint3 Gid  : SV_GroupID,
     ParticleAttribs Particle = Particles[particleIdx];
     Particle.pos   = Particle.newPos;
     Particle.vel = Particle.newVel;
-    Particle.pos  += Particle.vel * Constants.scale * Constants.deltaTime;
+    Particle.pos  += Particle.vel * Constants.scale * Constants.deltaTime; // TODO: remove scale here
     Particle.temperature -= Particle.temperature * min( Constants.deltaTime * 2.0, 1.0 );
 
     ClampParticlePosition( Particle.pos, Particle.vel, Particle.size * Constants.scale );
