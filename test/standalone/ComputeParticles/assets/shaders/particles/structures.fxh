@@ -6,9 +6,9 @@ struct ParticleAttribs {
     float3 newPos;
     float  padding1;
 
-    float3 speed;
+    float3 vel;
     float  padding2;
-    float3 newSpeed;
+    float3 newVel;
     float  padding3;
 
     float  size;

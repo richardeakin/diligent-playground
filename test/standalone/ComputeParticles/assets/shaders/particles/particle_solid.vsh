@@ -79,7 +79,7 @@ void main( in VSInput VSIn, out PSInput PSIn )
     pos *= scale;
 
     // rotate in the direction of current speed
-    float3 lookAtDir = normalize( Attribs.speed );
+    float3 lookAtDir = normalize( Attribs.vel );
     float4 lookAtQuat = GetRotationQuat( float3( 0, 1, 0 ), lookAtDir, float3( 0, 1, 0 ) );
     //float4 lookAtQuat = q_look_at( lookAtDir, float3( 0, 1, 0 ) );
     float4x4 lookAtMat = quaternion_to_matrix( lookAtQuat );

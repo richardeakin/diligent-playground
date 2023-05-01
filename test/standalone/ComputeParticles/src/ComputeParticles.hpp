@@ -9,7 +9,7 @@
 #include "common/src/Profiler.h"
 #include "Solids.h"
 
-#define DEBUG_PARTICLE_BUFFERS 0
+#define DEBUG_PARTICLE_BUFFERS 1
 
 namespace dg = Diligent;
 

@@ -26,11 +26,11 @@ void main( uint3 Gid  : SV_GroupID,
 
     ParticleAttribs Particle = Particles[particleIdx];
     Particle.pos   = Particle.newPos;
-    Particle.speed = Particle.newSpeed;
-    Particle.pos  += Particle.speed * Constants.scale * Constants.deltaTime;
+    Particle.vel = Particle.newVel;
+    Particle.pos  += Particle.vel * Constants.scale * Constants.deltaTime;
     Particle.temperature -= Particle.temperature * min( Constants.deltaTime * 2.0, 1.0 );
 
-    ClampParticlePosition( Particle.pos, Particle.speed, Particle.size * Constants.scale );
+    ClampParticlePosition( Particle.pos, Particle.vel, Particle.size * Constants.scale );
     Particles[particleIdx] = Particle;
 
     int GridIdx = GetGridLocation( Particle.pos, Constants.gridSize ).w;

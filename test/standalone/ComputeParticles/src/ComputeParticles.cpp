@@ -35,9 +35,9 @@ struct ParticleAttribs {
     float3 newPos;
     float  padding1;
 
-    float3 speed;
+    float3 vel;
     float  padding2;
-    float3 newSpeed;
+    float3 newVel;
     float  padding3;
 
     float size          = 0;
@@ -412,9 +412,9 @@ void ComputeParticles::initParticleBuffers()
         particle.newPos.x   = pos_distr(gen);
         particle.newPos.y   = pos_distr(gen);
         particle.newPos.z   = pos_distr(gen);
-        particle.newSpeed.x = pos_distr(gen) * fSize * 5.f;
-        particle.newSpeed.y = pos_distr(gen) * fSize * 5.f;
-        particle.newSpeed.z = pos_distr(gen) * fSize * 5.f;
+        particle.newVel.x = pos_distr(gen) * fSize * 5.f;
+        particle.newVel.y = pos_distr(gen) * fSize * 5.f;
+        particle.newVel.z = pos_distr(gen) * fSize * 5.f;
         particle.size       = fSize * size_distr(gen);
     }
 
@@ -957,8 +957,8 @@ void ComputeParticles::updateDebugParticleDataUI()
                 im::TableSetupScrollFreeze( 0, 1 ); // Make top row always visible
                 im::TableSetupColumn( "index", columnFlags, 34 );
                 im::TableSetupColumn( "pos", columnFlags, 180 );
-                im::TableSetupColumn( "speed", columnFlags, 180 );
-                im::TableSetupColumn( "collisions", ImGuiTableColumnFlags_None );
+                im::TableSetupColumn( "vel", columnFlags, 180 );
+                im::TableSetupColumn( "collisions", columnFlags, 50 );
                 im::TableSetupColumn( "temp", ImGuiTableColumnFlags_None );
                 im::TableHeadersRow();
 
@@ -974,7 +974,7 @@ void ComputeParticles::updateDebugParticleDataUI()
                         im::TableSetColumnIndex( column++ );
                         im::Text( "[%6.3f, %6.3f, %6.3f]", p.pos.x, p.pos.y, p.pos.z );
                         im::TableSetColumnIndex( column++ );
-                        im::Text( "[%6.3f, %6.3f, %6.3f]", p.speed.x, p.speed.y, p.speed.z );
+                        im::Text( "[%6.3f, %6.3f, %6.3f]", p.vel.x, p.vel.y, p.vel.z );
                         im::TableSetColumnIndex( column++ );
                         im::Text( " %d", p.numCollisions );
                         im::TableSetColumnIndex( column++ );

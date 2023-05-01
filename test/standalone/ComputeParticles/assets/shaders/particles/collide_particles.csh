@@ -31,14 +31,14 @@ void CollideParticles(inout ParticleAttribs P0, in ParticleAttribs P1)
 #if UPDATE_SPEED
         // The math for speed update is only valid for two-particle collisions.
         if( P0.numCollisions == 1 && P1.numCollisions == 1 ) {
-            float v0 = dot( P0.speed, R01 );
-            float v1 = dot( P1.speed, R01 );
+            float v0 = dot( P0.vel, R01 );
+            float v1 = dot( P1.vel, R01 );
 
             float m0 = P0.size * P0.size;
             float m1 = P1.size * P1.size;
 
             float new_v0 = ((m0 - m1) * v0 + 2.0 * m1 * v1) / (m0 + m1);
-            P0.newSpeed += (new_v0 - v0) * R01;
+            P0.newVel += (new_v0 - v0) * R01;
         }
 #else
         {
@@ -87,7 +87,7 @@ void main( uint3 Gid  : SV_GroupID,
     particle.newPos       = particle.pos;
     particle.numCollisions = 0;
 #else
-    particle.newSpeed     = particle.speed;
+    particle.newVel     = particle.vel;
     // Only update speed when there is single collision with another particle.
     if( particle.numCollisions == 1 ) {
 #endif
@@ -139,10 +139,10 @@ void main( uint3 Gid  : SV_GroupID,
     }
     else if( particle.numCollisions > 1 ) {
         // If there are multiple collisions, reverse the particle move direction to avoid particle crowding.
-        particle.newSpeed = -particle.speed;
+        particle.newVel = -particle.vel;
     }
 #else
-    ClampParticlePosition( particle.newPos, particle.speed, particle.size * Constants.scale );
+    ClampParticlePosition( particle.newPos, particle.vel, particle.size * Constants.scale );
 #endif
 
     Particles[particleId] = particle;
