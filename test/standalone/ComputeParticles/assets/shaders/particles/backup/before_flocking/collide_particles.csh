@@ -2,7 +2,7 @@
 #include "shaders/particles/particles.fxh"
 
 // 0: disabled, 1: only consider this particle's bin, 2: also consider neighboring bins
-#define BINNING_MODE 0
+#define BINNING_MODE 1
 
 cbuffer Constants {
     ParticleConstants Constants;
@@ -20,10 +20,10 @@ RWStructuredBuffer<ParticleAttribs> Particles;
 Buffer<int>                         ParticleListHead;
 Buffer<int>                         ParticleLists;
 
-#if 0
 // https://en.wikipedia.org/wiki/Elastic_collision
 void CollideParticles(inout ParticleAttribs P0, in ParticleAttribs P1)
 {
+    // TODO: update for 3D
     float3 R01 = ( P1.pos - P0.pos ) / Constants.scale;
     float d01 = length( R01 );
     R01 /= d01;
@@ -51,20 +51,6 @@ void CollideParticles(inout ParticleAttribs P0, in ParticleAttribs P1)
             // Count the number of collisions
             P0.numCollisions += 1;
         }
-#endif
-    }
-}
-#endif
-
-void InteractParticles( inout ParticleAttribs p0, in ParticleAttribs p1 )
-{
-    float3 r10 = ( p1.pos - p0.pos );
-    float dist = length( r10 ); // TODO (optimiziation): use dist squared
-    if( dist < Constants.zoneRadius ) {
-#if UPDATE_SPEED
-        // TODO: finish
-#else
-        // TODO: finish
 #endif
     }
 }
@@ -98,8 +84,7 @@ void main( uint3 Gid  : SV_GroupID,
             if( i == particleId ) {
                 continue;
             }
-            //CollideParticles( particle, Particles[i] );
-            InteractParticles( particle, Particles[i] );
+            CollideParticles( particle, Particles[i] );
         }
 #elif BINNING_MODE == 1
         // only considering particles within the same bin

@@ -51,7 +51,7 @@ struct ParticleConstants {
 
     uint  numParticles;
     float deltaTime;
-    float padding0;
+    float zoneRadius;
     float padding1;
 
     float scale;
@@ -694,12 +694,13 @@ void ComputeParticles::updateParticles()
     // appears we always need to update this buffer or an assert failure happens (stale buffer)
     {
         // Map the buffer and write current world-view-projection matrix
-        MapHelper<ParticleConstants> ConstData( m_pImmediateContext, mParticleConstants, MAP_WRITE, MAP_FLAG_DISCARD );
-        ConstData->viewProj = mViewProjMatrix.Transpose();
-        ConstData->numParticles = static_cast<Uint32>( mNumParticles );
-        ConstData->deltaTime     = std::min( mTimeDelta, 1.f / 60.f) * mSimulationSpeed;
-        ConstData->scale = mParticleScale;
-        ConstData->gridSize = mGridSize;
+        MapHelper<ParticleConstants> constData( m_pImmediateContext, mParticleConstants, MAP_WRITE, MAP_FLAG_DISCARD );
+        constData->viewProj = mViewProjMatrix.Transpose();
+        constData->numParticles = static_cast<Uint32>( mNumParticles );
+        constData->deltaTime     = std::min( mTimeDelta, 1.f / 60.f) * mSimulationSpeed;
+        constData->zoneRadius = mZoneRadius;
+        constData->scale = mParticleScale;
+        constData->gridSize = mGridSize;
     }
 
     if( mUpdateParticles ) {
