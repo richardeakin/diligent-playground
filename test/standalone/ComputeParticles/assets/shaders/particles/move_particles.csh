@@ -22,19 +22,19 @@ void main( uint3 Gid  : SV_GroupID,
         return;
     }
 
-    int iParticleIdx = int(globalThreadIdx);
+    int particleIdx = int(globalThreadIdx);
 
-    ParticleAttribs Particle = Particles[iParticleIdx];
+    ParticleAttribs Particle = Particles[particleIdx];
     Particle.pos   = Particle.newPos;
     Particle.speed = Particle.newSpeed;
     Particle.pos  += Particle.speed * Constants.scale * Constants.deltaTime;
     Particle.temperature -= Particle.temperature * min( Constants.deltaTime * 2.0, 1.0 );
 
     ClampParticlePosition( Particle.pos, Particle.speed, Particle.size * Constants.scale );
-    Particles[iParticleIdx] = Particle;
+    Particles[particleIdx] = Particle;
 
     int GridIdx = GetGridLocation( Particle.pos, Constants.gridSize ).w;
     int OriginalListIdx;
-    InterlockedExchange( ParticleListHead[GridIdx], iParticleIdx, OriginalListIdx );
-    ParticleLists[iParticleIdx] = OriginalListIdx;
+    InterlockedExchange( ParticleListHead[GridIdx], particleIdx, OriginalListIdx );
+    ParticleLists[particleIdx] = OriginalListIdx;
 }

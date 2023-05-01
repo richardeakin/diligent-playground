@@ -58,23 +58,23 @@ void CollideParticles(inout ParticleAttribs P0, in ParticleAttribs P1)
 void main( uint3 Gid  : SV_GroupID,
            uint3 GTid : SV_GroupThreadID )
 {
-    uint uiGlobalThreadIdx = Gid.x * uint(THREAD_GROUP_SIZE) + GTid.x;
-    if( uiGlobalThreadIdx >= Constants.numParticles )
+    uint globalThreadId = Gid.x * uint(THREAD_GROUP_SIZE) + GTid.x;
+    if( globalThreadId >= Constants.numParticles )
         return;
 
-    int iParticleIdx = int(uiGlobalThreadIdx);
-    ParticleAttribs Particle = Particles[iParticleIdx];
+    int particleId = int(globalThreadId);
+    ParticleAttribs particle = Particles[particleId];
     
     const int3 gridSize = Constants.gridSize;
-    const int4 gridLoc = GetGridLocation( Particle.pos, Constants.gridSize );
+    const int4 gridLoc = GetGridLocation( particle.pos, Constants.gridSize );
 
 #if ! UPDATE_SPEED
-    Particle.newPos       = Particle.pos;
-    Particle.numCollisions = 0;
+    particle.newPos       = particle.pos;
+    particle.numCollisions = 0;
 #else
-    Particle.newSpeed     = Particle.speed;
+    particle.newSpeed     = particle.speed;
     // Only update speed when there is single collision with another particle.
-    if( Particle.numCollisions == 1 ) {
+    if( particle.numCollisions == 1 ) {
 #endif
 
 #if BINNING_ENABLED
@@ -84,14 +84,14 @@ void main( uint3 Gid  : SV_GroupID,
             for( int y = max( gridLoc.y - 1, 0 ); y <= min( gridLoc.y + 1, gridSize.y - 1 ); ++y ) {
                 for( int x = max( gridLoc.x - 1, 0 ); x <= min( gridLoc.x + 1, gridSize.x - 1 ); ++x ) {
                     int neighborIndex = Grid3DTo1D( int3( x, y, z ), gridSize );
-                    int AnotherParticleIdx = ParticleListHead.Load( neighborIndex );
-                    while( AnotherParticleIdx >= 0 ) {
-                        if( iParticleIdx != AnotherParticleIdx ) {
-                            ParticleAttribs AnotherParticle = Particles[AnotherParticleIdx];
-                            CollideParticles( Particle, AnotherParticle );
+                    int anotherParticleId = ParticleListHead.Load( neighborIndex );
+                    while( anotherParticleId >= 0 ) {
+                        if( particleId != anotherParticleId ) {
+                            ParticleAttribs anotherParticle = Particles[anotherParticleId];
+                            CollideParticles( particle, anotherParticle );
                         }
 
-                        AnotherParticleIdx = ParticleLists.Load( AnotherParticleIdx );
+                        anotherParticleId = ParticleLists.Load( anotherParticleId );
                     }
                 }
             }
@@ -99,22 +99,22 @@ void main( uint3 Gid  : SV_GroupID,
 #else
         // brute-force try to collide all particles to eachother
         for( int i = 0; i < Constants.numParticles; i++ ) {
-            if( i == iParticleIdx ) {
+            if( i == particleId ) {
                 continue;
             }
-            CollideParticles( Particle, Particles[i] );
+            CollideParticles( particle, Particles[i] );
         }
 #endif
 
 #if UPDATE_SPEED
     }
-    else if( Particle.numCollisions > 1 ) {
+    else if( particle.numCollisions > 1 ) {
         // If there are multiple collisions, reverse the particle move direction to avoid particle crowding.
-        Particle.newSpeed = -Particle.speed;
+        particle.newSpeed = -particle.speed;
     }
 #else
-    ClampParticlePosition( Particle.newPos, Particle.speed, Particle.size * Constants.scale );
+    ClampParticlePosition( particle.newPos, particle.speed, particle.size * Constants.scale );
 #endif
 
-    Particles[iParticleIdx] = Particle;
+    Particles[particleId] = particle;
 }
