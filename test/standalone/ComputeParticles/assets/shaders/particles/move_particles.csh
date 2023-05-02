@@ -17,24 +17,26 @@ RWBuffer<int /*format=r32i*/>       ParticleLists;
 void main( uint3 Gid  : SV_GroupID,
            uint3 GTid : SV_GroupThreadID)
 {
-    uint globalThreadIdx = Gid.x * uint(THREAD_GROUP_SIZE) + GTid.x;
-    if( globalThreadIdx >= Constants.numParticles ) {
+    uint globalThreadId = Gid.x * uint(THREAD_GROUP_SIZE) + GTid.x;
+    if( globalThreadId >= Constants.numParticles ) {
         return;
     }
 
-    int particleIdx = int(globalThreadIdx);
+    int particleId = int(globalThreadId);
 
-    ParticleAttribs Particle = Particles[particleIdx];
-    Particle.pos   = Particle.newPos;
-    Particle.vel = Particle.newVel;
-    Particle.pos  += Particle.vel * Constants.scale * Constants.deltaTime; // TODO: remove scale here
-    Particle.temperature -= Particle.temperature * min( Constants.deltaTime * 2.0, 1.0 );
+    ParticleAttribs particle = Particles[particleId];
+    particle.pos   = particle.newPos;
+    particle.vel = particle.newVel;
+    particle.pos  += particle.vel * Constants.deltaTime;
+    particle.temperature -= particle.temperature * min( Constants.deltaTime * 2.0, 1.0 );
 
-    ClampParticlePosition( Particle.pos, Particle.vel, Particle.size * Constants.scale );
-    Particles[particleIdx] = Particle;
+    ClampParticlePosition( particle.pos, particle.vel, particle.size * Constants.scale );
+    Particles[particleId] = particle;
 
-    int GridIdx = GetGridLocation( Particle.pos, Constants.gridSize ).w;
-    int OriginalListIdx;
-    InterlockedExchange( ParticleListHead[GridIdx], particleIdx, OriginalListIdx );
-    ParticleLists[particleIdx] = OriginalListIdx;
+    int gridId = GetGridLocation( particle.pos, Constants.gridSize ).w;
+
+    // swap list head with this, move previous down the list one
+    int originalListId;
+    InterlockedExchange( ParticleListHead[gridId], particleId, originalListId );
+    ParticleLists[particleId] = originalListId;
 }
