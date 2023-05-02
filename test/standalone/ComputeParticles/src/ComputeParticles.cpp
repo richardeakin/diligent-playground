@@ -57,12 +57,14 @@ struct ParticleConstants {
     uint  numParticles;
     float deltaTime;
     float zoneRadius;
-    float padding1;
+    float  separation;
 
     float scale;
     int3  gridSize;
 
     float2 speedMinMax;
+    float alignment;
+    float cohesion;
 };
 
 struct BackgroundPixelConstants {
@@ -677,6 +679,9 @@ void ComputeParticles::Render()
         constData->scale = mParticleScale;
         constData->gridSize = mGridSize;
         constData->speedMinMax = mSpeedMinMax;
+        constData->separation = mSeparation;
+        constData->alignment = mAlignment;
+        constData->cohesion = mCohesion;
     }
 
     updateParticles();
@@ -840,6 +845,9 @@ void ComputeParticles::updateUI()
                 im::Unindent();
             }
 #endif
+            im::Separator();
+            im::Text( "Flocking" );
+            im::DragFloat( "separation", &mSeparation, 0.001f, 0.0002f, 2.0f );
         }
 
         if( im::CollapsingHeader( "Camera", ImGuiTreeNodeFlags_DefaultOpen ) ) {

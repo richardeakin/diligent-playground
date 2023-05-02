@@ -59,19 +59,22 @@ private:
     bool    mDebugCopyParticles = false;
 #endif
 
-    bool    mUIEnabled = true;  
-    int     mNumParticles    = 100; // was: 1000
-    float   mParticleScale   = 1;
-    float   mZoneRadius      = 0.5f;
-    dg::float2 mSpeedMinMax = { 0, 1000 };
-    float   mSimulationSpeed = 0.5f;
-    dg::int3 mGridSize       = { 10, 10, 10 };
-    int     mThreadGroupSize = 256;
-    float   mTimeDelta       = 0;
-    bool    mDrawBackground = true;
-    bool    mDrawTestSolid = false;
-    bool    mDrawParticles = true;
-    bool    mUpdateParticles = true;
+    bool        mUIEnabled = true;  
+    int         mNumParticles       = 100; // was: 1000
+    float       mParticleScale      = 1;
+    float       mZoneRadius         = 0.5f;
+    float       mSeparation         = 0.02f;
+    float       mAlignment          = 0.02f;
+    float       mCohesion           = 0.02f; 
+    float       mSimulationSpeed    = 0.5f;
+    dg::float2  mSpeedMinMax        = { 0, 1000 };
+    dg::int3    mGridSize           = { 10, 10, 10 };
+    int         mThreadGroupSize    = 256;
+    float       mTimeDelta          = 0;
+    bool        mDrawBackground     = true;
+    bool        mDrawTestSolid      = false;
+    bool        mDrawParticles      = true;
+    bool        mUpdateParticles    = true;
 
 
     std::unique_ptr<ju::Canvas> mBackgroundCanvas;

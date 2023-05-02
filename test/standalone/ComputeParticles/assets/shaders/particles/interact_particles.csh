@@ -21,14 +21,10 @@ void InteractParticles( inout ParticleAttribs p0, in ParticleAttribs p1 )
     float3 r10 = ( p1.pos - p0.pos );
     float dist = length( r10 ); // TODO (optimiziation): use dist squared
     if( dist < Constants.zoneRadius ) {
-        float F = ( Constants.zoneRadius / dist - 1.0f ) * 0.02f;
+        float F = ( Constants.zoneRadius / dist - 1.0f ) * Constants.separation;
         float3 d = normalize( r10 );
         d *= F;
         p0.accel += d; // add force
-
-        // TODO: try this after making p1 inout, but I think it will be problematic
-        // - will also have to write it back to Particles buffer
-        //p1.newAccel += -d; // subtract force
     }
 }
 
