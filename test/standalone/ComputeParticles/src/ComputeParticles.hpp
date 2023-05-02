@@ -63,6 +63,7 @@ private:
     int     mNumParticles    = 100; // was: 1000
     float   mParticleScale   = 1;
     float   mZoneRadius      = 0.5f;
+    dg::float2 mSpeedMinMax = { 0, 1000 };
     float   mSimulationSpeed = 0.5f;
     dg::int3 mGridSize       = { 10, 10, 10 };
     int     mThreadGroupSize = 256;

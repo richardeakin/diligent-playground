@@ -61,6 +61,8 @@ struct ParticleConstants {
 
     float scale;
     int3  gridSize;
+
+    float2 speedMinMax;
 };
 
 struct BackgroundPixelConstants {
@@ -297,14 +299,14 @@ void ComputeParticles::initUpdateParticlePSO()
     psoDesc.ResourceLayout.Variables    = shaderVars;
     psoDesc.ResourceLayout.NumVariables = _countof(shaderVars);
 
-    psoDesc.Name      = "Reset particle lists PSO";
+    psoDesc.Name = "Reset particle lists PSO";
     psoCI.pCS = resetParticleListsCS;
     m_pDevice->CreateComputePipelineState( psoCI, &mResetParticleListsPSO );
     if( auto var = mResetParticleListsPSO->GetStaticVariableByName( SHADER_TYPE_COMPUTE, "Constants" ) ) {
         var->Set( mParticleConstants );
     }
 
-    psoDesc.Name      = "Move particles PSO";
+    psoDesc.Name = "Move particles PSO";
     psoCI.pCS = moveParticlesCS;
     m_pDevice->CreateComputePipelineState( psoCI, &mMoveParticlesPSO );
     if( mMoveParticlesPSO ) {
@@ -313,7 +315,7 @@ void ComputeParticles::initUpdateParticlePSO()
         }
     }
 
-    psoDesc.Name      = "Interact particles PSO";
+    psoDesc.Name = "Interact particles PSO";
     psoCI.pCS = interactParticlesCS;
     m_pDevice->CreateComputePipelineState( psoCI, &mInteractParticlesPSO );
     if( mInteractParticlesPSO ) {
@@ -459,31 +461,36 @@ void ComputeParticles::initParticleBuffers()
     }
 #endif
 
-    mResetParticleListsSRB.Release();
-    mResetParticleListsPSO->CreateShaderResourceBinding( &mResetParticleListsSRB, true );
-    mResetParticleListsSRB->GetVariableByName(SHADER_TYPE_COMPUTE, "ParticleListHead")->Set( pParticleListHeadsBufferUAV );
-
-    mRenderParticleSRB.Release();
-    mRenderParticlePSO->CreateShaderResourceBinding( &mRenderParticleSRB, true );
-    mRenderParticleSRB->GetVariableByName( SHADER_TYPE_VERTEX, "Particles" )->Set( pParticleAttribsBufferSRV );
-
-    mMoveParticlesSRB.Release();
-    mMoveParticlesPSO->CreateShaderResourceBinding( &mMoveParticlesSRB, true );
-    mMoveParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "Particles" )->Set( pParticleAttribsBufferUAV );
-    mMoveParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "ParticleListHead" )->Set( pParticleListHeadsBufferUAV );
-    mMoveParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "ParticleLists" )->Set( pParticleListsBufferUAV );
-
-    mInteractParticlesSRB.Release();
-    mInteractParticlesPSO->CreateShaderResourceBinding( &mInteractParticlesSRB, true );
-    mInteractParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "Particles" )->Set( pParticleAttribsBufferUAV );
-
-    auto listHead =  mInteractParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "ParticleListHead" );
-    if( listHead ) {
-        listHead->Set( pParticleListHeadsBufferSRV );
+    if( mResetParticleListsPSO ) {
+        mResetParticleListsSRB.Release();
+        mResetParticleListsPSO->CreateShaderResourceBinding( &mResetParticleListsSRB, true );
+        mResetParticleListsSRB->GetVariableByName(SHADER_TYPE_COMPUTE, "ParticleListHead")->Set( pParticleListHeadsBufferUAV );
     }
-    auto lists = mInteractParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "ParticleLists" );
-    if( lists ) {
-        lists->Set( pParticleListsBufferSRV );
+    if( mRenderParticlePSO ) {
+        mRenderParticleSRB.Release();
+        mRenderParticlePSO->CreateShaderResourceBinding( &mRenderParticleSRB, true );
+        mRenderParticleSRB->GetVariableByName( SHADER_TYPE_VERTEX, "Particles" )->Set( pParticleAttribsBufferSRV );
+    }
+    if( mMoveParticlesPSO ) {
+        mMoveParticlesSRB.Release();
+        mMoveParticlesPSO->CreateShaderResourceBinding( &mMoveParticlesSRB, true );
+        mMoveParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "Particles" )->Set( pParticleAttribsBufferUAV );
+        mMoveParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "ParticleListHead" )->Set( pParticleListHeadsBufferUAV );
+        mMoveParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "ParticleLists" )->Set( pParticleListsBufferUAV );
+    }
+    if( mInteractParticlesPSO ) {
+        mInteractParticlesSRB.Release();
+        mInteractParticlesPSO->CreateShaderResourceBinding( &mInteractParticlesSRB, true );
+        mInteractParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "Particles" )->Set( pParticleAttribsBufferUAV );
+
+        auto listHead =  mInteractParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "ParticleListHead" );
+        if( listHead ) {
+            listHead->Set( pParticleListHeadsBufferSRV );
+        }
+        auto lists = mInteractParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "ParticleLists" );
+        if( lists ) {
+            lists->Set( pParticleListsBufferSRV );
+        }
     }
 }
 
@@ -659,6 +666,19 @@ void ComputeParticles::Render()
         mBackgroundCanvas->render( m_pImmediateContext, mViewProjMatrix );
     }
 
+    // update ParticleConstants cbuffer
+    // appears we always need to update this buffer or an assert failure happens (stale buffer)
+    {
+        MapHelper<ParticleConstants> constData( m_pImmediateContext, mParticleConstants, MAP_WRITE, MAP_FLAG_DISCARD );
+        constData->viewProj = mViewProjMatrix.Transpose();
+        constData->numParticles = static_cast<Uint32>( mNumParticles );
+        constData->deltaTime     = std::min( mTimeDelta, 1.f / 60.f) * mSimulationSpeed;
+        constData->zoneRadius = mZoneRadius;
+        constData->scale = mParticleScale;
+        constData->gridSize = mGridSize;
+        constData->speedMinMax = mSpeedMinMax;
+    }
+
     updateParticles();
     drawParticles();
 
@@ -669,19 +689,11 @@ void ComputeParticles::Render()
 
 void ComputeParticles::updateParticles()
 {
-    mProfiler->begin( m_pImmediateContext, "update particles" );
-
-    // appears we always need to update this buffer or an assert failure happens (stale buffer)
-    {
-        // Map the buffer and write current world-view-projection matrix
-        MapHelper<ParticleConstants> constData( m_pImmediateContext, mParticleConstants, MAP_WRITE, MAP_FLAG_DISCARD );
-        constData->viewProj = mViewProjMatrix.Transpose();
-        constData->numParticles = static_cast<Uint32>( mNumParticles );
-        constData->deltaTime     = std::min( mTimeDelta, 1.f / 60.f) * mSimulationSpeed;
-        constData->zoneRadius = mZoneRadius;
-        constData->scale = mParticleScale;
-        constData->gridSize = mGridSize;
+    if( ! mResetParticleListsPSO || ! mMoveParticlesPSO || ! mInteractParticlesPSO ) {
+        return;
     }
+
+    mProfiler->begin( m_pImmediateContext, "update particles" );
 
     if( mUpdateParticles ) {
         DispatchComputeAttribs dispatchAttribs;
@@ -756,7 +768,7 @@ void ComputeParticles::updateParticles()
 
 void ComputeParticles::drawParticles()
 {
-    if( ! mDrawParticles ) {
+    if( ! mDrawParticles || ! mRenderParticlePSO ) {
         return;
     }
 

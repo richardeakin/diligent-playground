@@ -32,6 +32,8 @@ struct ParticleConstants {
 
     float  scale; // TODO: make float3 so I can use (0.4, 1, 0.4) to shape the pyramid
     int3   gridSize;
+    
+    float2 speedMinMax;
 };
 
 // matches struct from solids/solid.fxh
