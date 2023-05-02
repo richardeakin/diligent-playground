@@ -509,7 +509,7 @@ void ComputeParticles::initConsantBuffer()
 
 void ComputeParticles::initCamera()
 {
-    mCamera.SetPos( float3{ 0, 0, -10 } );
+    mCamera.SetPos( float3{ 0, 0, -5 } );
     mCamera.SetLookAt( float3{ 0, 0, 1 } );
     mCamera.SetRotationSpeed( CameraRotationSpeed );
     mCamera.SetMoveSpeed( CameraMoveSpeed );
@@ -846,8 +846,12 @@ void ComputeParticles::updateUI()
             }
 #endif
             im::Separator();
-            im::Text( "Flocking" );
+            im::Text( "Flocking" );            
+            ImGui::DragFloatRange2("speed", &mSpeedMinMax.x, &mSpeedMinMax.y, 0.02f, 0.0f, 100.0f, "min: %6.3f", "max: %6.3f", ImGuiSliderFlags_AlwaysClamp);
+            im::DragFloat( "zone radius", &mZoneRadius, 0.001f, 0.0f, 10.0f );
             im::DragFloat( "separation", &mSeparation, 0.001f, 0.0002f, 2.0f );
+            im::DragFloat( "alignment", &mAlignment, 0.001f, 0.0002f, 2.0f );
+            im::DragFloat( "cohesion", &mCohesion, 0.001f, 0.0002f, 2.0f );
         }
 
         if( im::CollapsingHeader( "Camera", ImGuiTreeNodeFlags_DefaultOpen ) ) {

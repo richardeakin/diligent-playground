@@ -24,7 +24,7 @@ void InteractParticles( inout ParticleAttribs p0, in ParticleAttribs p1 )
         float F = ( Constants.zoneRadius / dist - 1.0f ) * Constants.separation;
         float3 d = normalize( r10 );
         d *= F;
-        p0.accel += d; // add force
+        p0.accel -= d; // separate force
     }
 }
 

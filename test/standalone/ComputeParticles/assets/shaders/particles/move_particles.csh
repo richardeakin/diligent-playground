@@ -38,9 +38,11 @@ void main( uint3 Gid  : SV_GroupID,
     float3 dir = particle.newVel / speed; // TODO: do clamp speed line first and set min speed to a positive value to avoid divide by zero
     speed = clamp( speed, Constants.speedMinMax.x, Constants.speedMinMax.y );
     float3 vel = dir * speed;
+    //vel = particle.newVel;
 
     particle.vel = vel;
     particle.pos   = particle.newPos + vel * Constants.deltaTime;
+    particle.temperature = speed;
 #endif
 
 
