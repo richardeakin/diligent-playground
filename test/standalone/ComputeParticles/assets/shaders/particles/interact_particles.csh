@@ -21,10 +21,10 @@ void InteractParticles( inout ParticleAttribs p0, in ParticleAttribs p1 )
     float3 r10 = ( p1.pos - p0.pos );
     float dist = length( r10 ); // TODO (optimiziation): use dist squared
     if( dist < Constants.zoneRadius ) {
-        float F = ( Constants.zoneRadius / dist - 1.0f ) * 0.01f;
+        float F = ( Constants.zoneRadius / dist - 1.0f ) * 0.02f;
         float3 d = normalize( r10 );
         d *= F;
-        p0.newAccel += d; // add force
+        p0.accel += d; // add force
 
         // TODO: try this after making p1 inout, but I think it will be problematic
         // - will also have to write it back to Particles buffer
@@ -46,11 +46,13 @@ void main( uint3 Gid  : SV_GroupID,
     const int3 gridSize = Constants.gridSize;
     const int4 gridLoc = GetGridLocation( particle.pos, Constants.gridSize );
 
+    particle.accel = 0.0; // TODO: should we be adding to newAccel?
+
     // TODO: understand why I need to set newPos / newVel == old pos / vel here for them to move
     // - might be wrong once move_particles is using integration
-    particle.newPos       = particle.pos; // TODO: line necessary for them to move?
-    particle.numCollisions = 0;
-    particle.newVel     = particle.vel; // TODO: needed?
+    particle.newPos         = particle.pos;
+    particle.newVel         = particle.vel;
+    particle.numCollisions  = 0;
     
 #if BINNING_MODE == 0
     // brute-force try to collide all particles to eachother
@@ -68,7 +70,7 @@ void main( uint3 Gid  : SV_GroupID,
         while( anotherParticleId >= 0 ) {
             if( particleId != anotherParticleId ) {
                 ParticleAttribs anotherParticle = Particles[anotherParticleId];
-                CollideParticles( particle, anotherParticle );
+                InteractParticles( particle, anotherParticle );
             }
 
             anotherParticleId = ParticleLists.Load( anotherParticleId );
@@ -85,7 +87,7 @@ void main( uint3 Gid  : SV_GroupID,
                 while( anotherParticleId >= 0 ) {
                     if( particleId != anotherParticleId ) {
                         ParticleAttribs anotherParticle = Particles[anotherParticleId];
-                        CollideParticles( particle, anotherParticle );
+                        InteractParticles( particle, anotherParticle );
                     }
 
                     anotherParticleId = ParticleLists.Load( anotherParticleId );
@@ -94,6 +96,8 @@ void main( uint3 Gid  : SV_GroupID,
         }
     }
 #endif
+
+    particle.newVel += particle.accel * Constants.deltaTime;
 
     // TODO: needed? think it is done in the move pass
     //ClampParticlePosition( particle.newPos, particle.vel, particle.size * Constants.scale );

@@ -23,12 +23,26 @@ void main( uint3 Gid  : SV_GroupID,
     }
 
     int particleId = int(globalThreadId);
-
     ParticleAttribs particle = Particles[particleId];
+
+#if 0 // original
     particle.pos   = particle.newPos;
     particle.vel = particle.newVel;
     particle.pos  += particle.vel * Constants.deltaTime;
     particle.temperature -= particle.temperature * min( Constants.deltaTime * 2.0, 1.0 );
+#else
+    // TODO List:
+    // - need integrate acceleration here? If not then don't need accel to be an attrib
+    // - clamp speed with Constants.speedMinMax
+    float speed = length( particle.newVel );
+    float3 dir = particle.newVel / speed; // TODO: do clamp speed line first and set min speed to a positive value to avoid divide by zero
+    speed = clamp( speed, Constants.speedMinMax.x, Constants.speedMinMax.y );
+    float3 vel = dir * speed;
+
+    particle.vel = vel;
+    particle.pos   = particle.newPos + vel * Constants.deltaTime;
+#endif
+
 
     ClampParticlePosition( particle.pos, particle.vel, particle.size * Constants.scale );
     Particles[particleId] = particle;
