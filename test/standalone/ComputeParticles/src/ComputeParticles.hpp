@@ -60,13 +60,16 @@ private:
 #endif
 
     bool        mUIEnabled = true;  
-    int         mNumParticles       = 100; // was: 1000
-    float       mParticleScale      = 1;
-    float       mZoneRadius         = 0.25f;
+    int         mNumParticles       = 200; // was: 1000
+    float       mParticleScale      = 0.5f;
+    float       mZoneRadius         = 0.5f;
     float       mSeparation         = 0.02f;
     float       mAlignment          = 0.02f;
-    float       mCohesion           = 0.02f; 
-    float       mSimulationSpeed    = 0.5f;
+    float       mCohesion           = 0.02f;
+    float       mSeparationDist     = 0.2f;
+    float       mAlignmentDist      = 0.4f; 
+    float       mCohesionDist       = 0.5f; // TODO: just use mZoneRadius?
+    float       mSimulationSpeed    = 0.75f;
     dg::float2  mSpeedMinMax        = { 0.01f, 2.0f };
     dg::int3    mGridSize           = { 10, 10, 10 };
     int         mThreadGroupSize    = 256;

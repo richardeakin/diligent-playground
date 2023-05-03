@@ -35,6 +35,11 @@ struct ParticleConstants {
     float2 speedMinMax;
     float alignment;
     float cohesion;
+
+    float separationDist;
+    float alignmentDist;
+    float cohesionDist;
+    float padding0;
 };
 
 // matches struct from solids/solid.fxh

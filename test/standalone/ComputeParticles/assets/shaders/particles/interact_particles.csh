@@ -21,10 +21,21 @@ void InteractParticles( inout ParticleAttribs p0, in ParticleAttribs p1 )
     float3 r10 = ( p1.pos - p0.pos );
     float dist = length( r10 ); // TODO (optimiziation): use dist squared
     if( dist < Constants.zoneRadius ) {
-        float F = ( Constants.zoneRadius / dist - 1.0f ) * Constants.separation;
-        float3 d = normalize( r10 );
-        d *= F;
-        p0.accel -= d; // separate force
+        float3 d10 = normalize( r10 );
+        if( dist < Constants.separationDist ) {
+            // add force that flies p0 away from p1
+            float F = ( Constants.separationDist / dist - 1.0f ) * Constants.separation;
+            p0.accel -= d10 * F;
+        }
+        if( dist < Constants.alignmentDist ) {
+            // add force that flies p0 towards p1
+            float F = ( Constants.alignmentDist / dist - 1.0f ) * Constants.alignment;
+            p0.accel += d10 * F;
+        }
+        if( dist < Constants.cohesionDist ) {
+            // TODO: cohesion - how?
+            // add force that flies p0 towards center of the flock
+        }
     }
 }
 

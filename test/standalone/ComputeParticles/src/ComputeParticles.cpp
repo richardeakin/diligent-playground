@@ -51,6 +51,8 @@ struct ParticleAttribs {
     float padding6      = 0;
 };
 
+// TODO: rather than duplicating all these vars as member vars, would be easier to keep this struct in
+// the class and then pass in our copy of ParticleConstants to MapHelper (or use map fns directly)
 struct ParticleConstants {
     float4x4 viewProj;
 
@@ -65,6 +67,11 @@ struct ParticleConstants {
     float2 speedMinMax;
     float alignment;
     float cohesion;
+
+    float separationDist;
+    float alignmentDist;
+    float cohesionDist;
+    float padding0;
 };
 
 struct BackgroundPixelConstants {
@@ -682,6 +689,9 @@ void ComputeParticles::Render()
         constData->separation = mSeparation;
         constData->alignment = mAlignment;
         constData->cohesion = mCohesion;
+        constData->separationDist = mSeparationDist;
+        constData->alignmentDist = mAlignmentDist;
+        constData->cohesionDist = mCohesionDist;
     }
 
     updateParticles();
@@ -852,6 +862,9 @@ void ComputeParticles::updateUI()
             im::DragFloat( "separation", &mSeparation, 0.001f, 0.0002f, 2.0f );
             im::DragFloat( "alignment", &mAlignment, 0.001f, 0.0002f, 2.0f );
             im::DragFloat( "cohesion", &mCohesion, 0.001f, 0.0002f, 2.0f );
+            im::DragFloat( "separation dist", &mSeparationDist, 0.001f, 0.0f, 2.0f );
+            im::DragFloat( "alignment dist", &mAlignmentDist, 0.001f, 0.0f, 2.0f );
+            im::DragFloat( "cohesion dist", &mCohesionDist, 0.001f, 0.0f, 2.0f );
         }
 
         if( im::CollapsingHeader( "Camera", ImGuiTreeNodeFlags_DefaultOpen ) ) {
