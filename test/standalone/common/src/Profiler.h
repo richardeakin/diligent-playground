@@ -33,6 +33,25 @@ private:
     //std::array<Frame, (1 << NumFramesPOT)> m_FrameHistory = {}; // TODO: keep a history and average for smoother results
 };
 
-// TODO: add ScopedProfiler + macros
+struct ScopedProfiler {
+	ScopedProfiler( const std::string& label, dg::IDeviceContext* context, Profiler *profiler )
+		: mLabel( label ), mContext( context ), mProfiler( profiler )
+	{
+		mProfiler->begin( mContext, mLabel );
+	}
+	~ScopedProfiler()
+	{
+		mProfiler->end( mContext, mLabel );
+	}
+private:
+	std::string	            mLabel;
+    Profiler*	            mProfiler;
+    dg::IDeviceContext*     mContext;
+};
 
+
+
+// TODO: add macros
 } // namespace ju
+
+#define JU_PROFILE( label, ... )	ju::ScopedProfiler __ju_profile{ label, ##__VA_ARGS__ }

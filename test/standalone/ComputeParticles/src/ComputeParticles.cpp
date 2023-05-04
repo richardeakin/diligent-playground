@@ -516,7 +516,7 @@ void ComputeParticles::initConsantBuffer()
 
 void ComputeParticles::initCamera()
 {
-    mCamera.SetPos( float3{ 0, 0, -5 } );
+    mCamera.SetPos( float3{ 0, 0, -4 } );
     mCamera.SetLookAt( float3{ 0, 0, 1 } );
     mCamera.SetRotationSpeed( CameraRotationSpeed );
     mCamera.SetMoveSpeed( CameraMoveSpeed );
@@ -708,23 +708,30 @@ void ComputeParticles::updateParticles()
         return;
     }
 
-    mProfiler->begin( m_pImmediateContext, "update particles" );
-
     if( mUpdateParticles ) {
         DispatchComputeAttribs dispatchAttribs;
         dispatchAttribs.ThreadGroupCountX = ( mNumParticles + mThreadGroupSize - 1) / mThreadGroupSize;
 
-        m_pImmediateContext->SetPipelineState( mResetParticleListsPSO );
-        m_pImmediateContext->CommitShaderResources( mResetParticleListsSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
-        m_pImmediateContext->DispatchCompute( dispatchAttribs );
+        {
+            JU_PROFILE( "reset particles", m_pImmediateContext, mProfiler.get() );
+            m_pImmediateContext->SetPipelineState( mResetParticleListsPSO );
+            m_pImmediateContext->CommitShaderResources( mResetParticleListsSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+            m_pImmediateContext->DispatchCompute( dispatchAttribs );
+        }
 
-        m_pImmediateContext->SetPipelineState( mMoveParticlesPSO );
-        m_pImmediateContext->CommitShaderResources( mMoveParticlesSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
-        m_pImmediateContext->DispatchCompute( dispatchAttribs );
+        {
+            JU_PROFILE( "move particles", m_pImmediateContext, mProfiler.get() );
+            m_pImmediateContext->SetPipelineState( mMoveParticlesPSO );
+            m_pImmediateContext->CommitShaderResources( mMoveParticlesSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+            m_pImmediateContext->DispatchCompute( dispatchAttribs );
+        }
 
-        m_pImmediateContext->SetPipelineState( mInteractParticlesPSO );
-        m_pImmediateContext->CommitShaderResources( mInteractParticlesSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
-        m_pImmediateContext->DispatchCompute( dispatchAttribs );
+        {
+            JU_PROFILE( "interact particles", m_pImmediateContext, mProfiler.get() );
+            m_pImmediateContext->SetPipelineState( mInteractParticlesPSO );
+            m_pImmediateContext->CommitShaderResources( mInteractParticlesSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+            m_pImmediateContext->DispatchCompute( dispatchAttribs );
+        }
     }
 
 #if DEBUG_PARTICLE_BUFFERS
@@ -778,7 +785,7 @@ void ComputeParticles::updateParticles()
     }
 #endif
 
-    mProfiler->end( m_pImmediateContext, "update particles" );
+    //mProfiler->end( m_pImmediateContext, "update particles" );
 }
 
 void ComputeParticles::drawParticles()
@@ -787,7 +794,7 @@ void ComputeParticles::drawParticles()
         return;
     }
 
-    mProfiler->begin( m_pImmediateContext, "draw particles" );
+    JU_PROFILE( "draw particles", m_pImmediateContext, mProfiler.get() );
 
     m_pImmediateContext->SetPipelineState( mRenderParticlePSO );
     m_pImmediateContext->CommitShaderResources( mRenderParticleSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
@@ -801,8 +808,6 @@ void ComputeParticles::drawParticles()
     else {
         mParticleSolid->draw( m_pImmediateContext, mViewProjMatrix, mNumParticles );
     }
-
-    mProfiler->end( m_pImmediateContext, "draw particles" );
 }
 
 // ------------------------------------------------------------------------------------------------------------
