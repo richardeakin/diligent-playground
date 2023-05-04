@@ -828,7 +828,7 @@ void ComputeParticles::updateUI()
             im::Checkbox( "draw", &mDrawParticles );
 
             if( im::InputInt( "count", &mNumParticles, 100, 1000, ImGuiInputTextFlags_EnterReturnsTrue ) ) {
-                mNumParticles = std::min( std::max( mNumParticles, 100 ), 100000 );
+                mNumParticles = std::min( std::max( mNumParticles, 10 ), 10000000 ); // max: 10million
                 initParticleBuffers();
                 initSolids(); // TODO: see comment for 'init particle buffers' button
             }

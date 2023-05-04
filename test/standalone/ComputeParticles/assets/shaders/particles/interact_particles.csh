@@ -2,6 +2,9 @@
 #include "shaders/particles/particles.fxh"
 
 // 0: disabled, 1: only consider this particle's bin, 2: also consider neighboring bins
+// FIXME: 2 is still broken
+// TODO: add mode to only consider lateral neighbords, which is much less than mode 2
+// - this should help tell if 2 is actually broken or just taking too long
 #define BINNING_MODE 0
 
 cbuffer Constants {
