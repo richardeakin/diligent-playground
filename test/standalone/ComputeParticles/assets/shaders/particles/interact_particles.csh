@@ -25,6 +25,7 @@ void InteractParticles( inout ParticleAttribs p0, in ParticleAttribs p1 )
     float dist = length( r10 ); // TODO (optimiziation): use dist squared
     float maxDist = Constants.cohesionDist;
     if( dist < maxDist ) {
+        p0.numInteractions += 1;
         float3 d10 = normalize( r10 );
         if( dist < Constants.separationDist ) {
             // add force that flies p0 away from p1
@@ -65,7 +66,7 @@ void main( uint3 Gid  : SV_GroupID,
     // - might be wrong once move_particles is using integration
     particle.newPos         = particle.pos;
     particle.newVel         = particle.vel;
-    particle.numCollisions  = 0;
+    particle.numInteractions  = 0;
     
 #if BINNING_MODE == 0
     // brute-force try to collide all particles to eachother

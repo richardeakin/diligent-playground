@@ -17,7 +17,7 @@ struct ParticleAttribs {
 
     float  size;
     float  temperature;
-    int    numCollisions;
+    int    numInteractions;
     float  padding6;
 };
 

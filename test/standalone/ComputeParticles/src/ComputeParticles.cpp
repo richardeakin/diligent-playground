@@ -45,10 +45,10 @@ struct ParticleAttribs {
     float3  newAccel;
     float   padding5;
 
-    float size          = 0;
-    float temperature   = 0;
-    int   numCollisions = 0;
-    float padding6      = 0;
+    float size              = 0;
+    float temperature       = 0;
+    int   numInteractions   = 0;
+    float padding6          = 0;
 };
 
 // TODO: rather than duplicating all these vars as member vars, would be easier to keep this struct in
@@ -976,7 +976,7 @@ void ComputeParticles::updateDebugParticleDataUI()
                 im::TableSetupColumn( "pos", columnFlags, 180 );
                 im::TableSetupColumn( "vel", columnFlags, 180 );
                 im::TableSetupColumn( "accel", columnFlags, 180 );
-                im::TableSetupColumn( "collisions", columnFlags, 50 );
+                im::TableSetupColumn( "interactions", columnFlags, 50 );
                 im::TableSetupColumn( "temp", ImGuiTableColumnFlags_None );
                 im::TableHeadersRow();
 
@@ -996,7 +996,7 @@ void ComputeParticles::updateDebugParticleDataUI()
                         im::TableSetColumnIndex( column++ );
                         im::Text( "[%6.3f, %6.3f, %6.3f]", p.accel.x, p.accel.y, p.accel.z );
                         im::TableSetColumnIndex( column++ );
-                        im::Text( " %d", p.numCollisions );
+                        im::Text( " %d", p.numInteractions );
                         im::TableSetColumnIndex( column++ );
                         im::Text( "%0.03f", p.temperature );
                     }
