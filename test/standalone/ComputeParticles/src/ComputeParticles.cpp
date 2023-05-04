@@ -84,6 +84,18 @@ struct BackgroundPixelConstants {
     float padding3;
 };
 
+struct PostProcessConstants {
+    float4x4 ViewProjInv;
+
+    float3 CameraPos;
+    float  _padding0;
+
+    float3 FogColor;
+    float  _padding1;
+};
+
+static_assert(sizeof(PostProcessConstants) % 16 == 0, "must be aligned to 16 bytes");
+
 bool UseFirstPersonCamera = true;
 float3 TestSolidTranslate = { 0, 0, 0 };
 float3 TestSolidScale = { 0.4f, 1, 0.4f };
@@ -149,18 +161,20 @@ void ComputeParticles::Initialize( const SampleInitInfo& InitInfo )
 
     SampleBase::Initialize( InitInfo );
 
-    ImGuiIO& io    = ImGui::GetIO();
-    io.IniFilename = "imgui.ini";
-
-    initConsantBuffer();
-    initRenderParticlePSO();
-    initUpdateParticlePSO();
-    initParticleBuffers();
+    // re-enable imgui.ini save file
+    im::GetIO().IniFilename = "imgui.ini";
 
     auto global = app::global();
     global->renderDevice = m_pDevice;
     global->swapChainImageDesc = &m_pSwapChain->GetDesc();
     m_pEngineFactory->CreateDefaultShaderSourceStreamFactory( nullptr, &global->shaderSourceFactory );
+
+    initConsantBuffers();
+    initRenderParticlePSO();
+    initUpdateParticlePSO();
+    initParticleBuffers();
+    initPostProcessPSO();
+
 
     mBackgroundCanvas = std::make_unique<ju::Canvas>( sizeof(BackgroundPixelConstants) );
     initSolids();
@@ -503,15 +517,29 @@ void ComputeParticles::initParticleBuffers()
     }
 }
 
-void ComputeParticles::initConsantBuffer()
+void ComputeParticles::initConsantBuffers()
 {
-    BufferDesc BuffDesc;
-    BuffDesc.Name           = "ParticleConstants buffer";
-    BuffDesc.Usage          = USAGE_DYNAMIC;
-    BuffDesc.BindFlags      = BIND_UNIFORM_BUFFER;
-    BuffDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
-    BuffDesc.Size           = sizeof(ParticleConstants);
-    m_pDevice->CreateBuffer( BuffDesc, nullptr, &mParticleConstants );
+    // ParticleConstants
+    {
+        BufferDesc BuffDesc;
+        BuffDesc.Name           = "ParticleConstants buffer";
+        BuffDesc.Usage          = USAGE_DYNAMIC;
+        BuffDesc.BindFlags      = BIND_UNIFORM_BUFFER;
+        BuffDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
+        BuffDesc.Size           = sizeof(ParticleConstants);
+        m_pDevice->CreateBuffer( BuffDesc, nullptr, &mParticleConstants );
+    }
+
+    // PostProcessConstants
+    {
+        BufferDesc BuffDesc;
+        BuffDesc.BindFlags            = BIND_UNIFORM_BUFFER;
+        BuffDesc.Usage                = USAGE_DEFAULT;
+        BuffDesc.Size                 = sizeof(PostProcessConstants);
+        BuffDesc.ImmediateContextMask = (Uint64{1} << m_pImmediateContext->GetDesc().ContextId);
+        BuffDesc.Name                 = "PostProcessConstants buffer";
+        m_pDevice->CreateBuffer( BuffDesc, nullptr, &m_PostProcessConstants );
+    }
 }
 
 void ComputeParticles::initCamera()
@@ -584,6 +612,65 @@ void ComputeParticles::WindowResize( Uint32 Width, Uint32 Height )
     //if( mBackgroundCanvas ) {
     //    mBackgroundCanvas->setSize( int2( Width, Height ) );
     //}
+
+    // --------------------
+    // Post Process
+
+    // Check if the image needs to be recreated.
+	if( m_GBuffer.Color != nullptr && m_GBuffer.Color->GetDesc().Width == Width && m_GBuffer.Color->GetDesc().Height == Height ) {
+        return;
+    }
+
+	m_GBuffer = {};
+
+	// Create window-size G-buffer textures.
+	TextureDesc RTDesc;
+	RTDesc.Name = "GBuffer Color";
+	RTDesc.Type = RESOURCE_DIM_TEX_2D;
+	RTDesc.Width = Width;
+	RTDesc.Height = Height;
+	RTDesc.MipLevels = DownSampleFactor;
+	RTDesc.BindFlags = BIND_RENDER_TARGET | BIND_SHADER_RESOURCE;
+	RTDesc.Format = m_ColorTargetFormat;
+	m_pDevice->CreateTexture( RTDesc, nullptr, &m_GBuffer.Color );
+
+	// Create texture view
+	for( Uint32 Mip = 0; Mip < DownSampleFactor; ++Mip ) {
+		TextureViewDesc ViewDesc;
+		ViewDesc.ViewType = TEXTURE_VIEW_RENDER_TARGET;
+		ViewDesc.TextureDim = RESOURCE_DIM_TEX_2D;
+		ViewDesc.MostDetailedMip = Mip;
+		ViewDesc.NumMipLevels = 1;
+
+		m_GBuffer.Color->CreateView( ViewDesc, &m_GBuffer.ColorRTVs[Mip] );
+
+		ViewDesc.ViewType = TEXTURE_VIEW_SHADER_RESOURCE;
+		m_GBuffer.Color->CreateView( ViewDesc, &m_GBuffer.ColorSRBs[Mip] );
+	}
+
+	RTDesc.Name = "GBuffer Depth";
+	RTDesc.MipLevels = 1;
+	RTDesc.BindFlags = BIND_DEPTH_STENCIL | BIND_SHADER_RESOURCE;
+	RTDesc.Format = m_DepthTargetFormat;
+	m_pDevice->CreateTexture( RTDesc, nullptr, &m_GBuffer.Depth );
+
+	// Create post-processing SRB
+	{
+		m_PostProcessSRB.Release();
+		m_PostProcessPSO->CreateShaderResourceBinding( &m_PostProcessSRB );
+		m_PostProcessSRB->GetVariableByName( SHADER_TYPE_PIXEL, "PostProcessConstantsCB" )->Set( m_PostProcessConstants );
+		m_PostProcessSRB->GetVariableByName( SHADER_TYPE_PIXEL, "g_GBuffer_Color" )->Set( m_GBuffer.Color->GetDefaultView( TEXTURE_VIEW_SHADER_RESOURCE ) );
+		m_PostProcessSRB->GetVariableByName( SHADER_TYPE_PIXEL, "g_GBuffer_Depth" )->Set( m_GBuffer.Depth->GetDefaultView( TEXTURE_VIEW_SHADER_RESOURCE ) );
+	}
+
+	// Create down sample SRB
+	//for( Uint32 Mip = 0; Mip < DownSampleFactor; ++Mip ) {
+	//	auto& SRB = m_DownSampleSRB[Mip];
+	//	SRB.Release();
+	//	m_DownSamplePSO->CreateShaderResourceBinding( &SRB );
+	//	SRB->GetVariableByName( SHADER_TYPE_PIXEL, "g_GBuffer_Color" )->Set( m_GBuffer.ColorSRBs[Mip] );
+	//}
+
 }
 
 void ComputeParticles::Update( double CurrTime, double ElapsedTime )
@@ -699,6 +786,19 @@ void ComputeParticles::Render()
     if( mTestSolid && mDrawTestSolid ) {
         mTestSolid->draw( m_pImmediateContext, mViewProjMatrix );
     }
+
+    if( mGlowEnabled ) {
+        //DownSample();
+    }
+
+    // Final pass
+    {
+        ITextureView* pRTV = m_pSwapChain->GetCurrentBackBufferRTV();
+        m_pImmediateContext->SetRenderTargets( 1, &pRTV, nullptr, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+
+        PostProcess();
+    }
+
 }
 
 void ComputeParticles::updateParticles()
@@ -807,6 +907,135 @@ void ComputeParticles::drawParticles()
     else {
         mParticleSolid->draw( m_pImmediateContext, mViewProjMatrix, mNumParticles );
     }
+}
+
+// ------------------------------------------------------------------------------------------------------------
+// Post Process
+// ------------------------------------------------------------------------------------------------------------
+
+void ComputeParticles::initPostProcessPSO()
+{
+    ShaderMacroHelper Macros;
+    Macros.AddShaderMacro("GLOW", 1);
+
+    GraphicsPipelineStateCreateInfo PSOCreateInfo;
+
+    PSOCreateInfo.PSODesc.Name         = "Post process PSO";
+    PSOCreateInfo.PSODesc.PipelineType = PIPELINE_TYPE_GRAPHICS;
+
+    PSOCreateInfo.GraphicsPipeline.NumRenderTargets                  = 1;
+    PSOCreateInfo.GraphicsPipeline.RTVFormats[0]                     = m_pSwapChain->GetDesc().ColorBufferFormat;
+    PSOCreateInfo.GraphicsPipeline.PrimitiveTopology                 = PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.DepthEnable      = false;
+    PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.DepthWriteEnable = false;
+
+    const SamplerDesc SamLinearClampDesc {
+        FILTER_TYPE_LINEAR, FILTER_TYPE_LINEAR, FILTER_TYPE_LINEAR,
+        TEXTURE_ADDRESS_CLAMP, TEXTURE_ADDRESS_CLAMP, TEXTURE_ADDRESS_CLAMP
+    };
+    const ImmutableSamplerDesc ImtblSamplers[] = {
+        {SHADER_TYPE_PIXEL, "g_GBuffer_Color", SamLinearClampDesc}
+    };
+    PSOCreateInfo.PSODesc.ResourceLayout.ImmutableSamplers    = ImtblSamplers;
+    PSOCreateInfo.PSODesc.ResourceLayout.NumImmutableSamplers = _countof(ImtblSamplers);
+    PSOCreateInfo.PSODesc.ResourceLayout.DefaultVariableType  = SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE;
+
+    ShaderCreateInfo ShaderCI;
+    ShaderCI.SourceLanguage             = SHADER_SOURCE_LANGUAGE_HLSL;
+    ShaderCI.pShaderSourceStreamFactory = app::global()->shaderSourceFactory;
+
+	RefCntAutoPtr<IShader> pVS;
+	{
+		ShaderCI.Desc = { "Post process VS", SHADER_TYPE_VERTEX, true };
+		ShaderCI.EntryPoint = "main";
+		ShaderCI.FilePath = "shaders/post/post_process.vsh";
+		m_pDevice->CreateShader(ShaderCI, &pVS);
+	}
+
+	RefCntAutoPtr<IShader> pPS;
+	{
+		ShaderCI.Desc = { "Post process PS", SHADER_TYPE_PIXEL, true };
+		ShaderCI.EntryPoint = "main";
+        ShaderCI.FilePath = "shaders/post/post_process.psh";
+		m_pDevice->CreateShader( ShaderCI, &pPS );
+	}
+
+    PSOCreateInfo.pVS = pVS;
+    PSOCreateInfo.pPS = pPS;
+
+    m_pDevice->CreateGraphicsPipelineState( PSOCreateInfo, &m_PostProcessPSO );
+
+    // TODO: make this for glow
+    //RefCntAutoPtr<IShader> pDownSamplePS;
+    //{
+    //    ShaderCI.Desc       = {"Down sample PS", SHADER_TYPE_PIXEL, true};
+    //    ShaderCI.EntryPoint = "main";
+    //    ShaderCI.FilePath   = "DownSample.psh";
+    //    m_pDevice->CreateShader(ShaderCI, &pDownSamplePS);
+    //}
+    //PSOCreateInfo.pPS = pDownSamplePS;
+
+    //PSOCreateInfo.PSODesc.Name                   = "Down sample PSO";
+    //PSOCreateInfo.GraphicsPipeline.RTVFormats[0] = m_ColorTargetFormat;
+
+    //PSOCreateInfo.PSODesc.ResourceLayout.ImmutableSamplers    = nullptr;
+    //PSOCreateInfo.PSODesc.ResourceLayout.NumImmutableSamplers = 0;
+
+    //m_pDevice->CreateGraphicsPipelineState( PSOCreateInfo, &m_DownSamplePSO );
+}
+
+//void ComputeParticles::DownSample()
+//{
+//     m_pImmediateContext->BeginDebugGroup("Down sample pass");
+
+    //m_pImmediateContext->SetPipelineState(m_DownSamplePSO);
+    //m_pImmediateContext->SetVertexBuffers(0, 0, nullptr, nullptr, RESOURCE_STATE_TRANSITION_MODE_NONE, SET_VERTEX_BUFFERS_FLAG_RESET);
+    //m_pImmediateContext->SetIndexBuffer(nullptr, 0, RESOURCE_STATE_TRANSITION_MODE_NONE);
+
+    //StateTransitionDesc Barrier{m_GBuffer.Color, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE, 0u, 1u};
+
+    //for (Uint32 Mip = 1; Mip < DownSampleFactor; ++Mip)
+    //{
+    //    Barrier.FirstMipLevel = Mip - 1;
+    //    m_pImmediateContext->TransitionResourceStates(1, &Barrier);
+
+    //    m_pImmediateContext->SetRenderTargets(1, &m_GBuffer.ColorRTVs[Mip], nullptr, RESOURCE_STATE_TRANSITION_MODE_VERIFY);
+
+    //    m_pImmediateContext->CommitShaderResources(m_DownSampleSRB[Mip - 1], RESOURCE_STATE_TRANSITION_MODE_NONE);
+    //    m_pImmediateContext->Draw(DrawAttribs{3, DRAW_FLAG_VERIFY_DRAW_ATTRIBS | DRAW_FLAG_VERIFY_STATES});
+    //}
+
+    //// Transit last mipmap level to SRV state.
+    //// Now all mipmaps in m_GBuffer.Color are in SRV state, so update resource state.
+    //Barrier.FirstMipLevel = DownSampleFactor - 1;
+    //Barrier.Flags         = STATE_TRANSITION_FLAG_UPDATE_STATE;
+    //m_pImmediateContext->TransitionResourceStates(1, &Barrier);
+
+    //m_pImmediateContext->EndDebugGroup(); // Down sample pass
+
+//}
+
+void ComputeParticles::PostProcess()
+{
+    JU_PROFILE( "post process", m_pImmediateContext, mProfiler.get() );
+
+    const auto ViewProj    = mCamera.GetViewMatrix() * mCamera.GetProjMatrix();
+    const auto ViewProjInv = ViewProj.Inverse();
+
+    PostProcessConstants ConstData;
+    ConstData.ViewProjInv = ViewProjInv.Transpose();
+    ConstData.CameraPos   = mCamera.GetPos();
+    ConstData.FogColor    = mFogColor;
+
+	m_pImmediateContext->UpdateBuffer( m_PostProcessConstants, 0, sizeof( ConstData ), &ConstData, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+
+	m_pImmediateContext->SetPipelineState( m_PostProcessPSO );
+	m_pImmediateContext->CommitShaderResources( m_PostProcessSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+
+	m_pImmediateContext->SetVertexBuffers( 0, 0, nullptr, nullptr, RESOURCE_STATE_TRANSITION_MODE_NONE, SET_VERTEX_BUFFERS_FLAG_RESET );
+	m_pImmediateContext->SetIndexBuffer( nullptr, 0, RESOURCE_STATE_TRANSITION_MODE_NONE );
+
+	m_pImmediateContext->Draw( DrawAttribs{ 3, DRAW_FLAG_VERIFY_ALL } );
 }
 
 // ------------------------------------------------------------------------------------------------------------

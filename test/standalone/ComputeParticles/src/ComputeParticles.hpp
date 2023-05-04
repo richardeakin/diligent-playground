@@ -27,7 +27,7 @@ private:
     void initRenderParticlePSO();
     void initUpdateParticlePSO();
     void initParticleBuffers();
-    void initConsantBuffer();
+    void initConsantBuffers();
     void initCamera();
     void initSolids();
     void updateUI();
@@ -52,6 +52,39 @@ private:
     dg::RefCntAutoPtr<dg::IBuffer>                mParticleListsBuffer;
     dg::RefCntAutoPtr<dg::IBuffer>                mParticleListHeadsBuffer;
 
+    // -------------------------------------------
+    // Post Process
+    void initPostProcessPSO();
+    //void DownSample();
+    void PostProcess();
+
+    dg::RefCntAutoPtr<dg::IPipelineState>         m_PostProcessPSO;
+    dg::RefCntAutoPtr<dg::IShaderResourceBinding> m_PostProcessSRB;
+    dg::RefCntAutoPtr<dg::IBuffer> m_PostProcessConstants;
+
+    // TODO: enable when adding GLOW
+    //RefCntAutoPtr<IPipelineState>         m_DownSamplePSO;
+    static constexpr dg::Uint32               DownSampleFactor = 5;
+    //RefCntAutoPtr<IShaderResourceBinding> m_DownSampleSRB[DownSampleFactor];
+
+    // Render to GBuffer
+    struct GBuffer {
+        dg::RefCntAutoPtr<dg::ITextureView> ColorRTVs[DownSampleFactor];
+        dg::RefCntAutoPtr<dg::ITexture>     Color;
+        dg::RefCntAutoPtr<dg::ITextureView> ColorSRBs[DownSampleFactor];
+        dg::RefCntAutoPtr<dg::ITexture>     Depth;
+    };
+    GBuffer m_GBuffer;
+    
+    // TODO: why are these in the header?
+    dg::TEXTURE_FORMAT m_ColorTargetFormat = dg::TEX_FORMAT_RGBA8_UNORM;
+    dg::TEXTURE_FORMAT m_DepthTargetFormat = dg::TEX_FORMAT_UNKNOWN;
+
+    bool mGlowEnabled               = false; // TODO: add to const buffer
+    dg::float3 mFogColor            = { 0.73f, 0.65f, 0.59f };
+    // -------------------------------------------
+
+
 #if DEBUG_PARTICLE_BUFFERS
     dg::RefCntAutoPtr<dg::IBuffer>              mParticleAttribsStaging, mParticleListsStaging, mParticleListsHeadStaging;
     dg::RefCntAutoPtr<dg::IFence>               mFenceParticleAttribsAvailable;
@@ -67,7 +100,7 @@ private:
     float       mCohesion           = 0.033f;
     float       mSeparationDist     = 0.168f;
     float       mAlignmentDist      = 0.289f; 
-    float       mCohesionDist       = 0.5f; // TODO: just use this or zone radius, nothing should be considered past it
+    float       mCohesionDist       = 0.5f;
     float       mSimulationSpeed    = 0.75f;
     dg::float2  mSpeedMinMax        = { 0.01f, 1.1f };
     dg::int3    mGridSize           = { 10, 10, 10 };
