@@ -24,22 +24,22 @@ struct ParticleAttribs {
 struct ParticleConstants {
     float4x4 viewProj; // TODO: should be removed? Or moved to the sprites-only buffer
 
-    uint   numParticles;
-    float  deltaTime;
-    float  zoneRadius;
-    float  separation;
+    uint    numParticles;
+    float   deltaTime;
+    float   separation;
+    float   padding0;
 
-    float  scale; // TODO: make float3 so I can use (0.4, 1, 0.4) to shape the pyramid
-    int3   gridSize;
+    float   scale; // TODO: make float3 so I can use (0.4, 1, 0.4) to shape the pyramid
+    int3    gridSize;
     
-    float2 speedMinMax;
-    float alignment;
-    float cohesion;
+    float2  speedMinMax;
+    float   alignment;
+    float   cohesion;
 
-    float separationDist;
-    float alignmentDist;
-    float cohesionDist;
-    float padding0;
+    float   separationDist;
+    float   alignmentDist;
+    float   cohesionDist;
+    float   padding1;
 };
 
 // matches struct from solids/solid.fxh

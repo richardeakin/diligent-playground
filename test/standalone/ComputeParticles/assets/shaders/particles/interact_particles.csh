@@ -20,7 +20,8 @@ void InteractParticles( inout ParticleAttribs p0, in ParticleAttribs p1 )
 {
     float3 r10 = ( p1.pos - p0.pos );
     float dist = length( r10 ); // TODO (optimiziation): use dist squared
-    if( dist < Constants.zoneRadius ) {
+    float maxDist = Constants.cohesionDist;
+    if( dist < maxDist ) {
         float3 d10 = normalize( r10 );
         if( dist < Constants.separationDist ) {
             // add force that flies p0 away from p1

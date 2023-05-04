@@ -62,7 +62,6 @@ private:
     bool        mUIEnabled = true;  
     int         mNumParticles       = 200; // was: 1000
     float       mParticleScale      = 0.5f;
-    float       mZoneRadius         = 0.5f;
     float       mSeparation         = 0.68f;
     float       mAlignment          = 0.065f;
     float       mCohesion           = 0.033f;

@@ -56,22 +56,22 @@ struct ParticleAttribs {
 struct ParticleConstants {
     float4x4 viewProj;
 
-    uint  numParticles;
-    float deltaTime;
-    float zoneRadius;
-    float  separation;
+    uint    numParticles;
+    float   deltaTime;
+    float   separation;
+    float   padding0;
 
-    float scale;
-    int3  gridSize;
+    float   scale;
+    int3    gridSize;
 
-    float2 speedMinMax;
-    float alignment;
-    float cohesion;
+    float2  speedMinMax;
+    float   alignment;
+    float   cohesion;
 
-    float separationDist;
-    float alignmentDist;
-    float cohesionDist;
-    float padding0;
+    float   separationDist;
+    float   alignmentDist;
+    float   cohesionDist;
+    float   padding1;
 };
 
 struct BackgroundPixelConstants {
@@ -682,7 +682,6 @@ void ComputeParticles::Render()
         constData->viewProj = mViewProjMatrix.Transpose();
         constData->numParticles = static_cast<Uint32>( mNumParticles );
         constData->deltaTime     = std::min( mTimeDelta, 1.f / 60.f) * mSimulationSpeed;
-        constData->zoneRadius = mZoneRadius;
         constData->scale = mParticleScale;
         constData->gridSize = mGridSize;
         constData->speedMinMax = mSpeedMinMax;
@@ -863,10 +862,11 @@ void ComputeParticles::updateUI()
             im::Separator();
             im::Text( "Flocking" );            
             ImGui::DragFloatRange2("speed", &mSpeedMinMax.x, &mSpeedMinMax.y, 0.02f, 0.0f, 100.0f, "min: %6.3f", "max: %6.3f", ImGuiSliderFlags_AlwaysClamp);
-            im::DragFloat( "zone radius", &mZoneRadius, 0.001f, 0.0f, 10.0f );
             im::DragFloat( "separation", &mSeparation, 0.001f, 0.0002f, 2.0f );
             im::DragFloat( "alignment", &mAlignment, 0.001f, 0.0002f, 2.0f );
             im::DragFloat( "cohesion", &mCohesion, 0.001f, 0.0002f, 2.0f );
+
+            // TODO: make sure dists for separation < align < cohesion
             im::DragFloat( "separation dist", &mSeparationDist, 0.001f, 0.0f, 2.0f );
             im::DragFloat( "alignment dist", &mAlignmentDist, 0.001f, 0.0f, 2.0f );
             im::DragFloat( "cohesion dist", &mCohesionDist, 0.001f, 0.0f, 2.0f );
