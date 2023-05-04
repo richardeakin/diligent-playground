@@ -69,7 +69,7 @@ private:
     float       mAlignmentDist      = 0.289f; 
     float       mCohesionDist       = 0.5f; // TODO: just use this or zone radius, nothing should be considered past it
     float       mSimulationSpeed    = 0.75f;
-    dg::float2  mSpeedMinMax        = { 0.01f, 2.0f };
+    dg::float2  mSpeedMinMax        = { 0.01f, 1.1f };
     dg::int3    mGridSize           = { 10, 10, 10 };
     int         mThreadGroupSize    = 256;
     float       mTimeDelta          = 0;
