@@ -915,8 +915,19 @@ void ComputeParticles::drawParticles()
 
 void ComputeParticles::initPostProcessPSO()
 {
-    ShaderMacroHelper Macros;
-    Macros.AddShaderMacro("GLOW", 1);
+    // set texture formats (used when creating render targets)
+    if (m_pDevice->GetTextureFormatInfoExt(TEX_FORMAT_D32_FLOAT).BindFlags & BIND_DEPTH_STENCIL)
+        m_DepthTargetFormat = TEX_FORMAT_D32_FLOAT;
+    else if (m_pDevice->GetTextureFormatInfoExt(TEX_FORMAT_D24_UNORM_S8_UINT).BindFlags & BIND_DEPTH_STENCIL)
+        m_DepthTargetFormat = TEX_FORMAT_D24_UNORM_S8_UINT;
+
+    // Use HDR format if supported.
+    constexpr auto RTFlags = BIND_RENDER_TARGET | BIND_SHADER_RESOURCE;
+    if ((m_pDevice->GetTextureFormatInfoExt(TEX_FORMAT_RGBA16_FLOAT).BindFlags & RTFlags) == RTFlags)
+        m_ColorTargetFormat = TEX_FORMAT_RGBA16_FLOAT;
+
+    //ShaderMacroHelper Macros;
+    //Macros.AddShaderMacro("GLOW", 1);
 
     GraphicsPipelineStateCreateInfo PSOCreateInfo;
 
