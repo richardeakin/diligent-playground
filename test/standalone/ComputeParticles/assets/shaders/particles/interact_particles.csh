@@ -27,16 +27,16 @@ void InteractParticles( inout ParticleAttribs p0, in ParticleAttribs p1 )
             float F = ( Constants.separationDist / dist - 1.0f ) * Constants.separation;
             p0.accel -= d10 * F;
         }
-        if( dist < Constants.cohesionDist ) {
-            // add force that flies p0 towards p1
-            float F = ( Constants.cohesionDist / dist - 1.0f ) * Constants.cohesion;
-            p0.accel += d10 * F;
-        }
-        if( dist < Constants.alignmentDist ) {
+        else if( dist < Constants.alignmentDist ) {
             // add force that flies p0 in same direction as p1
             float3 dir = normalize( p1.vel );
             float F = ( Constants.alignmentDist / dist - 1.0f ) * Constants.alignment;
             p0.accel += dir * F;
+        }
+        else if( dist < Constants.cohesionDist ) {
+            // add force that flies p0 towards p1
+            float F = ( Constants.cohesionDist / dist - 1.0f ) * Constants.cohesion;
+            p0.accel += d10 * F;
         }
     }
 }
