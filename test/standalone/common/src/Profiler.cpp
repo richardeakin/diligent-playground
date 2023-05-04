@@ -18,7 +18,7 @@ Profiler::Profiler( IRenderDevice* device )
 
 	// TODO: pass in expected queries as optional param
 	// TODO: make num queries grow to fit
-	mQuerier = make_unique<DurationQueryHelper>( mDevice, 10, 10 );
+	mQuerier = make_unique<DurationQueryHelper>( mDevice, 20, 20 );
 }
 
 Profiler::~Profiler()

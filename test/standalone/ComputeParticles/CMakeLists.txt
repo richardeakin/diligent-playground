@@ -31,7 +31,7 @@ set(SHADERS
     assets/shaders/particles/particles.fxh
     assets/shaders/particles/structures.fxh
     assets/shaders/particles/reset_particle_lists.csh
-    assets/shaders/particles/collide_particles.csh
+    assets/shaders/particles/interact_particles.csh
     assets/shaders/particles/move_particles.csh
     assets/shaders/solids/solid.vsh
     assets/shaders/solids/solid.psh

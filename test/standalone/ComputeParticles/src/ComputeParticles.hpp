@@ -9,7 +9,7 @@
 #include "common/src/Profiler.h"
 #include "Solids.h"
 
-#define DEBUG_PARTICLE_BUFFERS 0
+#define DEBUG_PARTICLE_BUFFERS 1
 
 namespace dg = Diligent;
 
@@ -45,9 +45,8 @@ private:
     dg::RefCntAutoPtr<dg::IShaderResourceBinding> mResetParticleListsSRB;
     dg::RefCntAutoPtr<dg::IPipelineState>         mMoveParticlesPSO;
     dg::RefCntAutoPtr<dg::IShaderResourceBinding> mMoveParticlesSRB;
-    dg::RefCntAutoPtr<dg::IPipelineState>         mCollideParticlesPSO;
-    dg::RefCntAutoPtr<dg::IShaderResourceBinding> mCollideParticlesSRB;
-    dg::RefCntAutoPtr<dg::IPipelineState>         mUpdateParticleSpeedPSO;
+    dg::RefCntAutoPtr<dg::IPipelineState>         mInteractParticlesPSO;
+    dg::RefCntAutoPtr<dg::IShaderResourceBinding> mInteractParticlesSRB;
     dg::RefCntAutoPtr<dg::IBuffer>                mParticleConstants;
     dg::RefCntAutoPtr<dg::IBuffer>                mParticleAttribsBuffer;
     dg::RefCntAutoPtr<dg::IBuffer>                mParticleListsBuffer;
@@ -60,17 +59,24 @@ private:
     bool    mDebugCopyParticles = false;
 #endif
 
-    bool    mUIEnabled = true;  
-    int     mNumParticles    = 100; // was: 1000
-    float   mParticleScale   = 1;
-    float   mSimulationSpeed = 0.5f;
-    dg::int3 mGridSize       = { 10, 10, 10 };
-    int     mThreadGroupSize = 256;
-    float   mTimeDelta       = 0;
-    bool    mDrawBackground = true;
-    bool    mDrawTestSolid = false;
-    bool    mDrawParticles = true;
-    bool    mUpdateParticles = true;
+    bool        mUIEnabled = true;  
+    int         mNumParticles       = 200; // was: 1000
+    float       mParticleScale      = 0.5f;
+    float       mSeparation         = 0.68f;
+    float       mAlignment          = 0.065f;
+    float       mCohesion           = 0.033f;
+    float       mSeparationDist     = 0.168f;
+    float       mAlignmentDist      = 0.289f; 
+    float       mCohesionDist       = 0.5f; // TODO: just use this or zone radius, nothing should be considered past it
+    float       mSimulationSpeed    = 0.75f;
+    dg::float2  mSpeedMinMax        = { 0.01f, 1.1f };
+    dg::int3    mGridSize           = { 10, 10, 10 };
+    int         mThreadGroupSize    = 256;
+    float       mTimeDelta          = 0;
+    bool        mDrawBackground     = true;
+    bool        mDrawTestSolid      = false;
+    bool        mDrawParticles      = true;
+    bool        mUpdateParticles    = true;
 
 
     std::unique_ptr<ju::Canvas> mBackgroundCanvas;

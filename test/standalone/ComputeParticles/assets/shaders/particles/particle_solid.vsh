@@ -79,14 +79,16 @@ void main( in VSInput VSIn, out PSInput PSIn )
     pos *= scale;
 
     // rotate in the direction of current speed
-    float3 lookAtDir = normalize( Attribs.speed );
+    float3 lookAtDir = normalize( Attribs.vel );
     float4 lookAtQuat = GetRotationQuat( float3( 0, 1, 0 ), lookAtDir, float3( 0, 1, 0 ) );
     //float4 lookAtQuat = q_look_at( lookAtDir, float3( 0, 1, 0 ) );
     float4x4 lookAtMat = quaternion_to_matrix( lookAtQuat );
     //float4 posRotated = mul( float4( pos, 1.0 ), lookAtMat );
     float4 posRotated = mul( lookAtMat, float4( pos, 1.0 ) ); // TODO: figure out why post multiplying the pos fixes directions
 
-    posRotated += float4( Attribs.pos, 0 );
+    float3 worldPos = Attribs.pos;
+    //worldPos.z = 0; // flatten z for visualizing flocking patterns
+    posRotated += float4( worldPos, 0 );
     PSIn.Pos = mul( posRotated, SConstants.ModelViewProj );
 
     //PSIn.Pos = mul( float4( pos + Attribs.pos, 1.0 ), SConstants.ModelViewProj );
