@@ -413,8 +413,8 @@ void ComputeParticles::initParticleBuffers()
     VBData.pData    = ParticleData.data();
     VBData.DataSize = sizeof(ParticleAttribs) * static_cast<Uint32>( ParticleData.size() );
     m_pDevice->CreateBuffer( BuffDesc, &VBData, &mParticleAttribsBuffer );
-    IBufferView* pParticleAttribsBufferSRV = mParticleAttribsBuffer->GetDefaultView( BUFFER_VIEW_SHADER_RESOURCE );
-    IBufferView* pParticleAttribsBufferUAV = mParticleAttribsBuffer->GetDefaultView( BUFFER_VIEW_UNORDERED_ACCESS );
+    IBufferView* particleAttribsBufferSRV = mParticleAttribsBuffer->GetDefaultView( BUFFER_VIEW_SHADER_RESOURCE );
+    IBufferView* particleAttribsBufferUAV = mParticleAttribsBuffer->GetDefaultView( BUFFER_VIEW_UNORDERED_ACCESS );
 
     BuffDesc.ElementByteStride = sizeof(int);
     BuffDesc.Mode              = BUFFER_MODE_FORMATTED;
@@ -422,21 +422,21 @@ void ComputeParticles::initParticleBuffers()
     BuffDesc.BindFlags         = BIND_UNORDERED_ACCESS | BIND_SHADER_RESOURCE;
     m_pDevice->CreateBuffer( BuffDesc, nullptr, &mParticleListHeadsBuffer );
     m_pDevice->CreateBuffer( BuffDesc, nullptr, &mParticleListsBuffer );
-    RefCntAutoPtr<IBufferView> pParticleListHeadsBufferUAV;
-    RefCntAutoPtr<IBufferView> pParticleListsBufferUAV;
-    RefCntAutoPtr<IBufferView> pParticleListHeadsBufferSRV;
-    RefCntAutoPtr<IBufferView> pParticleListsBufferSRV;
+    RefCntAutoPtr<IBufferView> particleListHeadsBufferUAV;
+    RefCntAutoPtr<IBufferView> particleListsBufferUAV;
+    RefCntAutoPtr<IBufferView> particleListHeadsBufferSRV;
+    RefCntAutoPtr<IBufferView> particleListsBufferSRV;
     {
         BufferViewDesc ViewDesc;
         ViewDesc.ViewType             = BUFFER_VIEW_UNORDERED_ACCESS;
         ViewDesc.Format.ValueType     = VT_INT32;
         ViewDesc.Format.NumComponents = 1;
-        mParticleListHeadsBuffer->CreateView( ViewDesc, &pParticleListHeadsBufferUAV );
-        mParticleListsBuffer->CreateView( ViewDesc, &pParticleListsBufferUAV );
+        mParticleListHeadsBuffer->CreateView( ViewDesc, &particleListHeadsBufferUAV );
+        mParticleListsBuffer->CreateView( ViewDesc, &particleListsBufferUAV );
 
         ViewDesc.ViewType = BUFFER_VIEW_SHADER_RESOURCE;
-        mParticleListHeadsBuffer->CreateView( ViewDesc, &pParticleListHeadsBufferSRV );
-        mParticleListsBuffer->CreateView( ViewDesc, &pParticleListsBufferSRV );
+        mParticleListHeadsBuffer->CreateView( ViewDesc, &particleListHeadsBufferSRV );
+        mParticleListsBuffer->CreateView( ViewDesc, &particleListsBufferSRV );
     }
 
 #if DEBUG_PARTICLE_BUFFERS
@@ -473,32 +473,32 @@ void ComputeParticles::initParticleBuffers()
     if( mResetParticleListsPSO ) {
         mResetParticleListsSRB.Release();
         mResetParticleListsPSO->CreateShaderResourceBinding( &mResetParticleListsSRB, true );
-        mResetParticleListsSRB->GetVariableByName(SHADER_TYPE_COMPUTE, "ParticleListHead")->Set( pParticleListHeadsBufferUAV );
+        mResetParticleListsSRB->GetVariableByName(SHADER_TYPE_COMPUTE, "ParticleListHead")->Set( particleListHeadsBufferUAV );
     }
     if( mRenderParticlePSO ) {
         mRenderParticleSRB.Release();
         mRenderParticlePSO->CreateShaderResourceBinding( &mRenderParticleSRB, true );
-        mRenderParticleSRB->GetVariableByName( SHADER_TYPE_VERTEX, "Particles" )->Set( pParticleAttribsBufferSRV );
+        mRenderParticleSRB->GetVariableByName( SHADER_TYPE_VERTEX, "Particles" )->Set( particleAttribsBufferSRV );
     }
     if( mMoveParticlesPSO ) {
         mMoveParticlesSRB.Release();
         mMoveParticlesPSO->CreateShaderResourceBinding( &mMoveParticlesSRB, true );
-        mMoveParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "Particles" )->Set( pParticleAttribsBufferUAV );
-        mMoveParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "ParticleListHead" )->Set( pParticleListHeadsBufferUAV );
-        mMoveParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "ParticleLists" )->Set( pParticleListsBufferUAV );
+        mMoveParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "Particles" )->Set( particleAttribsBufferUAV );
+        mMoveParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "ParticleListHead" )->Set( particleListHeadsBufferUAV );
+        mMoveParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "ParticleLists" )->Set( particleListsBufferUAV );
     }
     if( mInteractParticlesPSO ) {
         mInteractParticlesSRB.Release();
         mInteractParticlesPSO->CreateShaderResourceBinding( &mInteractParticlesSRB, true );
-        mInteractParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "Particles" )->Set( pParticleAttribsBufferUAV );
+        mInteractParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "Particles" )->Set( particleAttribsBufferUAV );
 
         auto listHead =  mInteractParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "ParticleListHead" );
         if( listHead ) {
-            listHead->Set( pParticleListHeadsBufferSRV );
+            listHead->Set( particleListHeadsBufferSRV );
         }
         auto lists = mInteractParticlesSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "ParticleLists" );
         if( lists ) {
-            lists->Set( pParticleListsBufferSRV );
+            lists->Set( particleListsBufferSRV );
         }
     }
 }
