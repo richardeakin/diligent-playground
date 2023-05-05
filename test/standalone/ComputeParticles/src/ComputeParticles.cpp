@@ -53,6 +53,8 @@ struct ParticleAttribs {
 
 // TODO: rather than duplicating all these vars as member vars, would be easier to keep this struct in
 // the class and then pass in our copy of ParticleConstants to MapHelper (or use map fns directly)
+// - do it the same way that PostProcessConstants is handled
+// - consider storing all structures in assets/shaders/structures.fxh
 struct ParticleConstants {
     float4x4 viewProj;
 
@@ -797,7 +799,8 @@ void ComputeParticles::Update( double CurrTime, double ElapsedTime )
 // Render a frame
 void ComputeParticles::Render()
 {
-    const float ClearColor[] = { 0.03f, 0.03f, 0.03f, 0.0f}; // alpha channel is for glow intensity
+    const float gray = 0.01f;
+    const float ClearColor[] = { gray, gray, gray, 0.0f}; // alpha channel is for glow intensity
 
     //auto* rtv = m_pSwapChain->GetCurrentBackBufferRTV();
     //auto* dsv = m_pSwapChain->GetDepthBufferDSV();
