@@ -109,8 +109,9 @@ float2 CameraSpeedUp = { 0.2f, 10.0f }; // speed multipliers when {shift, ctrl} 
 
 dg::float3      LightDir  = normalize( float3( 1, -0.5f, -0.1f ) );
 
-ju::FileWatchHandle     ShadersDirWatchHandle;
-bool                    ShaderAssetsMarkedDirty = false;
+ju::FileWatchHandle     ShadersDirWatchHandle, ShadersDirWatchHandle2;
+bool                    ParticleShaderAssetsMarkedDirty = false;
+bool                    PostShaderAssetsMarkedDirty = false;
 
 std::vector<ParticleAttribs> DebugParticleAttribsData;
 std::vector<int> DebugParticleListsData;
@@ -566,51 +567,99 @@ void ComputeParticles::initCamera()
 
 void ComputeParticles::watchShadersDir()
 {
-    std::filesystem::path shaderDir( "shaders/particles" );
+    // particles
+    {
+        std::filesystem::path shaderDir( "shaders/particles" );
 
-    if( std::filesystem::exists( shaderDir ) ) {
-        LOG_INFO_MESSAGE( __FUNCTION__, "| watching assets directory: ", shaderDir );
-        try {
-            ShadersDirWatchHandle = std::make_unique<FileWatchType>( shaderDir.string(),
-                [=](const PathType &path, const filewatch::Event change_type ) {
+        if( std::filesystem::exists( shaderDir ) ) {
+            LOG_INFO_MESSAGE( __FUNCTION__, "| watching assets directory: ", shaderDir );
+            try {
+                ShadersDirWatchHandle = std::make_unique<FileWatchType>( shaderDir.string(),
+                    [=](const PathType &path, const filewatch::Event change_type ) {
 
-                    // make a list of files we actually want to update if changed and check that here
-                    const static std::vector<PathType> checkFilenames = {
-                        "interact_particles.csh",
-                        "move_particles.csh",
-                        "reset_particles.csh",
-                        "particle_sprite.vsh",
-                        "particle_sprite.psh",
-                        "particle.fxh",
-                        "structures.fxh"
-                    };
+                        // make a list of files we actually want to update if changed and check that here
+                        const static std::vector<PathType> checkFilenames = {
+                            "interact_particles.csh",
+                            "move_particles.csh",
+                            "reset_particles.csh",
+                            "particle_sprite.vsh",
+                            "particle_sprite.psh",
+                            "particle.fxh",
+                            "structures.fxh"
+                        };
 
-                    for( const auto &p : checkFilenames ) {
-                        if( p == path ) {
-                            LOG_INFO_MESSAGE( __FUNCTION__, "| \t- file event type: ", watchEventTypeToString( change_type ) , ", path: " , path );
-                            ShaderAssetsMarkedDirty = true;
+                        for( const auto &p : checkFilenames ) {
+                            if( p == path ) {
+                                LOG_INFO_MESSAGE( __FUNCTION__, "| \t- file event type: ", watchEventTypeToString( change_type ) , ", path: " , path );
+                                ParticleShaderAssetsMarkedDirty = true;
+                            }
                         }
                     }
-                }
-            );
+                );
+            }
+            catch( std::system_error &exc ) {
+                LOG_ERROR_MESSAGE( __FUNCTION__, "| exception caught attempting to watch directory (assets): ", shaderDir, ", what: ", exc.what() );
+            }
         }
-        catch( std::system_error &exc ) {
-            LOG_ERROR_MESSAGE( __FUNCTION__, "| exception caught attempting to watch directory (assets): ", shaderDir, ", what: ", exc.what() );
+        else {
+            LOG_WARNING_MESSAGE( __FUNCTION__, "| shader directory couldn't be found (not watching): ", shaderDir );
         }
     }
-    else {
-        LOG_WARNING_MESSAGE( __FUNCTION__, "| shader directory couldn't be found (not watching): ", shaderDir );
+
+    // post
+    {
+        std::filesystem::path shaderDir( "shaders/post" );
+
+        if( std::filesystem::exists( shaderDir ) ) {
+            LOG_INFO_MESSAGE( __FUNCTION__, "| watching assets directory: ", shaderDir );
+            try {
+                ShadersDirWatchHandle2 = std::make_unique<FileWatchType>( shaderDir.string(),
+                    [=](const PathType &path, const filewatch::Event change_type ) {
+
+                        // make a list of files we actually want to update if changed and check that here
+                        const static std::vector<PathType> checkFilenames = {
+                            "post_process.vsh",
+                            "post_process.psh",
+                        };
+
+                        for( const auto &p : checkFilenames ) {
+                            if( p == path ) {
+                                LOG_INFO_MESSAGE( __FUNCTION__, "| \t- file event type: ", watchEventTypeToString( change_type ) , ", path: " , path );
+                                PostShaderAssetsMarkedDirty = true;
+                            }
+                        }
+                    }
+                );
+            }
+            catch( std::system_error &exc ) {
+                LOG_ERROR_MESSAGE( __FUNCTION__, "| exception caught attempting to watch directory (assets): ", shaderDir, ", what: ", exc.what() );
+            }
+        }
+        else {
+            LOG_WARNING_MESSAGE( __FUNCTION__, "| shader directory couldn't be found (not watching): ", shaderDir );
+        }
     }
+
 }
 
-void ComputeParticles::reloadOnAssetsUpdated()
+void ComputeParticles::checkReloadOnAssetsUpdated()
 {
-    LOG_INFO_MESSAGE( __FUNCTION__, "| re-initializing shader assets" );
+    if( ParticleShaderAssetsMarkedDirty ) {
+        LOG_INFO_MESSAGE( __FUNCTION__, "| re-initializing Particle shader assets" );
 
-    initRenderParticlePSO();
-    initUpdateParticlePSO();
+        initRenderParticlePSO();
+        initUpdateParticlePSO();
 
-    ShaderAssetsMarkedDirty = false;
+        ParticleShaderAssetsMarkedDirty = false;
+    }
+
+    if( PostShaderAssetsMarkedDirty ) {
+        LOG_INFO_MESSAGE( __FUNCTION__, "| re-initializing Post Process shader assets" );
+
+        initPostProcessPSO();
+
+        PostShaderAssetsMarkedDirty = false;
+    }
 }
 
 void ComputeParticles::WindowResize( Uint32 Width, Uint32 Height )
@@ -691,9 +740,7 @@ void ComputeParticles::Update( double CurrTime, double ElapsedTime )
     SampleBase::Update( CurrTime, ElapsedTime );
     updateUI();
 
-    if( ShaderAssetsMarkedDirty ) {
-        reloadOnAssetsUpdated();
-    }
+    checkReloadOnAssetsUpdated();
 
     mTimeDelta = (float)ElapsedTime;
     mCamera.Update( m_InputController, mTimeDelta );
@@ -970,7 +1017,7 @@ void ComputeParticles::initPostProcessPSO()
 		ShaderCI.Desc = { "Post process VS", SHADER_TYPE_VERTEX, true };
 		ShaderCI.EntryPoint = "main";
 		ShaderCI.FilePath = "shaders/post/post_process.vsh";
-		m_pDevice->CreateShader(ShaderCI, &pVS);
+		m_pDevice->CreateShader( ShaderCI, &pVS );
 	}
 
 	RefCntAutoPtr<IShader> pPS;
@@ -984,6 +1031,7 @@ void ComputeParticles::initPostProcessPSO()
     PSOCreateInfo.pVS = pVS;
     PSOCreateInfo.pPS = pPS;
 
+    m_PostProcessPSO.Release();
     m_pDevice->CreateGraphicsPipelineState( PSOCreateInfo, &m_PostProcessPSO );
 
     // TODO: make this for glow

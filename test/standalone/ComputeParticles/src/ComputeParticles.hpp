@@ -33,7 +33,7 @@ private:
     void updateUI();
 
     void watchShadersDir();
-    void reloadOnAssetsUpdated();
+    void checkReloadOnAssetsUpdated();
 
     void updateParticles();
     void drawParticles();

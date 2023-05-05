@@ -82,6 +82,7 @@ float4 main(in PSInput PSIn) : SV_Target
 #endif
 
     // Apply fog
+    // TODO: add constant bool to toggle
     {
         float3 WPos        = ScreenPosToWorldPos(PSIn.UV, Depth, g_Constants.ViewProjInv);
         float  LinearDepth = length(WPos - g_Constants.CameraPos);
