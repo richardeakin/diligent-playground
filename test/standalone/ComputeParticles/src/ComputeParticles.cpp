@@ -667,6 +667,11 @@ void ComputeParticles::WindowResize( Uint32 Width, Uint32 Height )
     // --------------------
     // Post Process
 
+    // Set minimal render target size
+    auto blah = 1u << DownSampleFactor;
+    Width  = std::max(Width, 1u << DownSampleFactor);
+    Height = std::max(Height, 1u << DownSampleFactor);
+
     // Check if the image needs to be recreated.
 	if( m_GBuffer.Color != nullptr && m_GBuffer.Color->GetDesc().Width == Width && m_GBuffer.Color->GetDesc().Height == Height ) {
         return;
@@ -1028,12 +1033,12 @@ void ComputeParticles::initPostProcessPSO()
     {
         ShaderCI.Desc       = { "Down sample PS", SHADER_TYPE_PIXEL, true };
         ShaderCI.EntryPoint = "main";
-        ShaderCI.FilePath   = "DownSample.psh";
-        m_pDevice->CreateShader(ShaderCI, &pDownSamplePS);
+        ShaderCI.FilePath   = "shaders/post/downsample.psh";
+        m_pDevice->CreateShader( ShaderCI, &pDownSamplePS );
     }
     PSOCreateInfo.pPS = pDownSamplePS;
 
-    PSOCreateInfo.PSODesc.Name                   = "Down sample PSO";
+    PSOCreateInfo.PSODesc.Name                   = "Downsample PSO";
     PSOCreateInfo.GraphicsPipeline.RTVFormats[0] = app::global()->colorBufferFormat;
 
     PSOCreateInfo.PSODesc.ResourceLayout.ImmutableSamplers    = nullptr;

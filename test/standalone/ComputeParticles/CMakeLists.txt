@@ -41,6 +41,7 @@ set(SHADERS
     assets/shaders/Quaternion.hlsl
     assets/shaders/post/post_process.vsh
     assets/shaders/post/post_process.psh
+    assets/shaders/post/downsample.psh
 )
 
 set(ASSETS)
