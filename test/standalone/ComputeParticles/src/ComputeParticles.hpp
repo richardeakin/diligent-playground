@@ -76,9 +76,6 @@ private:
     };
     GBuffer m_GBuffer;
     
-    // TODO: why are these in the header?
-    dg::TEXTURE_FORMAT m_ColorTargetFormat = dg::TEX_FORMAT_RGBA8_UNORM;
-    dg::TEXTURE_FORMAT m_DepthTargetFormat = dg::TEX_FORMAT_UNKNOWN;
 
     bool mGlowEnabled               = false; // TODO: add to const buffer
     dg::float3 mFogColor            = { 0.73f, 0.65f, 0.59f };

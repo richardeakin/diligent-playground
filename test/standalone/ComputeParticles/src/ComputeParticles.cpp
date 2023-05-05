@@ -166,8 +166,21 @@ void ComputeParticles::Initialize( const SampleInitInfo& InitInfo )
 
     auto global = app::global();
     global->renderDevice = m_pDevice;
-    global->swapChainImageDesc = &m_pSwapChain->GetDesc();
     m_pEngineFactory->CreateDefaultShaderSourceStreamFactory( nullptr, &global->shaderSourceFactory );
+
+    // set texture formats (used when creating render targets)
+	if( m_pDevice->GetTextureFormatInfoExt( TEX_FORMAT_D32_FLOAT ).BindFlags & BIND_DEPTH_STENCIL ) {
+		global->depthBufferFormat = TEX_FORMAT_D32_FLOAT;
+    }
+	else if( m_pDevice->GetTextureFormatInfoExt( TEX_FORMAT_D24_UNORM_S8_UINT ).BindFlags & BIND_DEPTH_STENCIL ) {
+		global->depthBufferFormat = TEX_FORMAT_D24_UNORM_S8_UINT;
+    }
+
+	// Use HDR format if supported.
+	constexpr auto RTFlags = BIND_RENDER_TARGET | BIND_SHADER_RESOURCE;
+	if( ( m_pDevice->GetTextureFormatInfoExt( TEX_FORMAT_RGBA16_FLOAT ).BindFlags & RTFlags ) == RTFlags ) {
+        global->colorBufferFormat = TEX_FORMAT_RGBA16_FLOAT;
+    }
 
     initConsantBuffers();
     initRenderParticlePSO();
@@ -195,8 +208,8 @@ void ComputeParticles::initRenderParticlePSO()
     psoCreateInfo.PSODesc.PipelineType = PIPELINE_TYPE_GRAPHICS;
 
     psoCreateInfo.GraphicsPipeline.NumRenderTargets             = 1;
-    psoCreateInfo.GraphicsPipeline.RTVFormats[0]                = m_pSwapChain->GetDesc().ColorBufferFormat;
-    psoCreateInfo.GraphicsPipeline.DSVFormat                    = m_pSwapChain->GetDesc().DepthBufferFormat;
+    psoCreateInfo.GraphicsPipeline.RTVFormats[0]                = app::global()->colorBufferFormat;
+    psoCreateInfo.GraphicsPipeline.DSVFormat                    = app::global()->depthBufferFormat;
     psoCreateInfo.GraphicsPipeline.PrimitiveTopology            = PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
 
     psoCreateInfo.GraphicsPipeline.RasterizerDesc.CullMode      = CULL_MODE_NONE;
@@ -631,7 +644,7 @@ void ComputeParticles::WindowResize( Uint32 Width, Uint32 Height )
 	RTDesc.Height = Height;
 	RTDesc.MipLevels = DownSampleFactor;
 	RTDesc.BindFlags = BIND_RENDER_TARGET | BIND_SHADER_RESOURCE;
-	RTDesc.Format = m_ColorTargetFormat;
+	RTDesc.Format = app::global()->colorBufferFormat;
 	m_pDevice->CreateTexture( RTDesc, nullptr, &m_GBuffer.Color );
 
 	// Create texture view
@@ -651,7 +664,7 @@ void ComputeParticles::WindowResize( Uint32 Width, Uint32 Height )
 	RTDesc.Name = "GBuffer Depth";
 	RTDesc.MipLevels = 1;
 	RTDesc.BindFlags = BIND_DEPTH_STENCIL | BIND_SHADER_RESOURCE;
-	RTDesc.Format = m_DepthTargetFormat;
+	RTDesc.Format = app::global()->depthBufferFormat;
 	m_pDevice->CreateTexture( RTDesc, nullptr, &m_GBuffer.Depth );
 
 	// Create post-processing SRB
@@ -743,12 +756,20 @@ void ComputeParticles::Update( double CurrTime, double ElapsedTime )
 // Render a frame
 void ComputeParticles::Render()
 {
-    const float ClearColor[] = {0.350f, 0.350f, 0.350f, 1.0f};
+    const float ClearColor[] = {0.350f, 0.350f, 0.350f, 0.0f}; // alpha channel is for glow intensity
 
-    auto* rtv = m_pSwapChain->GetCurrentBackBufferRTV();
-    auto* dsv = m_pSwapChain->GetDepthBufferDSV();
+    //auto* rtv = m_pSwapChain->GetCurrentBackBufferRTV();
+    //auto* dsv = m_pSwapChain->GetDepthBufferDSV();
+    
+    // Render to GBuffer
+	ITextureView* rtv = m_GBuffer.Color->GetDefaultView( TEXTURE_VIEW_RENDER_TARGET );
+	ITextureView* dsv = m_GBuffer.Depth->GetDefaultView( TEXTURE_VIEW_DEPTH_STENCIL );
+	m_pImmediateContext->SetRenderTargets( 1, &rtv, dsv, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+
+    // TODO: tut23 says "transitions is not needed" - why not?
+    // - uses RESOURCE_STATE_TRANSITION_MODE_VERIFY instead
     m_pImmediateContext->ClearRenderTarget( rtv, ClearColor, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
-    m_pImmediateContext->ClearDepthStencil( dsv, CLEAR_DEPTH_FLAG, 1.f, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+    m_pImmediateContext->ClearDepthStencil( dsv, CLEAR_DEPTH_FLAG, 1.0f, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
 
     if( mBackgroundCanvas && mDrawBackground ) {
         auto pixelConstants = mBackgroundCanvas->getPixelConstantsBuffer();
@@ -915,17 +936,6 @@ void ComputeParticles::drawParticles()
 
 void ComputeParticles::initPostProcessPSO()
 {
-    // set texture formats (used when creating render targets)
-    if (m_pDevice->GetTextureFormatInfoExt(TEX_FORMAT_D32_FLOAT).BindFlags & BIND_DEPTH_STENCIL)
-        m_DepthTargetFormat = TEX_FORMAT_D32_FLOAT;
-    else if (m_pDevice->GetTextureFormatInfoExt(TEX_FORMAT_D24_UNORM_S8_UINT).BindFlags & BIND_DEPTH_STENCIL)
-        m_DepthTargetFormat = TEX_FORMAT_D24_UNORM_S8_UINT;
-
-    // Use HDR format if supported.
-    constexpr auto RTFlags = BIND_RENDER_TARGET | BIND_SHADER_RESOURCE;
-    if ((m_pDevice->GetTextureFormatInfoExt(TEX_FORMAT_RGBA16_FLOAT).BindFlags & RTFlags) == RTFlags)
-        m_ColorTargetFormat = TEX_FORMAT_RGBA16_FLOAT;
-
     //ShaderMacroHelper Macros;
     //Macros.AddShaderMacro("GLOW", 1);
 
