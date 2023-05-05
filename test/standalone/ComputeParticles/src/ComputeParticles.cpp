@@ -84,17 +84,6 @@ struct BackgroundPixelConstants {
     float padding3;
 };
 
-struct PostProcessConstants {
-    float4x4 ViewProjInv;
-
-    float3 CameraPos;
-    float  _padding0;
-
-    float3 FogColor;
-    float  _padding1;
-};
-
-static_assert(sizeof(PostProcessConstants) % 16 == 0, "must be aligned to 16 bytes");
 
 bool UseFirstPersonCamera = true;
 float3 TestSolidTranslate = { 0, 0, 0 };
@@ -803,7 +792,7 @@ void ComputeParticles::Update( double CurrTime, double ElapsedTime )
 // Render a frame
 void ComputeParticles::Render()
 {
-    const float ClearColor[] = {0.350f, 0.350f, 0.350f, 0.0f}; // alpha channel is for glow intensity
+    const float ClearColor[] = { 0.03f, 0.03f, 0.03f, 0.0f}; // alpha channel is for glow intensity
 
     //auto* rtv = m_pSwapChain->GetCurrentBackBufferRTV();
     //auto* dsv = m_pSwapChain->GetDepthBufferDSV();
@@ -855,7 +844,7 @@ void ComputeParticles::Render()
         mTestSolid->draw( m_pImmediateContext, mViewProjMatrix );
     }
 
-    if( mGlowEnabled ) {
+    if( mPostProcessConstants.glowEnabled ) {
         //DownSample();
     }
 
@@ -1091,12 +1080,10 @@ void ComputeParticles::PostProcess()
     const auto ViewProj    = mCamera.GetViewMatrix() * mCamera.GetProjMatrix();
     const auto ViewProjInv = ViewProj.Inverse();
 
-    PostProcessConstants ConstData;
-    ConstData.ViewProjInv = ViewProjInv.Transpose();
-    ConstData.CameraPos   = mCamera.GetPos();
-    ConstData.FogColor    = mFogColor;
+    mPostProcessConstants.viewProjInv = ViewProjInv.Transpose();
+    mPostProcessConstants.cameraPos   = mCamera.GetPos();
 
-	m_pImmediateContext->UpdateBuffer( m_PostProcessConstants, 0, sizeof( ConstData ), &ConstData, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+	m_pImmediateContext->UpdateBuffer( m_PostProcessConstants, 0, sizeof( mPostProcessConstants ), &mPostProcessConstants, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
 
 	m_pImmediateContext->SetPipelineState( m_PostProcessPSO );
 	m_pImmediateContext->CommitShaderResources( m_PostProcessSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
@@ -1235,6 +1222,19 @@ void ComputeParticles::updateUI()
             if( im::DragFloat2( "bg size", &bgSize.x, 0.02f ) ) {
                 mBackgroundCanvas->setSize( bgSize );
             }
+        }
+
+        if( im::CollapsingHeader( "Post Process", ImGuiTreeNodeFlags_DefaultOpen ) ) {
+            bool glowEnabled = mPostProcessConstants.glowEnabled;
+            if( im::Checkbox( "glow", &glowEnabled ) ) {
+                mPostProcessConstants.glowEnabled = glowEnabled;
+            }
+            bool fogEnabled = mPostProcessConstants.fogEnabled;
+            if( im::Checkbox( "fog", &fogEnabled ) ) {
+                mPostProcessConstants.fogEnabled = fogEnabled;
+            }
+            im::ColorEdit3( "fog color", &mPostProcessConstants.fogColor.r, ImGuiColorEditFlags_Float );
+            im::DragFloat( "fog intensity", &mPostProcessConstants.fogIntensity, 0.002f, 0.0001f, 1.0f );
         }
     }
     im::End(); // Settings

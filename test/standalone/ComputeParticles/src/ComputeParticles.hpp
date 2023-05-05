@@ -12,6 +12,10 @@
 #define DEBUG_PARTICLE_BUFFERS 1
 
 namespace dg = Diligent;
+using dg::float3;
+using dg::float4;
+using dg::float4x4;
+
 
 class ComputeParticles final : public dg::SampleBase {
 public:
@@ -76,9 +80,20 @@ private:
     };
     GBuffer m_GBuffer;
     
+    struct PostProcessConstants {
+        float4x4    viewProjInv;
 
-    bool mGlowEnabled               = false; // TODO: add to const buffer
-    dg::float3 mFogColor            = { 0.73f, 0.65f, 0.59f };
+        float3  cameraPos;
+        int     glowEnabled = 0;
+
+        float3  fogColor = { 0.43f, 0.65f, 0.59f };
+        int     fogEnabled = 1;
+        float   fogIntensity = 0.01f;
+        float3  padding;
+    };
+    static_assert(sizeof(PostProcessConstants) % 16 == 0, "must be aligned to 16 bytes");
+
+    PostProcessConstants mPostProcessConstants;
     // -------------------------------------------
 
 
