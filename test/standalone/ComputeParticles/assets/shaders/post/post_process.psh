@@ -1,5 +1,5 @@
 
-#define GLOW 0
+#define GLOW 1
 
 struct PostProcessConstants
 {

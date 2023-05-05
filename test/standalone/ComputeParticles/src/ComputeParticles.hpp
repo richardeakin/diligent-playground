@@ -59,17 +59,16 @@ private:
     // -------------------------------------------
     // Post Process
     void initPostProcessPSO();
-    //void DownSample();
+    void DownSample();
     void PostProcess();
 
     dg::RefCntAutoPtr<dg::IPipelineState>         m_PostProcessPSO;
     dg::RefCntAutoPtr<dg::IShaderResourceBinding> m_PostProcessSRB;
     dg::RefCntAutoPtr<dg::IBuffer> m_PostProcessConstants;
 
-    // TODO: enable when adding GLOW
-    //RefCntAutoPtr<IPipelineState>         m_DownSamplePSO;
-    static constexpr dg::Uint32               DownSampleFactor = 5;
-    //RefCntAutoPtr<IShaderResourceBinding> m_DownSampleSRB[DownSampleFactor];
+    dg::RefCntAutoPtr<dg::IPipelineState>               m_DownSamplePSO;
+    static constexpr dg::Uint32                         DownSampleFactor = 5;
+    dg::RefCntAutoPtr<dg::IShaderResourceBinding>       m_DownSampleSRB[DownSampleFactor];
 
     // Render to GBuffer
     struct GBuffer {
@@ -84,10 +83,10 @@ private:
         float4x4    viewProjInv;
 
         float3  cameraPos;
-        int     glowEnabled = 0;
+        int     glowEnabled = 1;
 
         float3  fogColor = { 0.43f, 0.65f, 0.59f };
-        int     fogEnabled = 1;
+        int     fogEnabled = 0;
         float   fogIntensity = 0.01f;
         float3  padding;
     };

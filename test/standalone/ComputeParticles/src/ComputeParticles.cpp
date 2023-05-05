@@ -715,12 +715,12 @@ void ComputeParticles::WindowResize( Uint32 Width, Uint32 Height )
 	}
 
 	// Create down sample SRB
-	//for( Uint32 Mip = 0; Mip < DownSampleFactor; ++Mip ) {
-	//	auto& SRB = m_DownSampleSRB[Mip];
-	//	SRB.Release();
-	//	m_DownSamplePSO->CreateShaderResourceBinding( &SRB );
-	//	SRB->GetVariableByName( SHADER_TYPE_PIXEL, "g_GBuffer_Color" )->Set( m_GBuffer.ColorSRBs[Mip] );
-	//}
+	for( Uint32 Mip = 0; Mip < DownSampleFactor; ++Mip ) {
+		auto& SRB = m_DownSampleSRB[Mip];
+		SRB.Release();
+		m_DownSamplePSO->CreateShaderResourceBinding( &SRB );
+		SRB->GetVariableByName( SHADER_TYPE_PIXEL, "g_GBuffer_Color" )->Set( m_GBuffer.ColorSRBs[Mip] );
+	}
 
 }
 
@@ -845,7 +845,7 @@ void ComputeParticles::Render()
     }
 
     if( mPostProcessConstants.glowEnabled ) {
-        //DownSample();
+        DownSample();
     }
 
     // Final pass
@@ -1023,55 +1023,52 @@ void ComputeParticles::initPostProcessPSO()
     m_PostProcessPSO.Release();
     m_pDevice->CreateGraphicsPipelineState( PSOCreateInfo, &m_PostProcessPSO );
 
-    // TODO: make this for glow
-    //RefCntAutoPtr<IShader> pDownSamplePS;
-    //{
-    //    ShaderCI.Desc       = {"Down sample PS", SHADER_TYPE_PIXEL, true};
-    //    ShaderCI.EntryPoint = "main";
-    //    ShaderCI.FilePath   = "DownSample.psh";
-    //    m_pDevice->CreateShader(ShaderCI, &pDownSamplePS);
-    //}
-    //PSOCreateInfo.pPS = pDownSamplePS;
+    // downsample buffers for glow
+    RefCntAutoPtr<IShader> pDownSamplePS;
+    {
+        ShaderCI.Desc       = { "Down sample PS", SHADER_TYPE_PIXEL, true };
+        ShaderCI.EntryPoint = "main";
+        ShaderCI.FilePath   = "DownSample.psh";
+        m_pDevice->CreateShader(ShaderCI, &pDownSamplePS);
+    }
+    PSOCreateInfo.pPS = pDownSamplePS;
 
-    //PSOCreateInfo.PSODesc.Name                   = "Down sample PSO";
-    //PSOCreateInfo.GraphicsPipeline.RTVFormats[0] = m_ColorTargetFormat;
+    PSOCreateInfo.PSODesc.Name                   = "Down sample PSO";
+    PSOCreateInfo.GraphicsPipeline.RTVFormats[0] = app::global()->colorBufferFormat;
 
-    //PSOCreateInfo.PSODesc.ResourceLayout.ImmutableSamplers    = nullptr;
-    //PSOCreateInfo.PSODesc.ResourceLayout.NumImmutableSamplers = 0;
+    PSOCreateInfo.PSODesc.ResourceLayout.ImmutableSamplers    = nullptr;
+    PSOCreateInfo.PSODesc.ResourceLayout.NumImmutableSamplers = 0;
 
-    //m_pDevice->CreateGraphicsPipelineState( PSOCreateInfo, &m_DownSamplePSO );
+    m_pDevice->CreateGraphicsPipelineState( PSOCreateInfo, &m_DownSamplePSO );
 }
 
-//void ComputeParticles::DownSample()
-//{
-//     m_pImmediateContext->BeginDebugGroup("Down sample pass");
+void ComputeParticles::DownSample()
+{
+    JU_PROFILE( "downsample", m_pImmediateContext, mProfiler.get() );
 
-    //m_pImmediateContext->SetPipelineState(m_DownSamplePSO);
-    //m_pImmediateContext->SetVertexBuffers(0, 0, nullptr, nullptr, RESOURCE_STATE_TRANSITION_MODE_NONE, SET_VERTEX_BUFFERS_FLAG_RESET);
-    //m_pImmediateContext->SetIndexBuffer(nullptr, 0, RESOURCE_STATE_TRANSITION_MODE_NONE);
+	m_pImmediateContext->SetPipelineState( m_DownSamplePSO );
+	m_pImmediateContext->SetVertexBuffers( 0, 0, nullptr, nullptr, RESOURCE_STATE_TRANSITION_MODE_NONE, SET_VERTEX_BUFFERS_FLAG_RESET );
+	m_pImmediateContext->SetIndexBuffer( nullptr, 0, RESOURCE_STATE_TRANSITION_MODE_NONE );
 
-    //StateTransitionDesc Barrier{m_GBuffer.Color, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE, 0u, 1u};
+	StateTransitionDesc Barrier{ m_GBuffer.Color, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE, 0u, 1u };
 
-    //for (Uint32 Mip = 1; Mip < DownSampleFactor; ++Mip)
-    //{
-    //    Barrier.FirstMipLevel = Mip - 1;
-    //    m_pImmediateContext->TransitionResourceStates(1, &Barrier);
+	for( Uint32 Mip = 1; Mip < DownSampleFactor; ++Mip ) {
+		Barrier.FirstMipLevel = Mip - 1;
+		m_pImmediateContext->TransitionResourceStates( 1, &Barrier );
 
-    //    m_pImmediateContext->SetRenderTargets(1, &m_GBuffer.ColorRTVs[Mip], nullptr, RESOURCE_STATE_TRANSITION_MODE_VERIFY);
+		m_pImmediateContext->SetRenderTargets( 1, &m_GBuffer.ColorRTVs[Mip], nullptr, RESOURCE_STATE_TRANSITION_MODE_VERIFY );
 
-    //    m_pImmediateContext->CommitShaderResources(m_DownSampleSRB[Mip - 1], RESOURCE_STATE_TRANSITION_MODE_NONE);
-    //    m_pImmediateContext->Draw(DrawAttribs{3, DRAW_FLAG_VERIFY_DRAW_ATTRIBS | DRAW_FLAG_VERIFY_STATES});
-    //}
+		m_pImmediateContext->CommitShaderResources( m_DownSampleSRB[Mip - 1], RESOURCE_STATE_TRANSITION_MODE_NONE );
+		m_pImmediateContext->Draw( DrawAttribs{ 3, DRAW_FLAG_VERIFY_DRAW_ATTRIBS | DRAW_FLAG_VERIFY_STATES } );
+	}
 
-    //// Transit last mipmap level to SRV state.
-    //// Now all mipmaps in m_GBuffer.Color are in SRV state, so update resource state.
-    //Barrier.FirstMipLevel = DownSampleFactor - 1;
-    //Barrier.Flags         = STATE_TRANSITION_FLAG_UPDATE_STATE;
-    //m_pImmediateContext->TransitionResourceStates(1, &Barrier);
+	// Transit last mipmap level to SRV state.
+	// Now all mipmaps in m_GBuffer.Color are in SRV state, so update resource state.
+	Barrier.FirstMipLevel = DownSampleFactor - 1;
+	Barrier.Flags = STATE_TRANSITION_FLAG_UPDATE_STATE;
+	m_pImmediateContext->TransitionResourceStates( 1, &Barrier );
 
-    //m_pImmediateContext->EndDebugGroup(); // Down sample pass
-
-//}
+}
 
 void ComputeParticles::PostProcess()
 {
