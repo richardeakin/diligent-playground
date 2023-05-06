@@ -6,7 +6,7 @@ struct PostProcessConstants
     float4x4 ViewProjInv;
 
     float3  CameraPos;
-    float   glowEnabled; // TODO: use this instead of macro
+    int   glowEnabled; // TODO: use this instead of macro
 
     float3  FogColor;
     int     fogEnabled;
@@ -85,8 +85,6 @@ float4 main(in PSInput PSIn) : SV_Target
 #endif
 
     // Apply fog
-    // TODO: add constant bool to toggle
-    // TODO: pass in fog intensity as constant
     if( g_Constants.fogEnabled ) {
         float3 WPos        = ScreenPosToWorldPos(PSIn.UV, Depth, g_Constants.ViewProjInv);
         float  LinearDepth = length(WPos - g_Constants.CameraPos);
@@ -97,9 +95,14 @@ float4 main(in PSInput PSIn) : SV_Target
             Color = lerp(Color, g_Constants.FogColor, FogFactor);
         }
 
-        Color += EmissionGlow * (1.0 - FogFactor * 0.5);
+        if( g_Constants.glowEnabled ) {
+            Color += EmissionGlow * (1.0 - FogFactor * 0.5);
+        }
     }
-    
+    else if( g_Constants.glowEnabled ) {
+        Color += EmissionGlow;
+    }
+        
     // debug: show depth buffer contents
     //Color = Color * 0.001 + float3(1.0 - Depth, 0, 0);
     

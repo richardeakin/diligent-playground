@@ -17,16 +17,21 @@ struct PSOutput {
 
 void main( in  PSInput  PSIn, out PSOutput PSOut )
 {
-    float3 col = lerp( float3( 0.0, 0.63, 0.9 ), float3( 1.0, 0.78, 0.05 ), PSIn.Temp );
+    float3 col = lerp( float3( 0.0, 0.63, 0.9 ), float3( 1.0, 0.78, 0.05 ), saturate( PSIn.Temp ) );
     //col = float3( 1, 1, 1 );
 
     float NdotL = saturate( dot( PSIn.Normal, - SConstants.LightDirection.xyz ) );
 
     float lighting = NdotL * 0.8 + 0.1;
     col *= lighting;
-
+    
+    float emmissive = pow(PSIn.UV.y, 2);
+    
+    col = lerp(col, float3(emmissive, 0.0, 0.0), emmissive);
+    
+    
     //PSOut.Color = float4( PSIn.UV.x, PSIn.UV.y, 0.0, 1.0 );
-    PSOut.Color = float4( col, 1.0 );
+    PSOut.Color = float4( col, emmissive * 3.0 );
     // PSOut.Color.r = 0;
     // PSOut.Color = float4( 1, 0, 0, 1 );
 }

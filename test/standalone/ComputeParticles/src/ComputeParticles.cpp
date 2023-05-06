@@ -799,7 +799,7 @@ void ComputeParticles::Update( double CurrTime, double ElapsedTime )
 // Render a frame
 void ComputeParticles::Render()
 {
-    const float gray = 0.01f;
+    const float gray = 0.00f;
     const float ClearColor[] = { gray, gray, gray, 0.0f}; // alpha channel is for glow intensity
 
     //auto* rtv = m_pSwapChain->GetCurrentBackBufferRTV();
@@ -1047,6 +1047,7 @@ void ComputeParticles::initPostProcessPSO()
     PSOCreateInfo.PSODesc.ResourceLayout.ImmutableSamplers    = nullptr;
     PSOCreateInfo.PSODesc.ResourceLayout.NumImmutableSamplers = 0;
 
+    m_DownSamplePSO.Release();
     m_pDevice->CreateGraphicsPipelineState( PSOCreateInfo, &m_DownSamplePSO );
 }
 
@@ -1075,7 +1076,6 @@ void ComputeParticles::DownSample()
 	Barrier.FirstMipLevel = DownSampleFactor - 1;
 	Barrier.Flags = STATE_TRANSITION_FLAG_UPDATE_STATE;
 	m_pImmediateContext->TransitionResourceStates( 1, &Barrier );
-
 }
 
 void ComputeParticles::PostProcess()
@@ -1232,14 +1232,19 @@ void ComputeParticles::updateUI()
         if( im::CollapsingHeader( "Post Process", ImGuiTreeNodeFlags_DefaultOpen ) ) {
             bool glowEnabled = mPostProcessConstants.glowEnabled;
             if( im::Checkbox( "glow", &glowEnabled ) ) {
-                mPostProcessConstants.glowEnabled = glowEnabled;
+                mPostProcessConstants.glowEnabled = int(glowEnabled);
             }
             bool fogEnabled = mPostProcessConstants.fogEnabled;
             if( im::Checkbox( "fog", &fogEnabled ) ) {
-                mPostProcessConstants.fogEnabled = fogEnabled;
+                mPostProcessConstants.fogEnabled = int(fogEnabled);
             }
             im::ColorEdit3( "fog color", &mPostProcessConstants.fogColor.r, ImGuiColorEditFlags_Float );
             im::DragFloat( "fog intensity", &mPostProcessConstants.fogIntensity, 0.002f, 0.0001f, 1.0f );
+
+            im::Separator();
+            im::Text( "Debug ImageView" );
+            im::Image( m_GBuffer.Depth->GetDefaultView( TEXTURE_VIEW_SHADER_RESOURCE ), { 300, 200 } );
+            //im::Image( m_GBuffer.ColorRTVs[0], { 300, 200 } ); // won't work, wrong ViewType
         }
     }
     im::End(); // Settings

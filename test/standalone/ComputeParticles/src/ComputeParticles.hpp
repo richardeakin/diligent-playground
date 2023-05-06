@@ -85,9 +85,9 @@ private:
         float3  cameraPos;
         int     glowEnabled = 1;
 
-        float3  fogColor = { 0.43f, 0.65f, 0.59f };
-        int     fogEnabled = 0;
-        float   fogIntensity = 0.01f;
+        float3  fogColor = { 0.044f, 0.009f, 0.142f }; // dark purple
+        int     fogEnabled = 1;
+        float   fogIntensity = 0.092f;
         float3  padding;
     };
     static_assert(sizeof(PostProcessConstants) % 16 == 0, "must be aligned to 16 bytes");
