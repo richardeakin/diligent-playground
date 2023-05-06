@@ -1,0 +1,37 @@
+
+Texture2D    gColor;
+SamplerState gColor_sampler;
+
+#define FXAA_PC 1
+#define FXAA_HLSL_5 1
+#define FXAA_QUALITY__PRESET 39 // EXTREME QUALITY
+#define FXAA_GREEN_AS_LUMA 0 	// if 0, luma must be packed in uTexture.a
+
+#include "FXAA3_11.h"
+
+struct PSInput { 
+    float4 Pos : SV_POSITION; 
+    float2 UV  : TEX_COORD; 
+};
+
+float4 main( in PSInput PSIn ) : SV_Target
+{
+    float2 dim;
+    gBuffer_Color.GetDimensions( dim.x, dim.y );    
+#if defined(DESKTOP_GL) || defined(GL_ES)
+    float2 screenUV = float2( PSIn.UV.x, PSIn.UV.y );
+#else
+    float2 screenUV = float2( PSIn.UV.x, 1.0 - PSIn.UV.y );
+#endif
+    int3   texelPos = int3( screenUV * dim, 0 );
+
+    float4 colorAndLuma = gColor.Load( texelPos );
+    float3 col = colorAndLuma.rgb;
+    float luma = colorAndLuma.a;
+
+    col.g = 1.0; // testing
+
+    return float4( col, 1.0 );
+
+    //return float4( luma, luma, luma, 1.0 );
+}
