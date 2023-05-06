@@ -59,9 +59,9 @@ struct ParticleConstants {
     float4x4 viewProj;
 
     uint    numParticles;
+    float   time;
     float   deltaTime;
     float   separation;
-    float   padding0;
 
     float   scale;
     int3    gridSize;
@@ -377,6 +377,7 @@ void ComputeParticles::initSolids()
         options.name = "Particle Solid";
         options.shaderResourceVars.push_back( { { SHADER_TYPE_VERTEX, "Particles", SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE }, particleAttribsBufferSRV } );
         options.staticShaderVars.push_back( { SHADER_TYPE_VERTEX, "PConstants", mParticleConstants } );
+        options.staticShaderVars.push_back( { SHADER_TYPE_PIXEL, "PConstants", mParticleConstants } );
 
         if( mParticleType == ParticleType::Cube ) {
             mParticleSolid = std::make_unique<ju::Cube>( options );
@@ -738,6 +739,7 @@ void ComputeParticles::Update( double CurrTime, double ElapsedTime )
 
     checkReloadOnAssetsUpdated();
 
+    mTime = (float)CurrTime;
     mTimeDelta = (float)ElapsedTime;
     mCamera.Update( m_InputController, mTimeDelta );
 
@@ -834,6 +836,7 @@ void ComputeParticles::Render()
         constData->viewProj = mViewProjMatrix.Transpose();
         constData->numParticles = static_cast<Uint32>( mNumParticles );
         constData->deltaTime     = std::min( mTimeDelta, 1.f / 60.f) * mSimulationSpeed;
+        constData->time = mTime;
         constData->scale = mParticleScale;
         constData->gridSize = mGridSize;
         constData->speedMinMax = mSpeedMinMax;

@@ -116,6 +116,7 @@ private:
     dg::float2  mSpeedMinMax        = { 0.01f, 1.1f };
     dg::int3    mGridSize           = { 10, 10, 10 };
     int         mThreadGroupSize    = 256;
+    float       mTime               = 0;
     float       mTimeDelta          = 0;
     bool        mDrawBackground     = true;
     bool        mDrawTestSolid      = false;
