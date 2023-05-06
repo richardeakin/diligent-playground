@@ -6,6 +6,7 @@
 #include "FirstPersonCamera.hpp"
 
 #include "common/src/Canvas.h"
+#include "common/src/post/aa/FXAA.h"
 #include "common/src/Profiler.h"
 #include "Solids.h"
 
@@ -139,6 +140,7 @@ private:
 
     ParticleType mParticleType = ParticleType::Pyramid;
 
+    std::unique_ptr<ju::aa::FXAA>   mFXAA;
     std::unique_ptr<ju::Profiler>   mProfiler;
     bool                            mProfilingUIEnabled = true;
 };

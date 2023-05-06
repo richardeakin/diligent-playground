@@ -185,6 +185,7 @@ void ComputeParticles::Initialize( const SampleInitInfo& InitInfo )
     initSolids();
     initCamera();
 
+    mFXAA = std::make_unique<ju::aa::FXAA>( m_pSwapChain->GetDesc().ColorBufferFormat );
     mProfiler = std::make_unique<ju::Profiler>( m_pDevice );
 
     watchShadersDir();
@@ -1008,41 +1009,41 @@ void ComputeParticles::initPostProcessPSO()
     PSOCreateInfo.PSODesc.ResourceLayout.NumImmutableSamplers = _countof(ImtblSamplers);
     PSOCreateInfo.PSODesc.ResourceLayout.DefaultVariableType  = SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE;
 
-    ShaderCreateInfo ShaderCI;
-    ShaderCI.SourceLanguage             = SHADER_SOURCE_LANGUAGE_HLSL;
-    ShaderCI.pShaderSourceStreamFactory = app::global()->shaderSourceFactory;
+    ShaderCreateInfo shaderCI;
+    shaderCI.SourceLanguage             = SHADER_SOURCE_LANGUAGE_HLSL;
+    shaderCI.pShaderSourceStreamFactory = app::global()->shaderSourceFactory;
 
-	RefCntAutoPtr<IShader> pVS;
+	RefCntAutoPtr<IShader> vertShader;
 	{
-		ShaderCI.Desc = { "Post process VS", SHADER_TYPE_VERTEX, true };
-		ShaderCI.EntryPoint = "main";
-		ShaderCI.FilePath = "shaders/post/post_process.vsh";
-		m_pDevice->CreateShader( ShaderCI, &pVS );
+		shaderCI.Desc = { "Post process VS", SHADER_TYPE_VERTEX, true };
+		shaderCI.EntryPoint = "main";
+		shaderCI.FilePath = "shaders/post/post_process.vsh";
+		m_pDevice->CreateShader( shaderCI, &vertShader );
 	}
 
-	RefCntAutoPtr<IShader> pPS;
+	RefCntAutoPtr<IShader> pixelShader;
 	{
-		ShaderCI.Desc = { "Post process PS", SHADER_TYPE_PIXEL, true };
-		ShaderCI.EntryPoint = "main";
-        ShaderCI.FilePath = "shaders/post/post_process.psh";
-		m_pDevice->CreateShader( ShaderCI, &pPS );
+		shaderCI.Desc = { "Post process PS", SHADER_TYPE_PIXEL, true };
+		shaderCI.EntryPoint = "main";
+        shaderCI.FilePath = "shaders/post/post_process.psh";
+		m_pDevice->CreateShader( shaderCI, &pixelShader );
 	}
 
-    PSOCreateInfo.pVS = pVS;
-    PSOCreateInfo.pPS = pPS;
+    PSOCreateInfo.pVS = vertShader;
+    PSOCreateInfo.pPS = pixelShader;
 
     mPostProcessPSO.Release();
     m_pDevice->CreateGraphicsPipelineState( PSOCreateInfo, &mPostProcessPSO );
 
     // downsample buffers for glow
-    RefCntAutoPtr<IShader> pDownSamplePS;
+    RefCntAutoPtr<IShader> downSamplePS;
     {
-        ShaderCI.Desc       = { "Down sample PS", SHADER_TYPE_PIXEL, true };
-        ShaderCI.EntryPoint = "main";
-        ShaderCI.FilePath   = "shaders/post/downsample.psh";
-        m_pDevice->CreateShader( ShaderCI, &pDownSamplePS );
+        shaderCI.Desc       = { "Down sample PS", SHADER_TYPE_PIXEL, true };
+        shaderCI.EntryPoint = "main";
+        shaderCI.FilePath   = "shaders/post/downsample.psh";
+        m_pDevice->CreateShader( shaderCI, &downSamplePS );
     }
-    PSOCreateInfo.pPS = pDownSamplePS;
+    PSOCreateInfo.pPS = downSamplePS;
 
     PSOCreateInfo.PSODesc.Name                   = "Downsample PSO";
     PSOCreateInfo.GraphicsPipeline.RTVFormats[0] = app::global()->colorBufferFormat;
