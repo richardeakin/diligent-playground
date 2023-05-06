@@ -15,7 +15,7 @@ namespace dg = Diligent;
 using dg::float3;
 using dg::float4;
 using dg::float4x4;
-
+using dg::RefCntAutoPtr;
 
 class ComputeParticles final : public dg::SampleBase {
 public:
@@ -43,18 +43,18 @@ private:
     void drawParticles();
     void updateDebugParticleDataUI();
 
-    dg::RefCntAutoPtr<dg::IPipelineState>         mRenderParticlePSO;
-    dg::RefCntAutoPtr<dg::IShaderResourceBinding> mRenderParticleSRB;
-    dg::RefCntAutoPtr<dg::IPipelineState>         mResetParticleListsPSO;
-    dg::RefCntAutoPtr<dg::IShaderResourceBinding> mResetParticleListsSRB;
-    dg::RefCntAutoPtr<dg::IPipelineState>         mMoveParticlesPSO;
-    dg::RefCntAutoPtr<dg::IShaderResourceBinding> mMoveParticlesSRB;
-    dg::RefCntAutoPtr<dg::IPipelineState>         mInteractParticlesPSO;
-    dg::RefCntAutoPtr<dg::IShaderResourceBinding> mInteractParticlesSRB;
-    dg::RefCntAutoPtr<dg::IBuffer>                mParticleConstants;
-    dg::RefCntAutoPtr<dg::IBuffer>                mParticleAttribsBuffer;
-    dg::RefCntAutoPtr<dg::IBuffer>                mParticleListsBuffer;
-    dg::RefCntAutoPtr<dg::IBuffer>                mParticleListHeadsBuffer;
+    RefCntAutoPtr<dg::IPipelineState>         mRenderParticlePSO;
+    RefCntAutoPtr<dg::IShaderResourceBinding> mRenderParticleSRB;
+    RefCntAutoPtr<dg::IPipelineState>         mResetParticleListsPSO;
+    RefCntAutoPtr<dg::IShaderResourceBinding> mResetParticleListsSRB;
+    RefCntAutoPtr<dg::IPipelineState>         mMoveParticlesPSO;
+    RefCntAutoPtr<dg::IShaderResourceBinding> mMoveParticlesSRB;
+    RefCntAutoPtr<dg::IPipelineState>         mInteractParticlesPSO;
+    RefCntAutoPtr<dg::IShaderResourceBinding> mInteractParticlesSRB;
+    RefCntAutoPtr<dg::IBuffer>                mParticleConstants;
+    RefCntAutoPtr<dg::IBuffer>                mParticleAttribsBuffer;
+    RefCntAutoPtr<dg::IBuffer>                mParticleListsBuffer;
+    RefCntAutoPtr<dg::IBuffer>                mParticleListHeadsBuffer;
 
     // -------------------------------------------
     // Post Process
@@ -62,20 +62,20 @@ private:
     void DownSample();
     void PostProcess();
 
-    dg::RefCntAutoPtr<dg::IPipelineState>         m_PostProcessPSO;
-    dg::RefCntAutoPtr<dg::IShaderResourceBinding> m_PostProcessSRB;
-    dg::RefCntAutoPtr<dg::IBuffer> m_PostProcessConstants;
+    RefCntAutoPtr<dg::IPipelineState>         mPostProcessPSO;
+    RefCntAutoPtr<dg::IShaderResourceBinding> mPostProcessSRB;
+    RefCntAutoPtr<dg::IBuffer>                mPostProcessConstantsBuffer;
 
-    dg::RefCntAutoPtr<dg::IPipelineState>               m_DownSamplePSO;
-    static constexpr dg::Uint32                         DownSampleFactor = 5;
-    dg::RefCntAutoPtr<dg::IShaderResourceBinding>       m_DownSampleSRB[DownSampleFactor];
+    RefCntAutoPtr<dg::IPipelineState>         mDownSamplePSO;
+    static constexpr dg::Uint32               DownSampleFactor = 5;
+    RefCntAutoPtr<dg::IShaderResourceBinding> mDownSampleSRB[DownSampleFactor];
 
     // Render to GBuffer
     struct GBuffer {
-        dg::RefCntAutoPtr<dg::ITextureView> ColorRTVs[DownSampleFactor];
-        dg::RefCntAutoPtr<dg::ITexture>     Color;
-        dg::RefCntAutoPtr<dg::ITextureView> ColorSRBs[DownSampleFactor];
-        dg::RefCntAutoPtr<dg::ITexture>     Depth;
+        RefCntAutoPtr<dg::ITextureView> ColorRTVs[DownSampleFactor];
+        RefCntAutoPtr<dg::ITexture>     Color;
+        RefCntAutoPtr<dg::ITextureView> ColorSRBs[DownSampleFactor];
+        RefCntAutoPtr<dg::ITexture>     Depth;
     };
     GBuffer m_GBuffer;
     
@@ -97,8 +97,8 @@ private:
 
 
 #if DEBUG_PARTICLE_BUFFERS
-    dg::RefCntAutoPtr<dg::IBuffer>              mParticleAttribsStaging, mParticleListsStaging, mParticleListsHeadStaging;
-    dg::RefCntAutoPtr<dg::IFence>               mFenceParticleAttribsAvailable;
+    RefCntAutoPtr<dg::IBuffer>              mParticleAttribsStaging, mParticleListsStaging, mParticleListsHeadStaging;
+    RefCntAutoPtr<dg::IFence>               mFenceParticleAttribsAvailable;
     dg::Uint64                                  mFenceParticleAttribsValue = 1; // Can't signal 0
     bool    mDebugCopyParticles = false;
 #endif

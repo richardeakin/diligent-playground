@@ -544,7 +544,7 @@ void ComputeParticles::initConsantBuffers()
         BuffDesc.Size                 = sizeof(PostProcessConstants);
         BuffDesc.ImmediateContextMask = (Uint64{1} << m_pImmediateContext->GetDesc().ContextId);
         BuffDesc.Name                 = "PostProcessConstants buffer";
-        m_pDevice->CreateBuffer( BuffDesc, nullptr, &m_PostProcessConstants );
+        m_pDevice->CreateBuffer( BuffDesc, nullptr, &mPostProcessConstantsBuffer );
     }
 }
 
@@ -715,18 +715,18 @@ void ComputeParticles::WindowResize( Uint32 Width, Uint32 Height )
 
 	// Create post-processing SRB
 	{
-		m_PostProcessSRB.Release();
-		m_PostProcessPSO->CreateShaderResourceBinding( &m_PostProcessSRB );
-		m_PostProcessSRB->GetVariableByName( SHADER_TYPE_PIXEL, "PostProcessConstantsCB" )->Set( m_PostProcessConstants );
-		m_PostProcessSRB->GetVariableByName( SHADER_TYPE_PIXEL, "g_GBuffer_Color" )->Set( m_GBuffer.Color->GetDefaultView( TEXTURE_VIEW_SHADER_RESOURCE ) );
-		m_PostProcessSRB->GetVariableByName( SHADER_TYPE_PIXEL, "g_GBuffer_Depth" )->Set( m_GBuffer.Depth->GetDefaultView( TEXTURE_VIEW_SHADER_RESOURCE ) );
+		mPostProcessSRB.Release();
+		mPostProcessPSO->CreateShaderResourceBinding( &mPostProcessSRB );
+		mPostProcessSRB->GetVariableByName( SHADER_TYPE_PIXEL, "PostProcessConstantsCB" )->Set( mPostProcessConstantsBuffer );
+		mPostProcessSRB->GetVariableByName( SHADER_TYPE_PIXEL, "g_GBuffer_Color" )->Set( m_GBuffer.Color->GetDefaultView( TEXTURE_VIEW_SHADER_RESOURCE ) );
+		mPostProcessSRB->GetVariableByName( SHADER_TYPE_PIXEL, "g_GBuffer_Depth" )->Set( m_GBuffer.Depth->GetDefaultView( TEXTURE_VIEW_SHADER_RESOURCE ) );
 	}
 
 	// Create down sample SRB
 	for( Uint32 Mip = 0; Mip < DownSampleFactor; ++Mip ) {
-		auto& SRB = m_DownSampleSRB[Mip];
+		auto& SRB = mDownSampleSRB[Mip];
 		SRB.Release();
-		m_DownSamplePSO->CreateShaderResourceBinding( &SRB );
+		mDownSamplePSO->CreateShaderResourceBinding( &SRB );
 		SRB->GetVariableByName( SHADER_TYPE_PIXEL, "g_GBuffer_Color" )->Set( m_GBuffer.ColorSRBs[Mip] );
 	}
 
@@ -1031,8 +1031,8 @@ void ComputeParticles::initPostProcessPSO()
     PSOCreateInfo.pVS = pVS;
     PSOCreateInfo.pPS = pPS;
 
-    m_PostProcessPSO.Release();
-    m_pDevice->CreateGraphicsPipelineState( PSOCreateInfo, &m_PostProcessPSO );
+    mPostProcessPSO.Release();
+    m_pDevice->CreateGraphicsPipelineState( PSOCreateInfo, &mPostProcessPSO );
 
     // downsample buffers for glow
     RefCntAutoPtr<IShader> pDownSamplePS;
@@ -1050,15 +1050,15 @@ void ComputeParticles::initPostProcessPSO()
     PSOCreateInfo.PSODesc.ResourceLayout.ImmutableSamplers    = nullptr;
     PSOCreateInfo.PSODesc.ResourceLayout.NumImmutableSamplers = 0;
 
-    m_DownSamplePSO.Release();
-    m_pDevice->CreateGraphicsPipelineState( PSOCreateInfo, &m_DownSamplePSO );
+    mDownSamplePSO.Release();
+    m_pDevice->CreateGraphicsPipelineState( PSOCreateInfo, &mDownSamplePSO );
 }
 
 void ComputeParticles::DownSample()
 {
     JU_PROFILE( "downsample", m_pImmediateContext, mProfiler.get() );
 
-	m_pImmediateContext->SetPipelineState( m_DownSamplePSO );
+	m_pImmediateContext->SetPipelineState( mDownSamplePSO );
 	m_pImmediateContext->SetVertexBuffers( 0, 0, nullptr, nullptr, RESOURCE_STATE_TRANSITION_MODE_NONE, SET_VERTEX_BUFFERS_FLAG_RESET );
 	m_pImmediateContext->SetIndexBuffer( nullptr, 0, RESOURCE_STATE_TRANSITION_MODE_NONE );
 
@@ -1070,7 +1070,7 @@ void ComputeParticles::DownSample()
 
 		m_pImmediateContext->SetRenderTargets( 1, &m_GBuffer.ColorRTVs[Mip], nullptr, RESOURCE_STATE_TRANSITION_MODE_VERIFY );
 
-		m_pImmediateContext->CommitShaderResources( m_DownSampleSRB[Mip - 1], RESOURCE_STATE_TRANSITION_MODE_NONE );
+		m_pImmediateContext->CommitShaderResources( mDownSampleSRB[Mip - 1], RESOURCE_STATE_TRANSITION_MODE_NONE );
 		m_pImmediateContext->Draw( DrawAttribs{ 3, DRAW_FLAG_VERIFY_DRAW_ATTRIBS | DRAW_FLAG_VERIFY_STATES } );
 	}
 
@@ -1091,10 +1091,10 @@ void ComputeParticles::PostProcess()
     mPostProcessConstants.viewProjInv = ViewProjInv.Transpose();
     mPostProcessConstants.cameraPos   = mCamera.GetPos();
 
-	m_pImmediateContext->UpdateBuffer( m_PostProcessConstants, 0, sizeof( mPostProcessConstants ), &mPostProcessConstants, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+	m_pImmediateContext->UpdateBuffer( mPostProcessConstantsBuffer, 0, sizeof( mPostProcessConstants ), &mPostProcessConstants, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
 
-	m_pImmediateContext->SetPipelineState( m_PostProcessPSO );
-	m_pImmediateContext->CommitShaderResources( m_PostProcessSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+	m_pImmediateContext->SetPipelineState( mPostProcessPSO );
+	m_pImmediateContext->CommitShaderResources( mPostProcessSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
 
 	m_pImmediateContext->SetVertexBuffers( 0, 0, nullptr, nullptr, RESOURCE_STATE_TRANSITION_MODE_NONE, SET_VERTEX_BUFFERS_FLAG_RESET );
 	m_pImmediateContext->SetIndexBuffer( nullptr, 0, RESOURCE_STATE_TRANSITION_MODE_NONE );

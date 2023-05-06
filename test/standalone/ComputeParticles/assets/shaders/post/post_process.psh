@@ -1,8 +1,7 @@
 
 #define GLOW 1
 
-struct PostProcessConstants
-{
+struct PostProcessConstants {
     float4x4 ViewProjInv;
 
     float3  CameraPos;
@@ -15,8 +14,7 @@ struct PostProcessConstants
     int     padding;
 };
 
-cbuffer PostProcessConstantsCB
-{
+cbuffer PostProcessConstantsCB {
     PostProcessConstants g_Constants;
 };
 
@@ -24,8 +22,7 @@ Texture2D    g_GBuffer_Color;
 SamplerState g_GBuffer_Color_sampler;
 Texture2D    g_GBuffer_Depth;
 
-struct PSInput 
-{ 
+struct PSInput { 
     float4 Pos : SV_POSITION; 
     float2 UV  : TEX_COORD; 
 };
@@ -48,63 +45,62 @@ float Exp2Fog(float dist, float density)
 
 float4 main(in PSInput PSIn) : SV_Target
 {
-    float2 Dim;
-    g_GBuffer_Color.GetDimensions(Dim.x, Dim.y);
-    
+    float2 dim;
+    g_GBuffer_Color.GetDimensions( dim.x, dim.y );    
 #if defined(DESKTOP_GL) || defined(GL_ES)
-    float2 ScreenUV = float2(PSIn.UV.x, PSIn.UV.y);
+    float2 screenUV = float2( PSIn.UV.x, PSIn.UV.y );
 #else
-    float2 ScreenUV = float2(PSIn.UV.x, 1.0 - PSIn.UV.y);
+    float2 screenUV = float2( PSIn.UV.x, 1.0 - PSIn.UV.y );
 #endif
-    int3   TexelPos = int3(ScreenUV * Dim, 0);
-    float3 Color    = g_GBuffer_Color.Load(TexelPos).rgb;
-    float  Depth    = g_GBuffer_Depth.Load(TexelPos).x;
+    int3   texelPos = int3( screenUV * dim, 0 );
+    float3 color    = g_GBuffer_Color.Load( texelPos ).rgb;
+    float  Depth    = g_GBuffer_Depth.Load( texelPos ).x;
 
     float3 EmissionGlow;
 #if GLOW
     {
         // RGB - color, A - emission
-        float4 Color0 = g_GBuffer_Color.SampleLevel(g_GBuffer_Color_sampler, ScreenUV, 0);
-        float4 Color1 = g_GBuffer_Color.SampleLevel(g_GBuffer_Color_sampler, ScreenUV, 1);
-        float4 Color2 = g_GBuffer_Color.SampleLevel(g_GBuffer_Color_sampler, ScreenUV, 2);
-        float4 Color3 = g_GBuffer_Color.SampleLevel(g_GBuffer_Color_sampler, ScreenUV, 3);
-        float4 Color4 = g_GBuffer_Color.SampleLevel(g_GBuffer_Color_sampler, ScreenUV, 4);
-        Color0.rgb *= Color0.a;
-        Color1.rgb *= Color1.a;
-        Color2.rgb *= Color2.a;
-        Color3.rgb *= Color3.a;
-        Color4.rgb *= Color4.a;
-        EmissionGlow = (Color0 + Color1 + Color2 + Color3 + Color4).rgb / 5.0;
+        float4 color0 = g_GBuffer_Color.SampleLevel( g_GBuffer_Color_sampler, screenUV, 0 );
+        float4 color1 = g_GBuffer_Color.SampleLevel( g_GBuffer_Color_sampler, screenUV, 1 );
+        float4 color2 = g_GBuffer_Color.SampleLevel( g_GBuffer_Color_sampler, screenUV, 2 );
+        float4 color3 = g_GBuffer_Color.SampleLevel( g_GBuffer_Color_sampler, screenUV, 3 );
+        float4 color4 = g_GBuffer_Color.SampleLevel( g_GBuffer_Color_sampler, screenUV, 4 );
+        color0.rgb *= color0.a;
+        color1.rgb *= color1.a;
+        color2.rgb *= color2.a;
+        color3.rgb *= color3.a;
+        color4.rgb *= color4.a;
+        EmissionGlow = (color0 + color1 + color2 + color3 + color4).rgb / 5.0;
     }
 #else
     {
-        float4 Color0 = g_GBuffer_Color.SampleLevel(g_GBuffer_Color_sampler, ScreenUV, 0);
-        Color0.rgb *= (Color0.a * 0.2);
-        EmissionGlow = Color0.rgb;
+        float4 color0 = g_GBuffer_Color.SampleLevel( g_GBuffer_Color_sampler, screenUV, 0);
+        color0.rgb *= (color0.a * 0.2);
+        EmissionGlow = color0.rgb;
     }
 #endif
 
     // Apply fog
     if( g_Constants.fogEnabled ) {
-        float3 WPos        = ScreenPosToWorldPos(PSIn.UV, Depth, g_Constants.ViewProjInv);
-        float  LinearDepth = length(WPos - g_Constants.CameraPos);
+        float3 WPos        = ScreenPosToWorldPos( PSIn.UV, Depth, g_Constants.ViewProjInv );
+        float  LinearDepth = length( WPos - g_Constants.CameraPos );
         float  FogFactor   = saturate( Exp2Fog( LinearDepth, g_Constants.fogIntensity ) );
         
         if( Depth < 1.0 ) {
             
-            Color = lerp(Color, g_Constants.FogColor, FogFactor);
+            color = lerp( color, g_Constants.FogColor, FogFactor );
         }
 
         if( g_Constants.glowEnabled ) {
-            Color += EmissionGlow * (1.0 - FogFactor * 0.5);
+            color += EmissionGlow * ( 1.0 - FogFactor * 0.5 );
         }
     }
     else if( g_Constants.glowEnabled ) {
-        Color += EmissionGlow;
+        color += EmissionGlow;
     }
         
     // debug: show depth buffer contents
-    //Color = Color * 0.001 + float3(1.0 - Depth, 0, 0);
+    //color = color * 0.001 + float3(1.0 - Depth, 0, 0);
     
-    return float4(Color, 1.0);
+    return float4( color, 1.0 );
 }
