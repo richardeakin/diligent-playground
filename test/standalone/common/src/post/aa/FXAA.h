@@ -14,9 +14,11 @@ class FXAA {
 public:
 	FXAA( const dg::TEXTURE_FORMAT &colorBufferFormat );
 
+	void setRenderTarget( dg::ITextureView* textureView );
+
 	//! Processes \t source's color buffer, placing the result in \t dest.
 	// TODO: not sure yet what needs to be in here to draw with the previous render target bound
-	void apply();
+	void apply( dg::IDeviceContext* context, dg::ITextureView *texture );
 
 	void updateUI();
 
@@ -33,6 +35,8 @@ private:
 		float padding0;
 		float padding1;
 	};
+	static_assert(sizeof(FxaaConstants) % 16 == 0, "must be aligned to 16 bytes");
+	
 	FxaaConstants mFxaaConstants;
 };
 

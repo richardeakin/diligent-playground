@@ -34,7 +34,7 @@ SamplerState gColor_sampler;
 #define FXAA_QUALITY__PRESET 39 // EXTREME QUALITY
 #define FXAA_GREEN_AS_LUMA 0 	// if 0, luma must be packed in uTexture.a
 
-#include "FXAA3_11.h"
+#include "shaders/post/aa/FXAA3_11.h"
 
 struct PSInput { 
     float4 Pos : SV_POSITION; 
@@ -44,7 +44,7 @@ struct PSInput {
 float4 main( in PSInput PSIn ) : SV_Target
 {
     float2 dim;
-    gBuffer_Color.GetDimensions( dim.x, dim.y );    
+    gColor.GetDimensions( dim.x, dim.y );    
 #if defined(DESKTOP_GL) || defined(GL_ES)
     float2 screenUV = float2( PSIn.UV.x, PSIn.UV.y );
 #else

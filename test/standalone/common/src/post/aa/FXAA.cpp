@@ -1,7 +1,10 @@
 #include "FXAA.h"
 #include "AppGlobal.h"
 
+#include "imgui.h"
+
 using namespace Diligent;
+namespace im = ImGui;
 
 namespace ju { namespace aa {
 
@@ -53,17 +56,17 @@ void FXAA::initPipelineState( const TEXTURE_FORMAT &colorBufferFormat )
 
     RefCntAutoPtr<IShader> vertShader;
     {
-        shaderCI.Desc = { "Post process VS", SHADER_TYPE_VERTEX, true };
+        shaderCI.Desc = { "FXAA VS", SHADER_TYPE_VERTEX, true };
         shaderCI.EntryPoint = "main";
-        shaderCI.FilePath = "shaders/post/post_process.vsh";
+        shaderCI.FilePath = "shaders/post/aa/fxaa.vsh";
         global->renderDevice->CreateShader( shaderCI, &vertShader );
     }
 
     RefCntAutoPtr<IShader> pixelShader;
     {
-        shaderCI.Desc = { "Post process PS", SHADER_TYPE_PIXEL, true };
+        shaderCI.Desc = { "FXAA PS", SHADER_TYPE_PIXEL, true };
         shaderCI.EntryPoint = "main";
-        shaderCI.FilePath = "shaders/post/post_process.psh";
+        shaderCI.FilePath = "shaders/post/aa/fxaa.psh";
         global->renderDevice->CreateShader( shaderCI, &pixelShader );
     }
 
@@ -82,12 +85,32 @@ void FXAA::initPipelineState( const TEXTURE_FORMAT &colorBufferFormat )
     }
 }
 
-void FXAA::apply()
+void FXAA::setRenderTarget( dg::ITextureView* textureView )
 {
+    // We need to release and create a new SRB that references new off-screen render target SRV
+    // TODO: why do we need to create a new SRB? Doesn't get modified until after it is created
+    // - try without
+    mSRB.Release();
+    mPSO->CreateShaderResourceBinding( &mSRB, true );
+
+    auto var = mSRB->GetVariableByName( SHADER_TYPE_PIXEL, "gColor" );
+    if( var ) {
+        var->Set( textureView );
+    }
+}
+
+void FXAA::apply( IDeviceContext* context, ITextureView *texture )
+{
+    context->UpdateBuffer( mConstantsBuffer, 0, sizeof( mFxaaConstants ), &mFxaaConstants, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+
+    // TODO: bind texture
+    // TODO: run FXAA shader
 }
 
 void FXAA::updateUI()
 {
+    im::DragFloat( "quality subpix", &mFxaaConstants.qualitySubpix, 0.002f, 0, 1 );
+    im::DragFloat( "quality edge threshold", &mFxaaConstants.qualityEdgeThreshold, 0.002f, 0, 1 );
 }
 
 }} // namespace ju::aa

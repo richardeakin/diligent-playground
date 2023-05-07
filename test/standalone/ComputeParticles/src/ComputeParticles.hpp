@@ -66,6 +66,7 @@ private:
     RefCntAutoPtr<dg::IPipelineState>         mPostProcessPSO;
     RefCntAutoPtr<dg::IShaderResourceBinding> mPostProcessSRB;
     RefCntAutoPtr<dg::IBuffer>                mPostProcessConstantsBuffer;
+    RefCntAutoPtr<dg::ITextureView>           mPostProcessRTV;
 
     RefCntAutoPtr<dg::IPipelineState>         mDownSamplePSO;
     static constexpr dg::Uint32               DownSampleFactor = 5;
@@ -94,6 +95,10 @@ private:
     static_assert(sizeof(PostProcessConstants) % 16 == 0, "must be aligned to 16 bytes");
 
     PostProcessConstants mPostProcessConstants;
+
+    std::unique_ptr<ju::aa::FXAA>   mFXAA;
+    bool                            mFXAAEnabled = true;
+
     // -------------------------------------------
 
 
@@ -106,13 +111,13 @@ private:
 
     bool        mUIEnabled = true;  
     int         mNumParticles       = 200; // was: 1000
-    float       mParticleScale      = 0.5f;
-    float       mSeparation         = 0.68f;
-    float       mAlignment          = 0.065f;
-    float       mCohesion           = 0.033f;
+    float       mParticleScale      = 1.1f;
+    float       mSeparation         = 1.9f;
+    float       mAlignment          = 0.122f;
+    float       mCohesion           = 0.051f;
     float       mSeparationDist     = 0.168f;
-    float       mAlignmentDist      = 0.289f; 
-    float       mCohesionDist       = 0.5f;
+    float       mAlignmentDist      = 0.283f; 
+    float       mCohesionDist       = 0.3f;
     float       mSimulationSpeed    = 0.75f;
     dg::float2  mSpeedMinMax        = { 0.01f, 1.1f };
     dg::int3    mGridSize           = { 10, 10, 10 };
@@ -140,7 +145,6 @@ private:
 
     ParticleType mParticleType = ParticleType::Pyramid;
 
-    std::unique_ptr<ju::aa::FXAA>   mFXAA;
     std::unique_ptr<ju::Profiler>   mProfiler;
     bool                            mProfilingUIEnabled = true;
 };

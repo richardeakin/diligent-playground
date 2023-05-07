@@ -681,46 +681,48 @@ void ComputeParticles::WindowResize( Uint32 Width, Uint32 Height )
         return;
     }
 
-	m_GBuffer = {};
+    m_GBuffer = {};
 
 	// Create window-size G-buffer textures.
-	TextureDesc RTDesc;
-	RTDesc.Name = "GBuffer Color";
-	RTDesc.Type = RESOURCE_DIM_TEX_2D;
-	RTDesc.Width = Width;
-	RTDesc.Height = Height;
-	RTDesc.MipLevels = DownSampleFactor;
-	RTDesc.BindFlags = BIND_RENDER_TARGET | BIND_SHADER_RESOURCE;
-	RTDesc.Format = app::global()->colorBufferFormat;
-	m_pDevice->CreateTexture( RTDesc, nullptr, &m_GBuffer.Color );
-
-	// Create texture view
-	for( Uint32 Mip = 0; Mip < DownSampleFactor; ++Mip ) {
-		TextureViewDesc ViewDesc;
-		ViewDesc.ViewType = TEXTURE_VIEW_RENDER_TARGET;
-		ViewDesc.TextureDim = RESOURCE_DIM_TEX_2D;
-		ViewDesc.MostDetailedMip = Mip;
-		ViewDesc.NumMipLevels = 1;
-
-		m_GBuffer.Color->CreateView( ViewDesc, &m_GBuffer.ColorRTVs[Mip] );
-
-		ViewDesc.ViewType = TEXTURE_VIEW_SHADER_RESOURCE;
-		m_GBuffer.Color->CreateView( ViewDesc, &m_GBuffer.ColorSRBs[Mip] );
-	}
-
-	RTDesc.Name = "GBuffer Depth";
-	RTDesc.MipLevels = 1;
-	RTDesc.BindFlags = BIND_DEPTH_STENCIL | BIND_SHADER_RESOURCE;
-	RTDesc.Format = app::global()->depthBufferFormat;
-	m_pDevice->CreateTexture( RTDesc, nullptr, &m_GBuffer.Depth );
-
-	// Create post-processing SRB
 	{
+	    TextureDesc RTDesc;
+	    RTDesc.Name = "GBuffer Color";
+	    RTDesc.Type = RESOURCE_DIM_TEX_2D;
+	    RTDesc.Width = Width;
+	    RTDesc.Height = Height;
+	    RTDesc.MipLevels = DownSampleFactor;
+	    RTDesc.BindFlags = BIND_RENDER_TARGET | BIND_SHADER_RESOURCE;
+	    RTDesc.Format = app::global()->colorBufferFormat;
+	    m_pDevice->CreateTexture( RTDesc, nullptr, &m_GBuffer.Color );
+
+	    // Create texture view
+	    for( Uint32 Mip = 0; Mip < DownSampleFactor; ++Mip ) {
+		    TextureViewDesc ViewDesc;
+		    ViewDesc.ViewType = TEXTURE_VIEW_RENDER_TARGET;
+		    ViewDesc.TextureDim = RESOURCE_DIM_TEX_2D;
+		    ViewDesc.MostDetailedMip = Mip;
+		    ViewDesc.NumMipLevels = 1;
+
+		    m_GBuffer.Color->CreateView( ViewDesc, &m_GBuffer.ColorRTVs[Mip] );
+
+		    ViewDesc.ViewType = TEXTURE_VIEW_SHADER_RESOURCE;
+		    m_GBuffer.Color->CreateView( ViewDesc, &m_GBuffer.ColorSRBs[Mip] );
+	    }
+
+	    RTDesc.Name = "GBuffer Depth";
+	    RTDesc.MipLevels = 1;
+	    RTDesc.BindFlags = BIND_DEPTH_STENCIL | BIND_SHADER_RESOURCE;
+	    RTDesc.Format = app::global()->depthBufferFormat;
+	    m_pDevice->CreateTexture( RTDesc, nullptr, &m_GBuffer.Depth );
+
+	    // Create post-processing SRB
 		mPostProcessSRB.Release();
-		mPostProcessPSO->CreateShaderResourceBinding( &mPostProcessSRB );
-		mPostProcessSRB->GetVariableByName( SHADER_TYPE_PIXEL, "PostProcessConstantsCB" )->Set( mPostProcessConstantsBuffer );
-		mPostProcessSRB->GetVariableByName( SHADER_TYPE_PIXEL, "g_GBuffer_Color" )->Set( m_GBuffer.Color->GetDefaultView( TEXTURE_VIEW_SHADER_RESOURCE ) );
-		mPostProcessSRB->GetVariableByName( SHADER_TYPE_PIXEL, "g_GBuffer_Depth" )->Set( m_GBuffer.Depth->GetDefaultView( TEXTURE_VIEW_SHADER_RESOURCE ) );
+        if( mPostProcessPSO ) {
+            mPostProcessPSO->CreateShaderResourceBinding( &mPostProcessSRB );
+            mPostProcessSRB->GetVariableByName( SHADER_TYPE_PIXEL, "PostProcessConstantsCB" )->Set( mPostProcessConstantsBuffer );
+            mPostProcessSRB->GetVariableByName( SHADER_TYPE_PIXEL, "g_GBuffer_Color" )->Set( m_GBuffer.Color->GetDefaultView( TEXTURE_VIEW_SHADER_RESOURCE ) );
+            mPostProcessSRB->GetVariableByName( SHADER_TYPE_PIXEL, "g_GBuffer_Depth" )->Set( m_GBuffer.Depth->GetDefaultView( TEXTURE_VIEW_SHADER_RESOURCE ) );
+        }
 	}
 
 	// Create down sample SRB
@@ -731,6 +733,32 @@ void ComputeParticles::WindowResize( Uint32 Width, Uint32 Height )
 		SRB->GetVariableByName( SHADER_TYPE_PIXEL, "g_GBuffer_Color" )->Set( m_GBuffer.ColorSRBs[Mip] );
 	}
 
+    // Create window-size offscreen render target to render post-processing into, so we can anti-alias after
+    {
+        TextureDesc RTColorDesc;
+        RTColorDesc.Name      = "Post Process Render Target";
+        RTColorDesc.Type      = RESOURCE_DIM_TEX_2D;
+        RTColorDesc.Width     = m_pSwapChain->GetDesc().Width;
+        RTColorDesc.Height    = m_pSwapChain->GetDesc().Height;
+        RTColorDesc.MipLevels = 1;
+        RTColorDesc.Format    = m_pSwapChain->GetDesc().ColorBufferFormat;
+        RTColorDesc.BindFlags = BIND_SHADER_RESOURCE | BIND_RENDER_TARGET;
+
+        RTColorDesc.ClearValue.Format   = RTColorDesc.Format;
+        RTColorDesc.ClearValue.Color[0] = 0.350f;
+        RTColorDesc.ClearValue.Color[1] = 0.350f;
+        RTColorDesc.ClearValue.Color[2] = 0.350f;
+        RTColorDesc.ClearValue.Color[3] = 1.f;
+
+        RefCntAutoPtr<ITexture> pRTColor;
+        m_pDevice->CreateTexture( RTColorDesc, nullptr, &pRTColor );
+        // Store the render target view
+        mPostProcessRTV = pRTColor->GetDefaultView( TEXTURE_VIEW_RENDER_TARGET );
+
+        if( mFXAA ) {
+           mFXAA->setRenderTarget( pRTColor->GetDefaultView( TEXTURE_VIEW_SHADER_RESOURCE ) );
+        }
+    }
 }
 
 void ComputeParticles::Update( double CurrTime, double ElapsedTime )
@@ -861,13 +889,18 @@ void ComputeParticles::Render()
     }
 
     // Final pass
-    {
+    // TODO: cleanup
+    if( ! mFXAAEnabled ) {
         ITextureView* pRTV = m_pSwapChain->GetCurrentBackBufferRTV();
         m_pImmediateContext->SetRenderTargets( 1, &pRTV, nullptr, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
 
         PostProcess();
     }
 
+
+    if( mFXAAEnabled ) {
+        // TODO: render to a new target and then pass its TextureView into FXAA apply
+    }
 }
 
 void ComputeParticles::updateParticles()
@@ -981,6 +1014,7 @@ void ComputeParticles::drawParticles()
 // ------------------------------------------------------------------------------------------------------------
 // Post Process
 // ------------------------------------------------------------------------------------------------------------
+// TODO: move to separate class
 
 void ComputeParticles::initPostProcessPSO()
 {
@@ -1245,10 +1279,15 @@ void ComputeParticles::updateUI()
             im::ColorEdit3( "fog color", &mPostProcessConstants.fogColor.r, ImGuiColorEditFlags_Float );
             im::DragFloat( "fog intensity", &mPostProcessConstants.fogIntensity, 0.002f, 0.0001f, 1.0f );
 
+            im::Checkbox( "FXAA", &mFXAAEnabled );
+
             im::Separator();
             im::Text( "Debug ImageView" );
-            im::Image( m_GBuffer.Depth->GetDefaultView( TEXTURE_VIEW_SHADER_RESOURCE ), { 300, 200 } );
-            //im::Image( m_GBuffer.ColorRTVs[0], { 300, 200 } ); // won't work, wrong ViewType
+            //im::Image( m_GBuffer.Color->GetDefaultView( TEXTURE_VIEW_SHADER_RESOURCE ), { 300, 200 } );
+
+            static int colorSRBMip = 0;
+            im::DragInt( "mip", &colorSRBMip, 0.1f, 0, DownSampleFactor - 1 );
+            im::Image( m_GBuffer.ColorSRBs[colorSRBMip], { 300, 200 } );
         }
     }
     im::End(); // Settings

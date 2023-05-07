@@ -44,9 +44,9 @@ set(SHADERS
     assets/shaders/post/post_process.vsh
     assets/shaders/post/post_process.psh
     assets/shaders/post/downsample.psh
-    ../common/shaders/post/aa/fxaa.vsh
-    ../common/shaders/post/aa/fxaa.psh
-    ../common/shaders/post/aa/FXAA3_11.h
+    assets/shaders/post/aa/fxaa.vsh
+    assets/shaders/post/aa/fxaa.psh
+    assets/shaders/post/aa/FXAA3_11.h
 )
 
 set(ASSETS)
