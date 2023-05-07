@@ -61,6 +61,7 @@ void FXAA::initPipelineState( const TEXTURE_FORMAT &colorBufferFormat )
     PSOCreateInfo.PSODesc.ResourceLayout.ImmutableSamplers    = ImtblSamplers;
     PSOCreateInfo.PSODesc.ResourceLayout.NumImmutableSamplers = _countof(ImtblSamplers);
     PSOCreateInfo.PSODesc.ResourceLayout.DefaultVariableType  = SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE;
+    //PSOCreateInfo.PSODesc.ResourceLayout.DefaultVariableType  = SHADER_RESOURCE_VARIABLE_TYPE_STATIC;
 
     ShaderCreateInfo shaderCI;
     shaderCI.SourceLanguage             = SHADER_SOURCE_LANGUAGE_HLSL;
@@ -89,14 +90,21 @@ void FXAA::initPipelineState( const TEXTURE_FORMAT &colorBufferFormat )
     global->renderDevice->CreateGraphicsPipelineState( PSOCreateInfo, &mPSO );
 
     if( mPSO ) {
-        auto pc = mPSO->GetStaticVariableByName( SHADER_TYPE_PIXEL, "ConstantsCB" );
-        if( pc ) {
-            pc->Set( mConstantsBuffer );
+        //auto pc = mPSO->GetStaticVariableByName( SHADER_TYPE_PIXEL, "ConstantsCB" );
+        //if( pc ) {
+        //    pc->Set( mConstantsBuffer ); // FIXME: not getting set
+        //}
+        //else {
+        //    LOG_WARNING_MESSAGE( "FXAA: could not set ConstantsVB variable" );
+        //}
+        mPSO->CreateShaderResourceBinding( &mSRB, true );
+        auto var = mSRB->GetVariableByName( SHADER_TYPE_PIXEL, "ConstantsCB" );
+        if( var ) {
+            var->Set( mConstantsBuffer ); // FIXME: not getting set
         }
         else {
             LOG_WARNING_MESSAGE( "FXAA: could not set ConstantsVB variable" );
         }
-        mPSO->CreateShaderResourceBinding( &mSRB, true );
     }
     else {
         LOG_ERROR_MESSAGE( "FXAA: null mPSO, cannot create SRB" );
@@ -114,9 +122,18 @@ void FXAA::setTexture( dg::ITextureView* textureView )
     mSRB.Release();
     mPSO->CreateShaderResourceBinding( &mSRB, true );
 
-    auto var = mSRB->GetVariableByName( SHADER_TYPE_PIXEL, "gColor" );
-    if( var ) {
-        var->Set( textureView );
+    // TODO: clean this up if we have to recreate SRB, duplicate code
+    auto constantsCB = mSRB->GetVariableByName( SHADER_TYPE_PIXEL, "ConstantsCB" );
+    if( constantsCB ) {
+        constantsCB->Set( mConstantsBuffer ); // FIXME: not getting set
+    }
+    else {
+        LOG_WARNING_MESSAGE( "FXAA: could not set ConstantsVB variable" );
+    }
+
+    auto gColor = mSRB->GetVariableByName( SHADER_TYPE_PIXEL, "gColor" );
+    if( gColor ) {
+        gColor->Set( textureView );
     }
 
     sTestingTextureView = textureView;

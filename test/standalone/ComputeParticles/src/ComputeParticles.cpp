@@ -1298,7 +1298,12 @@ void ComputeParticles::updateUI()
             im::ColorEdit3( "fog color", &mPostProcessConstants.fogColor.r, ImGuiColorEditFlags_Float );
             im::DragFloat( "fog intensity", &mPostProcessConstants.fogIntensity, 0.002f, 0.0001f, 1.0f );
 
+            im::Separator();
+            im::Text( "Antialiasing" );
             im::Checkbox( "FXAA", &mFXAAEnabled );
+            if( mFXAA ) {
+                mFXAA->updateUI();
+            }
 
             im::Separator();
             im::Text( "Debug ImageView" );
