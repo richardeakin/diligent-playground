@@ -145,6 +145,8 @@ void ComputeParticles::ModifyEngineInitInfo( const ModifyEngineInitInfoAttribs& 
     Attribs.EngineCI.Features.ComputeShaders    = DEVICE_FEATURE_STATE_ENABLED;
     Attribs.EngineCI.Features.TimestampQueries  = DEVICE_FEATURE_STATE_OPTIONAL;
     Attribs.EngineCI.Features.DurationQueries   = DEVICE_FEATURE_STATE_OPTIONAL;
+
+    Attribs.SCDesc.DepthBufferFormat = TEX_FORMAT_UNKNOWN; // we're rendering to offscreen buffers so no need for depth buffer on the swap chain
 }
 
 void ComputeParticles::Initialize( const SampleInitInfo& InitInfo )
@@ -417,6 +419,8 @@ void ComputeParticles::initParticleBuffers()
     std::uniform_real_distribution<float> pos_distr(-1.f, +1.f);
     std::uniform_real_distribution<float> size_distr(0.5f, 1.f);
 
+    // TODO: make size based on a member var + variation
+    // - don't need scale at that point, except if I'm using to shape the 
     constexpr float fMaxParticleSize = 0.05f;
     float           fSize            = 0.7f / std::sqrt( static_cast<float>( mNumParticles ) );
     fSize                            = std::min( fMaxParticleSize, fSize );
