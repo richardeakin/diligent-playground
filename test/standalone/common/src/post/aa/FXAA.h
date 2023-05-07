@@ -25,6 +25,8 @@ public:
 
 private:
 	void initPipelineState( const dg::TEXTURE_FORMAT &colorBufferFormat );
+	void watchShadersDir();
+	void reloadOnAssetsUpdated();
 
 	RefCntAutoPtr<dg::IPipelineState>         mPSO;
 	RefCntAutoPtr<dg::IShaderResourceBinding> mSRB;

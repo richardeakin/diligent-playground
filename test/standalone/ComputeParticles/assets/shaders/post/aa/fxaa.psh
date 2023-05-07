@@ -22,7 +22,7 @@ struct FxaaConstants {
 	float padding1;
 };
 
-cbuffer Constants {
+cbuffer ConstantsCB {
     FxaaConstants Constants;
 };
 
@@ -56,9 +56,34 @@ float4 main( in PSInput PSIn ) : SV_Target
     float3 col = colorAndLuma.rgb;
     float luma = colorAndLuma.a;
 
-    col.g = 1.0; // testing
+    //col.g += 0.2; // testing
+	//FxaaFloat2 uv = gl_FragCoord.xy * uExtents.xy;
 
-    return float4( col, 1.0 );
+	FxaaTex tex;
+	tex.smpl = gColor_sampler;
+	tex.tex = gColor;
 
+	FxaaFloat2 fxaaQualityRcpFrame;
+	fxaaQualityRcpFrame.x = 1.0 / dim.x;
+	fxaaQualityRcpFrame.y = 1.0 / dim.y;
+
+
+	// You dont need to touch theses variables it have no visible effect
+	FxaaFloat QualityEdgeThresholdMin = 0.0;
+	FxaaFloat ConsoleEdgeSharpness = 8.0;
+	FxaaFloat ConsoleEdgeThreshold = 0.125;
+	FxaaFloat ConsoleEdgeThresholdMin = 0.05;
+	const FxaaFloat4 notUsed = FxaaFloat4( 0, 0, 0, 0 );
+
+	float4 result = FxaaPixelShader( screenUV, notUsed, tex, tex, tex, fxaaQualityRcpFrame,
+		notUsed, notUsed, notUsed, 
+		Constants.qualitySubpix, Constants.qualityEdgeThreshold, QualityEdgeThresholdMin, 
+		ConsoleEdgeSharpness, ConsoleEdgeThreshold, ConsoleEdgeThresholdMin, notUsed
+	);
+
+	// TODO: need to set result.a = 1.0?
+
+	return result;
+    //return float4( col, 1.0 );
     //return float4( luma, luma, luma, 1.0 );
 }

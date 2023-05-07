@@ -1,10 +1,19 @@
 #include "FXAA.h"
 #include "AppGlobal.h"
 
+#include "../../common/src/FileWatch.h"
+
 #include "imgui.h"
 
 using namespace Diligent;
 namespace im = ImGui;
+
+namespace {
+
+ju::FileWatchHandle     ShadersDirWatchHandle;
+bool                    ShaderAssetsMarkedDirty = false;
+
+}// anon
 
 namespace ju { namespace aa {
 
@@ -24,6 +33,7 @@ FXAA::FXAA( const TEXTURE_FORMAT &colorBufferFormat )
     }
 
     initPipelineState( colorBufferFormat );
+    watchShadersDir();
 }
 
 void FXAA::initPipelineState( const TEXTURE_FORMAT &colorBufferFormat )
@@ -79,13 +89,22 @@ void FXAA::initPipelineState( const TEXTURE_FORMAT &colorBufferFormat )
     global->renderDevice->CreateGraphicsPipelineState( PSOCreateInfo, &mPSO );
 
     if( mPSO ) {
-        auto pc = mPSO->GetStaticVariableByName( SHADER_TYPE_PIXEL, "Constants" );
+        auto pc = mPSO->GetStaticVariableByName( SHADER_TYPE_PIXEL, "ConstantsCB" );
         if( pc ) {
             pc->Set( mConstantsBuffer );
         }
+        else {
+            LOG_WARNING_MESSAGE( "FXAA: could not set ConstantsVB variable" );
+        }
         mPSO->CreateShaderResourceBinding( &mSRB, true );
     }
+    else {
+        LOG_ERROR_MESSAGE( "FXAA: null mPSO, cannot create SRB" );
+    }
 }
+
+// TODO: need a way to store and reset this on shader hotloads
+dg::ITextureView* sTestingTextureView = nullptr;
 
 void FXAA::setTexture( dg::ITextureView* textureView )
 {
@@ -99,10 +118,53 @@ void FXAA::setTexture( dg::ITextureView* textureView )
     if( var ) {
         var->Set( textureView );
     }
+
+    sTestingTextureView = textureView;
+}
+
+void FXAA::watchShadersDir()
+{
+    std::filesystem::path shaderDir( "shaders/post/aa" );
+
+    if( std::filesystem::exists( shaderDir ) ) {
+        LOG_INFO_MESSAGE( __FUNCTION__, "| watching assets directory: ", shaderDir );
+        try {
+            ShadersDirWatchHandle = std::make_unique<FileWatchType>( shaderDir.string(),
+                [=](const PathType &path, const filewatch::Event change_type ) {
+                    ShaderAssetsMarkedDirty = true;
+                }
+            );
+        }
+        catch( std::system_error &exc ) {
+            LOG_ERROR_MESSAGE( __FUNCTION__, "| exception caught attempting to watch directory (assets): ", shaderDir, ", what: ", exc.what() );
+        }
+    }
+    else {
+        LOG_WARNING_MESSAGE( __FUNCTION__, "| shader directory couldn't be found (not watching): ", shaderDir );
+    }
+}
+
+void FXAA::reloadOnAssetsUpdated()
+{
+    LOG_INFO_MESSAGE( __FUNCTION__, "| re-initializing shader assets" );
+
+    auto colorFormat = mPSO->GetGraphicsPipelineDesc().RTVFormats[0];
+
+    mPSO.Release();
+    mSRB.Release();
+    initPipelineState( colorFormat );
+
+    setTexture( sTestingTextureView );
+
+    ShaderAssetsMarkedDirty = false;
 }
 
 void FXAA::apply( IDeviceContext* context, ITextureView *texture )
 {
+    if( ShaderAssetsMarkedDirty ) {
+        reloadOnAssetsUpdated();
+    }
+
     context->UpdateBuffer( mConstantsBuffer, 0, sizeof( mFxaaConstants ), &mFxaaConstants, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
 
     // TODO: bind texture
