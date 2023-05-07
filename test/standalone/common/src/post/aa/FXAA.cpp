@@ -11,13 +11,15 @@ namespace ju { namespace aa {
 FXAA::FXAA( const TEXTURE_FORMAT &colorBufferFormat )
 {
     // create dynamic uniform buffers
+    // TODO: want to use USAGE_DYNAMIC, but then also want to use context->UpdateBuffer() that only works with USAGE_DEFAULT.
+    // - figure out what perf implications there are
     {
         BufferDesc CBDesc;
         CBDesc.Name           = "FXAA Constants Buffer";
         CBDesc.Size           = sizeof(mFxaaConstants);
-        CBDesc.Usage          = USAGE_DYNAMIC;
+        CBDesc.Usage          = USAGE_DEFAULT; // USAGE_DYNAMIC
         CBDesc.BindFlags      = BIND_UNIFORM_BUFFER;
-        CBDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
+        //CBDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
         app::global()->renderDevice->CreateBuffer( CBDesc, nullptr, &mConstantsBuffer );
     }
 
@@ -85,7 +87,7 @@ void FXAA::initPipelineState( const TEXTURE_FORMAT &colorBufferFormat )
     }
 }
 
-void FXAA::setRenderTarget( dg::ITextureView* textureView )
+void FXAA::setTexture( dg::ITextureView* textureView )
 {
     // We need to release and create a new SRB that references new off-screen render target SRV
     // TODO: why do we need to create a new SRB? Doesn't get modified until after it is created
@@ -104,7 +106,16 @@ void FXAA::apply( IDeviceContext* context, ITextureView *texture )
     context->UpdateBuffer( mConstantsBuffer, 0, sizeof( mFxaaConstants ), &mFxaaConstants, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
 
     // TODO: bind texture
-    // TODO: run FXAA shader
+    // - actually don't think I need to, it was already done by setRenderTarget()
+    
+    // run FXAA
+    context->SetPipelineState( mPSO );
+    context->CommitShaderResources( mSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+
+    context->SetVertexBuffers( 0, 0, nullptr, nullptr, RESOURCE_STATE_TRANSITION_MODE_NONE, SET_VERTEX_BUFFERS_FLAG_RESET );
+    context->SetIndexBuffer( nullptr, 0, RESOURCE_STATE_TRANSITION_MODE_NONE );
+
+    context->Draw( DrawAttribs{ 3, DRAW_FLAG_VERIFY_ALL } );
 }
 
 void FXAA::updateUI()

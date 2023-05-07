@@ -760,7 +760,7 @@ void ComputeParticles::WindowResize( Uint32 Width, Uint32 Height )
         mPostProcessRTV = pRTColor->GetDefaultView( TEXTURE_VIEW_RENDER_TARGET );
 
         if( mFXAA ) {
-           mFXAA->setRenderTarget( pRTColor->GetDefaultView( TEXTURE_VIEW_SHADER_RESOURCE ) );
+           mFXAA->setTexture( pRTColor->GetDefaultView( TEXTURE_VIEW_SHADER_RESOURCE ) );
         }
     }
 }
@@ -894,9 +894,9 @@ void ComputeParticles::Render()
 
     // Final pass
     // TODO: cleanup
+    ITextureView *mainRenderTarget = m_pSwapChain->GetCurrentBackBufferRTV();
     if( ! mFXAAEnabled ) {
-        ITextureView* pRTV = m_pSwapChain->GetCurrentBackBufferRTV();
-        m_pImmediateContext->SetRenderTargets( 1, &pRTV, nullptr, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+        m_pImmediateContext->SetRenderTargets( 1, &mainRenderTarget, nullptr, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
 
         PostProcess();
     }
@@ -904,6 +904,21 @@ void ComputeParticles::Render()
 
     if( mFXAAEnabled ) {
         // TODO: render to a new target and then pass its TextureView into FXAA apply
+        // - code below needs to be called from FXAA->preDraw() or something
+        // - can depth buffer view be null?
+        
+        // Clear the offscreen render target and depth buffer
+        const float clearColor[] = { 0.0f, 0.05f, 0.4f, 1.0f };
+        m_pImmediateContext->SetRenderTargets( 1, &mPostProcessRTV, nullptr, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+        m_pImmediateContext->ClearRenderTarget( mPostProcessRTV, clearColor, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+        //m_pImmediateContext->ClearDepthStencil(m_pDepthDSV, CLEAR_DEPTH_FLAG, 1.0f, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+
+        PostProcess();
+
+        // bind the main render target and render AA into main target
+        m_pImmediateContext->SetRenderTargets( 1, &mainRenderTarget, nullptr, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+        // TODO: clear?
+        mFXAA->apply( m_pImmediateContext, m_GBuffer.Color->GetDefaultView( TEXTURE_VIEW_SHADER_RESOURCE ) );
     }
 }
 

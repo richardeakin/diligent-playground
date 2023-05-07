@@ -14,7 +14,8 @@ class FXAA {
 public:
 	FXAA( const dg::TEXTURE_FORMAT &colorBufferFormat );
 
-	void setRenderTarget( dg::ITextureView* textureView );
+	//! Set the texture that will get antialiased
+	void setTexture( dg::ITextureView* textureView );
 
 	//! Processes \t source's color buffer, placing the result in \t dest.
 	// TODO: not sure yet what needs to be in here to draw with the previous render target bound
