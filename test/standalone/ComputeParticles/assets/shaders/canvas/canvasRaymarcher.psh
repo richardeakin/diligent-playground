@@ -66,8 +66,18 @@ struct IntersectInfo {
 // SDF object functions
 // --------------------------------------------------------------------
 // https://iquilezles.org/articles/distfunctions/
-// 
-// 
+
+float sdSphere( float3 p, float s )
+{
+    return length( p ) - s;
+}
+
+float sdPlane( float3 p, float3 n, float h )
+{
+    // n must be normalized
+    return dot( p, n ) + h;
+}
+
 // --------------------------------------------------------------------
 // SDF Scene
 // --------------------------------------------------------------------
@@ -82,10 +92,17 @@ float sdf_scene( in float3 p, inout ObjectInfo object )
     float dist;
     float result = SDF_MAX_DIST + 1;
 
-    float floor = dot( p, float3( 0, 1, 0 ) ); // plane with normal pointing up
+    //float floor = dot( p, float3( 0, 1, 0 ) ); // plane with normal pointing up
 
-    result = floor;
-    object.id = oid_floor;
+    float floor = sdPlane( p, normalize( float3( 1, 1, 0 ) ), 0 ); // plane with normal pointing up
+    //result = floor;
+    //object.id = oid_floor;
+
+    float ball = sdSphere( p, 0.5 );
+    if( ball < result ) {
+        result = ball;
+        object.id = oid_ball;
+    }
 
     return result;
 }
@@ -117,16 +134,39 @@ float3x3 calcLookAtMat3( in float3 ro, in float3 target, in float roll )
     return MatrixFromRows( uu, vv, ww );
 }
 
-//! Returns a Ray for pixel position p
+float4x4 axis_matrix(float3 right, float3 up, float3 forward)
+{
+    float3 xaxis = right;
+    float3 yaxis = up;
+    float3 zaxis = forward;
+    return float4x4(
+        xaxis.x, yaxis.x, zaxis.x, 0,
+        xaxis.y, yaxis.y, zaxis.y, 0,
+        xaxis.z, yaxis.z, zaxis.z, 0,
+        0, 0, 0, 1
+        );
+}
+
+float4x4 look_at_matrix(float3 at, float3 eye, float3 up)
+{
+    float3 zaxis = normalize(at - eye);
+    float3 xaxis = normalize(cross(up, zaxis));
+    float3 yaxis = cross(zaxis, xaxis);
+    return axis_matrix(xaxis, yaxis, zaxis);
+}
+
+// Returns a Ray for pixel position p
 Ray calcViewRay( in float2 p, in float3 camPos, in float3 camDir, in float camRoll, in float lensLength )
 {
     float3 camTarget = camPos + camDir;
     float3x3 viewMatrix = calcLookAtMat3( camPos, camTarget, camRoll );
+    //viewMatrix = transpose( viewMatrix );
 
     Ray ray;
     ray.origin = camPos;
     ray.dir = normalize( mul( viewMatrix, float3( p.xy, lensLength ) ) );
-    ray.dir.y *= -1; // TODO: figure out why +y is facing down
+    //ray.dir.y *= -1; // TODO: figure out why +y is facing down
+    //ray.dir.x *= -1; // why is also flipped..
     return ray;
 }
 
@@ -191,12 +231,16 @@ IntersectInfo sdf_intersect( in Ray ray, inout ObjectInfo object )
 
 void main( in PSInput PSIn, out PSOutput PSOut )
 {
-    float2 UV = PSIn.UV;
+    //float2 UV = PSIn.UV;
 
     float camLensLength = 2.0;
     float camRoll = 0.0;
-    float2 posNDC = PSIn.Pos.xy;
-    float2 p = ( -cResolution.xy + 2.0 * posNDC ) / cResolution.y;
+
+    // FIXME: pixel coords are coming in backward in PSIn.Pos, so I'm flipping for now
+    float2 pixelCoord = PSIn.Pos.xy;
+    //pixelCoord.x = cResolution.x - pixelCoord.x;
+    pixelCoord.y = cResolution.y - pixelCoord.y;
+    float2 p = ( -cResolution.xy + 2.0 * pixelCoord ) / cResolution.y;
 
     Ray ray = calcViewRay( p, cCamPos, cCamDir, camRoll, camLensLength );
 
@@ -206,11 +250,20 @@ void main( in PSInput PSIn, out PSOutput PSOut )
     if( object.id != oid_nothing ) {
         //col = sdf_shadeScene( ray, object, intersect );
         if( object.id == oid_floor ) {
-            col = float3( 1, 0, 0 );
+            //col = float3( 0.1, 0, 0 );
+            col = object.normal;
+        }
+        if( object.id == oid_ball ) {
+            //col = object.normal;
+            col = float3( 0.1, 0, 0 );
         }
     }
     else {
         col = skyColor( ray );
+    }
+
+    if( p.y > 0.0 ) {
+        col = float3( 0, 1, 0 );
     }
 
     PSOut.Color = float4( col, 0 ); // TODO: .a is 0 for current scene (it is emmissive now). Set back to 1 when this is made the stock canvas shader

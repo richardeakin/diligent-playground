@@ -90,16 +90,17 @@ void Canvas::initPipelineState()
 
     global->renderDevice->CreateGraphicsPipelineState( PSOCreateInfo, &mPSO );
 
-
-    auto vc = mPSO->GetStaticVariableByName( SHADER_TYPE_VERTEX, "Constants");
-    if( vc ) {
-        vc->Set( mVertexConstants );
+    if( mPSO ) {
+        auto vc = mPSO->GetStaticVariableByName( SHADER_TYPE_VERTEX, "Constants");
+        if( vc ) {
+            vc->Set( mVertexConstants );
+        }
+        auto pc = mPSO->GetStaticVariableByName( SHADER_TYPE_PIXEL, "Constants" );
+        if( pc ) {
+            pc->Set( mPixelConstants );
+        }
+        mPSO->CreateShaderResourceBinding( &mSRB, true );
     }
-    auto pc = mPSO->GetStaticVariableByName( SHADER_TYPE_PIXEL, "Constants" );
-    if( pc ) {
-        pc->Set( mPixelConstants );
-    }
-    mPSO->CreateShaderResourceBinding( &mSRB, true );
 }
 
 void Canvas::watchShadersDir()
