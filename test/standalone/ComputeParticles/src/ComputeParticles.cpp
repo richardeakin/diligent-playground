@@ -1292,12 +1292,14 @@ void ComputeParticles::updateUI()
             if( im::Checkbox( "glow", &glowEnabled ) ) {
                 mPostProcessConstants.glowEnabled = int(glowEnabled);
             }
+            im::DragFloat( "glow intensity", &mPostProcessConstants.glowIntensity, 0.002f, 0.0001f, 10.0f );
+
             bool fogEnabled = mPostProcessConstants.fogEnabled;
             if( im::Checkbox( "fog", &fogEnabled ) ) {
                 mPostProcessConstants.fogEnabled = int(fogEnabled);
             }
             im::ColorEdit3( "fog color", &mPostProcessConstants.fogColor.r, ImGuiColorEditFlags_Float );
-            im::DragFloat( "fog intensity", &mPostProcessConstants.fogIntensity, 0.002f, 0.0001f, 1.0f );
+            im::DragFloat( "fog intensity", &mPostProcessConstants.fogIntensity, 0.002f, 0.0001f, 2.0f );
 
             im::Separator();
             im::Text( "Antialiasing" );

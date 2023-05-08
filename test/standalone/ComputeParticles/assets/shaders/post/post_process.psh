@@ -11,7 +11,9 @@ struct PostProcessConstants {
     int     fogEnabled;
     
     float   fogIntensity;
-    int     padding;
+    float   glowIntensity;
+    float   padding0;
+    float   padding1;
 };
 
 cbuffer PostProcessConstantsCB {
@@ -71,6 +73,7 @@ float4 main(in PSInput PSIn) : SV_Target
         color3.rgb *= color3.a;
         color4.rgb *= color4.a;
         EmissionGlow = (color0 + color1 + color2 + color3 + color4).rgb / 5.0;
+        EmissionGlow *= g_Constants.glowIntensity;
     }
 #else
     {

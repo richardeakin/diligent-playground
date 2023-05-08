@@ -89,8 +89,11 @@ private:
 
         float3  fogColor = { 0.044f, 0.009f, 0.142f }; // dark purple
         int     fogEnabled = 1;
+
         float   fogIntensity = 0.092f;
-        float3  padding;
+        float   glowIntensity = 1.0f;
+        float   padding0;
+        float   padding1;
     };
     static_assert(sizeof(PostProcessConstants) % 16 == 0, "must be aligned to 16 bytes");
 
