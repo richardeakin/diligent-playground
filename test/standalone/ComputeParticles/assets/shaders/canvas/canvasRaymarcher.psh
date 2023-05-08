@@ -1,0 +1,217 @@
+cbuffer Constants {
+    float3 cCamPos;
+    float  padding0;
+    float3 cCamDir;
+    float  padding1;
+    float2 cResolution;
+    float  padding2;
+    float  padding3;
+};
+
+struct PSInput {
+    float4 Pos   : SV_POSITION;
+    float2 UV    : TEX_COORD;
+};
+
+struct PSOutput {
+    float4 Color : SV_TARGET;
+};
+
+struct Ray {
+    float3 origin;
+    float3 dir;
+};
+
+#define SDF_MAX_ITERATIONS 200
+#define SDF_MIN_DIST 0.001
+#define SDF_MAX_DIST 300.0    
+#define DEBUG_SDF_GRADIENT 0
+
+#define INTERSECT_FN sdf_intersect
+//#define INTERSECT_FN sdf_intersectEnhanced
+
+//! Information for the current object at this pixel
+struct ObjectInfo {
+    int id;                 // defines the intersected object
+    float materialPart;     // define different parts of a material within an object 
+    float3 pos;               // world-space
+    float3 normal;
+    float4 params0;
+    //float3 reflectionColor;
+    //float3 velocity;
+};
+
+ObjectInfo initObjectInfo()
+{
+    ObjectInfo o;
+    o.id = -1;
+    o.materialPart = 0;
+    o.pos = float3( 0, 0, 0 );
+    o.normal = float3( 0, 1, 0 );
+    o.params0 = float4( 0, 0, 0, 0 );
+
+    return o;
+}
+
+// Information about a Ray-Marching intersection
+struct IntersectInfo {
+    float 	dist; //! SDF distance
+    float 	rayLength; //! the distance from ray origin to the intersection
+    int 	iterations; //! number of sphere-tracing iterations to the intersection
+    bool 	isReflection; //! If this intersection is a reflection
+    //    float   reflectionRoughness; //! TODO: thinking about adding this to scale down glowy parts reflected in rough surfaces 
+};
+
+// --------------------------------------------------------------------
+// SDF object functions
+// --------------------------------------------------------------------
+// https://iquilezles.org/articles/distfunctions/
+// 
+// 
+// --------------------------------------------------------------------
+// SDF Scene
+// --------------------------------------------------------------------
+
+static const int oid_nothing   = -1;
+static const int oid_floor     = 1;
+static const int oid_ball      = 2;
+
+float sdf_scene( in float3 p, inout ObjectInfo object )
+{
+    int id;
+    float dist;
+    float result = SDF_MAX_DIST + 1;
+
+    float floor = dot( p, float3( 0, 1, 0 ) ); // plane with normal pointing up
+
+    result = floor;
+    object.id = oid_floor;
+
+    return result;
+}
+
+float3 skyColor( in Ray ray )
+{
+    float3 col = float3( 0.1, 0.05, 0.1 ) * 0.1;
+    float ss1 = smoothstep( 0.0, 4.0, max( ray.dir.y + 0.1, 0.0 ) * 5.0 );
+    col = lerp( col, float3( 0.7, 0.17, 0.03 ), ss1 );
+    //col += ray.dir.y * 0.15;
+
+    float ss2 = smoothstep( 0.0, 5.0, pow( max( ray.dir.y, 0.0 ), 1.3 ) * 10.0 );
+    col = lerp( col, float3( 0.02, 0.03, 0.5 ), ss2 );
+
+    return col;
+}
+
+// --------------------------------------------------------------------
+// Raymarching Functions
+// --------------------------------------------------------------------
+
+// world -> view space
+float3x3 calcLookAtMat3( in float3 ro, in float3 target, in float roll )
+{
+    float3 ww = normalize( target - ro );
+    float3 uu = normalize( cross( ww, float3( sin( roll ), cos( roll ), 0.0 ) ) );
+    float3 vv = normalize( cross( uu, ww ) );
+
+    return MatrixFromRows( uu, vv, ww );
+}
+
+//! Returns a Ray for pixel position p
+Ray calcViewRay( in float2 p, in float3 camPos, in float3 camDir, in float camRoll, in float lensLength )
+{
+    float3 camTarget = camPos + camDir;
+    float3x3 viewMatrix = calcLookAtMat3( camPos, camTarget, camRoll );
+
+    Ray ray;
+    ray.origin = camPos;
+    ray.dir = normalize( mul( viewMatrix, float3( p.xy, lensLength ) ) );
+    ray.dir.y *= -1; // TODO: figure out why +y is facing down
+    return ray;
+}
+
+float3 sdf_calcNormal( in ObjectInfo object )
+{
+    float3 pos = object.pos;
+
+    // precision of the normal computation
+    // TODO: this needs to be exposed as param so uniform isn't buried in this .glsl file
+    // - it can possibly be set as a #define from the cpu side when the RayMarcher is resized
+    //   - PostProcess buffers are already getting resized there (but maybe they shouldn't?)
+    // float eps = 1.0 / uResolution.x;
+    const float eps = 0.002;
+
+    const float3 v1 = float3(  1.0, -1.0, -1.0 );
+    const float3 v2 = float3( -1.0, -1.0,  1.0 );
+    const float3 v3 = float3( -1.0,  1.0, -1.0 );
+    const float3 v4 = float3(  1.0,  1.0,  1.0 );
+
+    float3 N = v1 * sdf_scene( pos + v1 * eps, object ) 
+             + v2 * sdf_scene( pos + v2 * eps, object )
+             + v3 * sdf_scene( pos + v3 * eps, object ) 
+             + v4 * sdf_scene( pos + v4 * eps, object );
+
+#if DEBUG_SDF_GRADIENT
+    return N;
+#else
+    return normalize( N );
+#endif
+}
+
+// TODO: use sdf_intersectEnhanced
+IntersectInfo sdf_intersect( in Ray ray, inout ObjectInfo object )
+{
+    float scene = SDF_MIN_DIST * 2.0;
+    float t = 0.0;
+    float dist = -1.0;
+    int i;
+    for( i = 0; i < SDF_MAX_ITERATIONS; i++ ) {
+        if( scene < SDF_MIN_DIST || t > SDF_MAX_DIST )
+            break;
+
+        object.pos = ray.origin + ray.dir * t;
+        scene = sdf_scene( object.pos, object );
+        t += scene;
+    }
+
+    if( t < SDF_MAX_DIST ) {
+        dist = t;
+        object.normal = sdf_calcNormal( object );
+    }
+    else
+        object.id = oid_nothing;
+
+    IntersectInfo result;
+    result.dist = dist;
+    result.rayLength = t;
+    result.iterations = i;
+
+    return result;
+}
+
+void main( in PSInput PSIn, out PSOutput PSOut )
+{
+    float2 UV = PSIn.UV;
+
+    float camLensLength = 2.0;
+    float camRoll = 0.0;
+    float2 posNDC = PSIn.Pos.xy;
+    float2 p = ( -cResolution.xy + 2.0 * posNDC ) / cResolution.y;
+
+    Ray ray = calcViewRay( p, cCamPos, cCamDir, camRoll, camLensLength );
+
+    float3 col = float3( 0, 0, 0 );
+    ObjectInfo object = initObjectInfo();
+    IntersectInfo intersect = INTERSECT_FN( ray, object );
+    if( object.id != oid_nothing ) {
+        //col = sdf_shadeScene( ray, object, intersect );
+        if( object.id == oid_floor ) {
+            col = float3( 1, 0, 0 );
+        }
+    }
+    else {
+        col = skyColor( ray );
+    }
+
+    PSOut.Color = float4( col, 0 ); // TODO: .a is 0 for current scene (it is emmissive now). Set back to 1 when this is made the stock canvas shader
+}

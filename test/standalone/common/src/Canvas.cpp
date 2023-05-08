@@ -79,7 +79,8 @@ void Canvas::initPipelineState()
         ShaderCI.Desc.ShaderType = SHADER_TYPE_PIXEL;
         ShaderCI.EntryPoint      = "main";
         ShaderCI.Desc.Name       = "Canvas PS";
-        ShaderCI.FilePath        = "shaders/canvas/canvas.psh";
+        //ShaderCI.FilePath        = "shaders/canvas/canvas.psh";
+        ShaderCI.FilePath        = "shaders/canvas/canvasRaymarcher.psh";
         global->renderDevice->CreateShader( ShaderCI, &pPS );
     }
 

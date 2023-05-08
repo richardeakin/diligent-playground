@@ -45,6 +45,19 @@ Ray calcViewRay( in float2 p, in float3 camPos, in float3 camDir, in float camRo
     return ray;
 }
 
+float3 skyColor( in Ray ray )
+{
+    float3 col = float3( 0.1, 0.05, 0.1 ) * 0.1;
+    float ss1 = smoothstep( 0.0, 4.0, max( ray.dir.y + 0.1, 0.0 ) * 5.0 );
+    col = lerp( col, float3( 0.7, 0.17, 0.03 ), ss1 );
+    //col += ray.dir.y * 0.15;
+
+    float ss2 = smoothstep( 0.0, 5.0, pow( max( ray.dir.y, 0.0 ), 1.3 ) * 10.0 );
+    col = lerp( col, float3( 0.02, 0.03, 0.5 ), ss2 );
+
+    return col;
+}
+
 void main( in  PSInput  PSIn, out PSOutput PSOut )
 {
     float2 UV = PSIn.UV;
@@ -56,17 +69,7 @@ void main( in  PSInput  PSIn, out PSOutput PSOut )
 
     Ray ray = calcViewRay( p, cCamPos, cCamDir, camRoll, camLensLength );
 
-    float3 col = float3( 0.1, 0.05, 0.1 ) * 0.1;
+    float3 col = skyColor( ray );
 
-    float ss1 = smoothstep( 0.0, 4.0, max( ray.dir.y + 0.1, 0.0 ) * 5.0 );
-    col = lerp( col, float3( 0.7, 0.17, 0.03 ), ss1 );
-    //col += ray.dir.y * 0.15;
-
-    float ss2 = smoothstep( 0.0, 5.0, pow( max( ray.dir.y, 0.0 ), 1.3 ) * 10.0 );
-    col = lerp( col, float3( 0.02, 0.03, 0.5 ), ss2 );
-
-     PSOut.Color = float4( col, 0 ); // TODO: .a is 0 for current scene (it is emmissive now). Set back to 1 when this is made the stock canvas shader
-     //PSOut.Color = float4( posNDC.x, posNDC.y, 0.0, 1.0 );
-     //PSOut.Color = float4( UV.x, UV.y, 0.0, 1.0 );
-    //PSOut.Color = float4( cCamDir.x, cCamDir.y, cCamDir.z, 1.0 );
+    PSOut.Color = float4( col, 0 ); // TODO: .a is 0 for current scene (it is emmissive now). Set back to 1 when this is made the stock canvas shader
 }

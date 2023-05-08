@@ -40,6 +40,7 @@ set(SHADERS
     assets/shaders/solids/solid.fxh
     assets/shaders/canvas/canvas.vsh
     assets/shaders/canvas/canvas.psh
+    assets/shaders/canvas/canvasRaymarcher.psh
     assets/shaders/Quaternion.hlsl
     assets/shaders/post/post_process.vsh
     assets/shaders/post/post_process.psh
