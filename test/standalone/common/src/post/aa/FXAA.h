@@ -31,6 +31,7 @@ private:
 	RefCntAutoPtr<dg::IPipelineState>         mPSO;
 	RefCntAutoPtr<dg::IShaderResourceBinding> mSRB;
 	RefCntAutoPtr<dg::IBuffer>                mConstantsBuffer;
+	RefCntAutoPtr<dg::ITextureView>			  mAATextureView;
 
 	struct FxaaConstants {
 		float qualitySubpix = 0.75f;

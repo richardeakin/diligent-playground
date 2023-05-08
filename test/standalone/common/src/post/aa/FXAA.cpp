@@ -100,7 +100,7 @@ void FXAA::initPipelineState( const TEXTURE_FORMAT &colorBufferFormat )
         mPSO->CreateShaderResourceBinding( &mSRB, true );
         auto var = mSRB->GetVariableByName( SHADER_TYPE_PIXEL, "ConstantsCB" );
         if( var ) {
-            var->Set( mConstantsBuffer ); // FIXME: not getting set
+            var->Set( mConstantsBuffer );
         }
         else {
             LOG_WARNING_MESSAGE( "FXAA: could not set ConstantsVB variable" );
@@ -112,20 +112,17 @@ void FXAA::initPipelineState( const TEXTURE_FORMAT &colorBufferFormat )
 }
 
 // TODO: need a way to store and reset this on shader hotloads
-dg::ITextureView* sTestingTextureView = nullptr;
 
 void FXAA::setTexture( dg::ITextureView* textureView )
 {
-    // We need to release and create a new SRB that references new off-screen render target SRV
-    // TODO: why do we need to create a new SRB? Doesn't get modified until after it is created
-    // - try without
+    // We need to release and create a new SRB that references the new off-screen render target SRV
     mSRB.Release();
     mPSO->CreateShaderResourceBinding( &mSRB, true );
 
-    // TODO: clean this up if we have to recreate SRB, duplicate code
+    // and rebind the CB
     auto constantsCB = mSRB->GetVariableByName( SHADER_TYPE_PIXEL, "ConstantsCB" );
     if( constantsCB ) {
-        constantsCB->Set( mConstantsBuffer ); // FIXME: not getting set
+        constantsCB->Set( mConstantsBuffer );
     }
     else {
         LOG_WARNING_MESSAGE( "FXAA: could not set ConstantsVB variable" );
@@ -136,7 +133,8 @@ void FXAA::setTexture( dg::ITextureView* textureView )
         gColor->Set( textureView );
     }
 
-    sTestingTextureView = textureView;
+    // keep a reference so we can reset on shader hot load
+    mAATextureView = textureView;
 }
 
 void FXAA::watchShadersDir()
@@ -171,7 +169,7 @@ void FXAA::reloadOnAssetsUpdated()
     mSRB.Release();
     initPipelineState( colorFormat );
 
-    setTexture( sTestingTextureView );
+    setTexture( mAATextureView );
 
     ShaderAssetsMarkedDirty = false;
 }
