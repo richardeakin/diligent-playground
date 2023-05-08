@@ -917,7 +917,8 @@ void ComputeParticles::Render()
 
         // bind the main render target and render AA into main target
         m_pImmediateContext->SetRenderTargets( 1, &mainRenderTarget, nullptr, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
-        // TODO: clear?
+
+        JU_PROFILE( "FXAA", m_pImmediateContext, mProfiler.get() );
         mFXAA->apply( m_pImmediateContext, m_GBuffer.Color->GetDefaultView( TEXTURE_VIEW_SHADER_RESOURCE ) );
     }
 }
@@ -1306,10 +1307,11 @@ void ComputeParticles::updateUI()
             }
 
             im::Separator();
-            im::Text( "Debug ImageView" );
-            //im::Image( m_GBuffer.Color->GetDefaultView( TEXTURE_VIEW_SHADER_RESOURCE ), { 300, 200 } );
+            im::Text( "GBuffer.Color" );
+            im::Image( m_GBuffer.Color->GetDefaultView( TEXTURE_VIEW_SHADER_RESOURCE ), { 300, 200 } );
 
             static int colorSRBMip = 0;
+            im::Text( "GBuffer.ColorSRBs[]" );
             im::DragInt( "mip", &colorSRBMip, 0.1f, 0, DownSampleFactor - 1 );
             im::Image( m_GBuffer.ColorSRBs[colorSRBMip], { 300, 200 } );
         }

@@ -50,14 +50,6 @@ float4 main( in PSInput PSIn ) : SV_Target
 #else
     float2 screenUV = float2( PSIn.UV.x, 1.0 - PSIn.UV.y );
 #endif
-    int3   texelPos = int3( screenUV * dim, 0 );
-
-    float4 colorAndLuma = gColor.Load( texelPos );
-    float3 col = colorAndLuma.rgb;
-    float luma = colorAndLuma.a;
-
-    //col.g += 0.2; // testing
-	//FxaaFloat2 uv = gl_FragCoord.xy * uExtents.xy;
 
 	FxaaTex tex;
 	tex.smpl = gColor_sampler;
@@ -68,7 +60,7 @@ float4 main( in PSInput PSIn ) : SV_Target
 	fxaaQualityRcpFrame.y = 1.0 / dim.y;
 
 
-	// You dont need to touch theses variables it have no visible effect
+	// You dont need to touch theses variables, it have no visible effect
 	FxaaFloat QualityEdgeThresholdMin = 0.0;
 	FxaaFloat ConsoleEdgeSharpness = 8.0;
 	FxaaFloat ConsoleEdgeThreshold = 0.125;
@@ -81,10 +73,6 @@ float4 main( in PSInput PSIn ) : SV_Target
 		ConsoleEdgeSharpness, ConsoleEdgeThreshold, ConsoleEdgeThresholdMin, notUsed
 	);
 
-	// TODO: need to set result.a = 1.0?
 	result.a = 1.0;
-
 	return result;
-    //return float4( col, 1.0 );
-    //return float4( luma, luma, luma, 1.0 );
 }
