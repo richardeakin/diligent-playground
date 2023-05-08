@@ -1309,8 +1309,8 @@ void ComputeParticles::updateUI()
             }
 
             im::Separator();
-            im::Text( "GBuffer.Color" );
-            im::Image( m_GBuffer.Color->GetDefaultView( TEXTURE_VIEW_SHADER_RESOURCE ), { 300, 200 } );
+            //im::Text( "GBuffer.Color" );
+            //im::Image( m_GBuffer.Color->GetDefaultView( TEXTURE_VIEW_SHADER_RESOURCE ), { 300, 200 } );
 
             static int colorSRBMip = 0;
             im::Text( "GBuffer.ColorSRBs[]" );

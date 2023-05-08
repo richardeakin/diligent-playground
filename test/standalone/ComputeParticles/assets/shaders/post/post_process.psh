@@ -1,11 +1,9 @@
 
-#define GLOW 1
-
 struct PostProcessConstants {
     float4x4 ViewProjInv;
 
     float3  CameraPos;
-    int   glowEnabled; // TODO: use this instead of macro
+    int     glowEnabled;
 
     float3  FogColor;
     int     fogEnabled;
@@ -59,8 +57,7 @@ float4 main(in PSInput PSIn) : SV_Target
     float  Depth    = g_GBuffer_Depth.Load( texelPos ).x;
 
     float3 EmissionGlow;
-#if GLOW
-    {
+    if( g_Constants.glowEnabled ) {
         // RGB - color, A - emission
         float4 color0 = g_GBuffer_Color.SampleLevel( g_GBuffer_Color_sampler, screenUV, 0 );
         float4 color1 = g_GBuffer_Color.SampleLevel( g_GBuffer_Color_sampler, screenUV, 1 );
@@ -75,13 +72,11 @@ float4 main(in PSInput PSIn) : SV_Target
         EmissionGlow = (color0 + color1 + color2 + color3 + color4).rgb / 5.0;
         EmissionGlow *= g_Constants.glowIntensity;
     }
-#else
-    {
+    else {
         float4 color0 = g_GBuffer_Color.SampleLevel( g_GBuffer_Color_sampler, screenUV, 0);
         color0.rgb *= (color0.a * 0.2);
         EmissionGlow = color0.rgb;
     }
-#endif
 
     // Apply fog
     if( g_Constants.fogEnabled ) {
