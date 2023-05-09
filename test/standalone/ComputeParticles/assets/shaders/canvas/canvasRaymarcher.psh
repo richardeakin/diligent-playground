@@ -1,14 +1,23 @@
-// TODO: turn this into a struct like other cbuffers I'm using
-cbuffer Constants {
+// TODO: try removing the paddings, but make sure it is %16 still
+struct BackgroundPixelConstants {
     float4x4 inverseViewProj;
 
-    float3 cCamPos;
+    float3 camPos;
     float  padding0;
-    float3 cCamDir;
+
+    float3 camDir;
     float  padding1;
-    float2 cResolution;
-    float  padding2;
+
+    float3 lightDir;
+    float padding2;
+
+    float2 resolution;
     float  padding3;
+    float  padding4;
+};
+
+cbuffer Constants {
+    BackgroundPixelConstants Constants;
 };
 
 struct PSInput {
@@ -81,6 +90,17 @@ float sdPlane( float3 p, float3 n, float h )
     return dot( p, n ) + h;
 }
 
+// http://iquilezles.org/www/articles/checkerfiltering/checkerfiltering.htm
+float checkersGradBox( in float2 p, in float2 dpdx, in float2 dpdy )
+{
+	// filter kernel
+	float2 w = abs( dpdx ) + abs( dpdy ) + 0.001;
+	// analytical integral (box filter)
+	float2 i = 2.0 * ( abs( frac( ( p - 0.5 * w ) * 0.5 ) - 0.5 ) - abs( frac( ( p + 0.5 * w ) * 0.5 ) - 0.5 ) ) / w;
+	// xor pattern
+	return 0.5 - 0.5 * i.x * i.y;
+}
+
 // --------------------------------------------------------------------
 // SDF Scene
 // --------------------------------------------------------------------
@@ -97,11 +117,12 @@ float sdf_scene( in float3 p, inout ObjectInfo object )
 
     //float floor = dot( p, float3( 0, 1, 0 ) ); // plane with normal pointing up
 
-    float floor = sdPlane( p, normalize( float3( 1, 1, 0 ) ), 0 ); // plane with normal pointing up
-    //result = floor;
-    //object.id = oid_floor;
+    // ground plane, normal pointing up
+    float floor = sdPlane( p, normalize( float3( 0, 1, 0 ) ), 0 ); 
+    result = floor;
+    object.id = oid_floor;
 
-    float ball = sdSphere( p, 0.5 );
+    float ball = sdSphere( p - float3( 0, 0.4, 0 ), 0.5 );
     if( ball < result ) {
         result = ball;
         object.id = oid_ball;
@@ -235,38 +256,68 @@ IntersectInfo sdf_intersect( in Ray ray, inout ObjectInfo object )
 void main( in PSInput PSIn, out PSOutput PSOut )
 {
 #if 0
+    // TODO: remove unused functions if this remains #ifed out
     float camLensLength = 2.0;
     float camRoll = 0.0;
 
     // FIXME: pixel coords are coming in backward in PSIn.Pos, so I'm flipping for now
     float2 pixelCoord = PSIn.Pos.xy;
-    //pixelCoord.x = cResolution.x - pixelCoord.x;
-    pixelCoord.y = cResolution.y - pixelCoord.y;
-    float2 p = ( -cResolution.xy + 2.0 * pixelCoord ) / cResolution.y;
+    //pixelCoord.x = Constants.resolution.x - pixelCoord.x;
+    pixelCoord.y = Constants.resolution.y - pixelCoord.y;
+    float2 p = ( -Constants.resolution.xy + 2.0 * pixelCoord ) / Constants.resolution.y;
 
-    Ray ray = calcViewRay( p, cCamPos, cCamDir, camRoll, camLensLength );
+    Ray ray = calcViewRay( p, Constants.camPos, Constants.camDir, camRoll, camLensLength );
 #else
+    float2 pixelCoord = PSIn.Pos.xy;
+
     float2 uv       = PSIn.UV;
     uv.y = 1.0 - uv.y;
-    float4 worldPos = mul( float4( uv * 2.0 - 1.0, 1.0, 1.0 ), inverseViewProj );
+    float4 worldPos = mul( float4( uv * 2.0 - 1.0, 1.0, 1.0 ), Constants.inverseViewProj );
 
     Ray ray;
-    ray.origin = cCamPos;
-    ray.dir    = normalize( worldPos.xyz / worldPos.w - cCamPos );
+    ray.origin = Constants.camPos;
+    ray.dir    = normalize( worldPos.xyz / worldPos.w - Constants.camPos );
 #endif
 
     float3 col = float3( 0, 0, 0 );
-    ObjectInfo object = initObjectInfo();
+    ObjectInfo object = initObjectInfo(); 
     IntersectInfo intersect = INTERSECT_FN( ray, object );
     if( object.id != oid_nothing ) {
         //col = sdf_shadeScene( ray, object, intersect );
         if( object.id == oid_floor ) {
             //col = float3( 0.1, 0, 0 );
-            col = object.normal;
+            //col = object.normal;
+
+            // ray differentials
+            float3x3 ca = calcLookAtMat3( ray.origin, ray.dir, 0.0 );
+			float2 px = ( 2.0 * ( pixelCoord + float2( 1.0, 0.0 ) ) - Constants.resolution.xy ) / Constants.resolution.y;
+			float2 py = ( 2.0 * ( pixelCoord + float2( 0.0, 1.0 ) ) - Constants.resolution.xy ) / Constants.resolution.y;
+			float3 rdx = mul( ca, normalize( float3( px, 2.5 ) ) );
+			float3 rdy = mul( ca, normalize( float3( py, 2.5 ) ) );
+
+            // project pixel footprint into the plane
+			float3 dpdx = ray.origin.y * ( ray.dir / ray.dir.y - rdx / rdx.y );
+			float3 dpdy = ray.origin.y * ( ray.dir / ray.dir.y - rdy / rdy.y );
+
+            float checkerN = 3;
+			float f = checkersGradBox( checkerN * object.pos.xz, checkerN * dpdx.xz, checkerN * dpdy.xz );
+			col = 0.15 + f * float3( 0.05, 0.05, 0.05 );
+            //ks = 0.4;
+
         }
         if( object.id == oid_ball ) {
-            //col = object.normal;
-            col = float3( 0.1, 0, 0 );
+            col = object.normal;
+            //col = float3( 0.1, 0, 0 );
+
+            float3 baseColor = float3( 1.0, 0.5, 0.1 );
+            float3 skyColor = float3( 0.25, 0.1, 0.4 ); // should match background horizon, may want to sample it
+
+            float3 lightDir = normalize( -Constants.lightDir ); 
+            float light_diff = saturate( dot( object.normal, lightDir ) );
+            float sky_diff = saturate( dot( object.normal, float3( 0, 1, 0 ) ) );
+
+            col = baseColor * light_diff;
+            col += skyColor * sky_diff * 0.5;
         }
     }
     else {

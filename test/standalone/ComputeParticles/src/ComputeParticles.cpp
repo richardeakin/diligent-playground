@@ -81,11 +81,16 @@ struct BackgroundPixelConstants {
 
     float3 camPos;
     float padding0;
+
     float3 camDir;
     float padding1;
-    float2 resolution;
+
+    float3 lightDir;
     float padding2;
+
+    float2 resolution;
     float padding3;
+    float padding4;
 };
 
 
@@ -557,7 +562,7 @@ void ComputeParticles::initConsantBuffers()
 
 void ComputeParticles::initCamera()
 {
-    mCamera.SetPos( float3{ 0, 0, -4 } );
+    mCamera.SetPos( float3{ 0, 0.35f, -4 } );
     mCamera.SetLookAt( float3{ 0, 0, 1 } );
     mCamera.SetRotationSpeed( CameraRotationSpeed );
     mCamera.SetMoveSpeed( CameraMoveSpeed );
@@ -859,6 +864,7 @@ void ComputeParticles::Render()
         cb->inverseViewProj = cameraViewProj.Inverse().Transpose();
         cb->camPos = mCamera.GetPos();
         cb->camDir = mCamera.GetWorldAhead();
+        cb->lightDir = LightDir;
 
         auto swapChainDesc = m_pSwapChain->GetDesc();
         cb->resolution = float2( swapChainDesc.Width, swapChainDesc.Height );

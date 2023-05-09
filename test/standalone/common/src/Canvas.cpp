@@ -15,6 +15,11 @@ namespace {
 ju::FileWatchHandle     ShadersDirWatchHandle;
 bool                    ShaderAssetsMarkedDirty = false;
 
+struct VertexConstants {
+    float2 center;
+    float2 size;
+};
+
 }// anon
 
 Canvas::Canvas( size_t sizePixelConstants )
@@ -23,7 +28,7 @@ Canvas::Canvas( size_t sizePixelConstants )
     {
         BufferDesc CBDesc;
         CBDesc.Name           = "VertexConstants Buffer";
-        CBDesc.Size           = sizeof(float4);
+        CBDesc.Size           = sizeof(VertexConstants);
         CBDesc.Usage          = USAGE_DYNAMIC;
         CBDesc.BindFlags      = BIND_UNIFORM_BUFFER;
         CBDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
@@ -147,12 +152,7 @@ void Canvas::render( IDeviceContext* context, const float4x4 &mvp )
 {
     // update constants buffer
     {
-        struct ShaderConstants {
-            float2 center;
-            float2 size;
-        };
-
-        MapHelper<ShaderConstants> CBConstants( context, mVertexConstants, MAP_WRITE, MAP_FLAG_DISCARD );
+        MapHelper<VertexConstants> CBConstants( context, mVertexConstants, MAP_WRITE, MAP_FLAG_DISCARD );
         CBConstants->center            = mCenter;
         CBConstants->size              = mSize;
     }
