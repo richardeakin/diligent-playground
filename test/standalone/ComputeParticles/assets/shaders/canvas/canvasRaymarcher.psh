@@ -1,4 +1,7 @@
+// TODO: turn this into a struct like other cbuffers I'm using
 cbuffer Constants {
+    float4x4 inverseViewProj;
+
     float3 cCamPos;
     float  padding0;
     float3 cCamDir;
@@ -231,8 +234,7 @@ IntersectInfo sdf_intersect( in Ray ray, inout ObjectInfo object )
 
 void main( in PSInput PSIn, out PSOutput PSOut )
 {
-    //float2 UV = PSIn.UV;
-
+#if 0
     float camLensLength = 2.0;
     float camRoll = 0.0;
 
@@ -243,6 +245,15 @@ void main( in PSInput PSIn, out PSOutput PSOut )
     float2 p = ( -cResolution.xy + 2.0 * pixelCoord ) / cResolution.y;
 
     Ray ray = calcViewRay( p, cCamPos, cCamDir, camRoll, camLensLength );
+#else
+    float2 uv       = PSIn.UV;
+    uv.y = 1.0 - uv.y;
+    float4 worldPos = mul( float4( uv * 2.0 - 1.0, 1.0, 1.0 ), inverseViewProj );
+
+    Ray ray;
+    ray.origin = cCamPos;
+    ray.dir    = normalize( worldPos.xyz / worldPos.w - cCamPos );
+#endif
 
     float3 col = float3( 0, 0, 0 );
     ObjectInfo object = initObjectInfo();
@@ -262,9 +273,11 @@ void main( in PSInput PSIn, out PSOutput PSOut )
         col = skyColor( ray );
     }
 
-    if( p.y > 0.0 ) {
-        col = float3( 0, 1, 0 );
-    }
+    //if( p.y > 0.0 ) {
+    //    col = float3( 0, 1, 0 );
+    //}
+
+    //col = col * 0.001 + float3( uv.x, uv.y, 0 );
 
     PSOut.Color = float4( col, 0 ); // TODO: .a is 0 for current scene (it is emmissive now). Set back to 1 when this is made the stock canvas shader
 }

@@ -77,6 +77,8 @@ struct ParticleConstants {
 };
 
 struct BackgroundPixelConstants {
+    float4x4 inverseViewProj;
+
     float3 camPos;
     float padding0;
     float3 camDir;
@@ -851,8 +853,10 @@ void ComputeParticles::Render()
     m_pImmediateContext->ClearDepthStencil( dsv, CLEAR_DEPTH_FLAG, 1.0f, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
 
     if( mBackgroundCanvas && mDrawBackground ) {
+        float4x4 cameraViewProj = mCamera.GetViewMatrix() * mCamera.GetProjMatrix();
         auto pixelConstants = mBackgroundCanvas->getPixelConstantsBuffer();
         MapHelper<BackgroundPixelConstants> cb( m_pImmediateContext, pixelConstants, MAP_WRITE, MAP_FLAG_DISCARD );
+        cb->inverseViewProj = cameraViewProj.Inverse().Transpose();
         cb->camPos = mCamera.GetPos();
         cb->camDir = mCamera.GetWorldAhead();
 
