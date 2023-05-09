@@ -254,6 +254,79 @@ IntersectInfo sdf_intersect( in Ray ray, inout ObjectInfo object )
     return result;
 }
 
+// Implementation of Enhanced Sphere Tracing algo from https://www.shadertoy.com/view/ldfyWs
+IntersectInfo sdf_intersectEnhanced( in Ray ray, inout ObjectInfo object )
+{
+    float omega = 1.2;
+    float t = SDF_MIN_DIST;
+    float candidate_error = 1.0 / 0.0;
+    float candidate_t = SDF_MIN_DIST;
+    float previousRadius = 0.0;
+    float stepLength = 0.0;
+    float pixelRadius = 0.001; // TODO: need to calculate this?
+
+    // TODO: check if this causes distortion at different aspect ratios. It might have to be min( res.x, res.y )
+    //float pixelRadius       = 1.0 / uResolution.y;
+
+    IntersectInfo result;
+    result.iterations = 0;
+    for( int i = 0; i < SDF_MAX_ITERATIONS; i++ ) {
+        result.iterations += 1;
+        object.pos = ray.origin + ray.dir * t;
+        float signedRadius = sdf_scene( object.pos, object );
+        float radius       = abs( signedRadius );
+
+        bool sorFail = omega > 1.0 && ( radius + previousRadius ) < stepLength;
+        if( sorFail ) {
+            stepLength -= omega * stepLength;
+            omega = 1.0;
+        }
+        else {
+            stepLength = signedRadius * omega;
+        }
+
+        previousRadius = radius;
+
+        float error = radius / t;
+
+        if( ! sorFail && error < candidate_error ) {
+            candidate_t     = t;
+            candidate_error = error;
+        }
+
+        if( ! sorFail && error < pixelRadius || t > SDF_MAX_DIST )
+            break;
+
+        t += stepLength;
+    }
+
+    float intersection = -1;
+    bool hit = t <= SDF_MAX_DIST && candidate_error <= pixelRadius;
+    if( hit ) {
+        object.pos = ray.origin + ray.dir * candidate_t;
+        intersection = sdf_scene( object.pos, object );
+        result.iterations += 1;
+
+        const int discontinuityReductionIterations = 3;
+        const float discontinuityReductionEpsilon  = 0.1;
+        for( int i = 0; i < discontinuityReductionIterations; i++ ) {
+            object.pos += ray.dir * ( intersection - discontinuityReductionEpsilon );
+            intersection = sdf_scene( object.pos, object );
+            result.iterations += 1;
+        }
+
+        object.normal = sdf_calcNormal( object );
+    }
+    else {
+        object.id = oid_nothing;
+    }
+
+    result.dist = intersection;
+    result.rayLength = t;
+
+    return result;
+}
+
 void main( in PSInput PSIn, out PSOutput PSOut )
 {
 #if 0

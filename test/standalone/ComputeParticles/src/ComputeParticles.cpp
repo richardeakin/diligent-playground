@@ -869,6 +869,8 @@ void ComputeParticles::Render()
         auto swapChainDesc = m_pSwapChain->GetDesc();
         cb->resolution = float2( swapChainDesc.Width, swapChainDesc.Height );
 
+        JU_PROFILE( "BackgroundCanvas", m_pImmediateContext, mProfiler.get() );
+
         mBackgroundCanvas->render( m_pImmediateContext, mViewProjMatrix );
     }
 
