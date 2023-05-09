@@ -90,13 +90,14 @@ float sdPlane( float3 p, float3 n, float h )
     return dot( p, n ) + h;
 }
 
+// --- analytically box-filtered checkerboard ---
 // http://iquilezles.org/www/articles/checkerfiltering/checkerfiltering.htm
-float checkersGradBox( in float2 p, in float2 dpdx, in float2 dpdy )
+float checkersGrad( in float2 p, in float2 ddx, in float2 ddy )
 {
 	// filter kernel
-	float2 w = abs( dpdx ) + abs( dpdy ) + 0.001;
+	float2 w = max( abs( ddx ), abs( ddy ) ) + 0.01;
 	// analytical integral (box filter)
-	float2 i = 2.0 * ( abs( frac( ( p - 0.5 * w ) * 0.5 ) - 0.5 ) - abs( frac( ( p + 0.5 * w ) * 0.5 ) - 0.5 ) ) / w;
+	float2 i = 2.0 * ( abs( frac( ( p - 0.5 * w ) / 2.0 ) - 0.5 ) - abs( frac( ( p + 0.5 * w ) / 2.0 ) - 0.5 ) ) / w;
 	// xor pattern
 	return 0.5 - 0.5 * i.x * i.y;
 }
@@ -288,22 +289,12 @@ void main( in PSInput PSIn, out PSOutput PSOut )
             //col = float3( 0.1, 0, 0 );
             //col = object.normal;
 
-            // ray differentials
-            float3x3 ca = calcLookAtMat3( ray.origin, ray.dir, 0.0 );
-			float2 px = ( 2.0 * ( pixelCoord + float2( 1.0, 0.0 ) ) - Constants.resolution.xy ) / Constants.resolution.y;
-			float2 py = ( 2.0 * ( pixelCoord + float2( 0.0, 1.0 ) ) - Constants.resolution.xy ) / Constants.resolution.y;
-			float3 rdx = mul( ca, normalize( float3( px, 2.5 ) ) );
-			float3 rdy = mul( ca, normalize( float3( py, 2.5 ) ) );
-
-            // project pixel footprint into the plane
-			float3 dpdx = ray.origin.y * ( ray.dir / ray.dir.y - rdx / rdx.y );
-			float3 dpdy = ray.origin.y * ( ray.dir / ray.dir.y - rdy / rdy.y );
-
-            float checkerN = 3;
-			float f = checkersGradBox( checkerN * object.pos.xz, checkerN * dpdx.xz, checkerN * dpdy.xz );
-			col = 0.15 + f * float3( 0.05, 0.05, 0.05 );
-            //ks = 0.4;
-
+            // make a checker floor pattern
+            float2 x = object.pos.xz;
+            float2 x_ddx = ddx( x ); 
+            float2 x_ddy = ddy( x ); 
+            float checker = checkersGrad( x, x_ddx, x_ddy );
+            col = 0.1 + checker * float3( 0.3, 0.3, 0.3 );
         }
         if( object.id == oid_ball ) {
             col = object.normal;
