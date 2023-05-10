@@ -1,5 +1,6 @@
 // TODO: try removing the paddings, but make sure it is %16 still
 struct BackgroundPixelConstants {
+    float4x4 viewProj;
     float4x4 inverseViewProj;
 
     float3 camPos;
@@ -27,6 +28,7 @@ struct PSInput {
 
 struct PSOutput {
     float4 Color : SV_TARGET;
+    float  Depth : SV_Depth; // TODO NEXT: write to this
 };
 
 struct Ray {
@@ -383,9 +385,13 @@ void main( in PSInput PSIn, out PSOutput PSOut )
             col = baseColor * light_diff;
             col += skyColor * sky_diff * 0.5;
         }
+        // set pixel depth in normalized [0, 1] range
+        float4 clipPos = mul( float4( object.pos, 1.0 ), Constants.viewProj );
+        PSOut.Depth = clipPos.z / clipPos.w;
     }
     else {
         col = skyColor( ray );
+        PSOut.Depth = 0.9999;
     }
 
     //if( p.y > 0.0 ) {

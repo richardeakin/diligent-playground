@@ -11,9 +11,12 @@
 
 #include "AppGlobal.h"
 #include "../../common/src/FileWatch.h"
-#include "../../common/src/LivePP.h"
 
+#define LIVEPP_ENABLED 0
+#if LIVEPP_ENABLED
+#include "../../common/src/LivePP.h"
 #define LPP_PATH "../../../../../tools/LivePP"
+#endif
 
 #include <filesystem>
 #include <random>
@@ -77,6 +80,7 @@ struct ParticleConstants {
 };
 
 struct BackgroundPixelConstants {
+    float4x4 viewProj;
     float4x4 inverseViewProj;
 
     float3 camPos;
@@ -103,7 +107,7 @@ QuaternionF TestSolidRotation = {0, 0, 0, 1};
 
 float CameraRotationSpeed = 0.005f;
 float CameraMoveSpeed = 8.0f;
-float2 CameraSpeedUp = { 0.2f, 10.0f }; // speed multipliers when {shift, ctrl} is down
+float2 CameraSpeedUp = { 0.2f, 2.0f }; // speed multipliers when {shift, ctrl} is down
 
 dg::float3      LightDir  = normalize( float3( 1, -0.5f, -0.1f ) );
 
@@ -158,7 +162,9 @@ void ComputeParticles::ModifyEngineInitInfo( const ModifyEngineInitInfoAttribs& 
 
 void ComputeParticles::Initialize( const SampleInitInfo& InitInfo )
 {
+#if LIVEPP_ENABLED
     ju::initLivePP( LPP_PATH );
+#endif
 
     SampleBase::Initialize( InitInfo );
 
@@ -683,7 +689,6 @@ void ComputeParticles::WindowResize( Uint32 Width, Uint32 Height )
     // Post Process
 
     // Set minimal render target size
-    auto blah = 1u << DownSampleFactor;
     Width  = std::max(Width, 1u << DownSampleFactor);
     Height = std::max(Height, 1u << DownSampleFactor);
 
@@ -861,6 +866,7 @@ void ComputeParticles::Render()
         float4x4 cameraViewProj = mCamera.GetViewMatrix() * mCamera.GetProjMatrix();
         auto pixelConstants = mBackgroundCanvas->getPixelConstantsBuffer();
         MapHelper<BackgroundPixelConstants> cb( m_pImmediateContext, pixelConstants, MAP_WRITE, MAP_FLAG_DISCARD );
+        cb->viewProj = cameraViewProj.Transpose();
         cb->inverseViewProj = cameraViewProj.Inverse().Transpose();
         cb->camPos = mCamera.GetPos();
         cb->camDir = mCamera.GetWorldAhead();
@@ -1240,7 +1246,7 @@ void ComputeParticles::updateUI()
             if( im::DragFloat( "rotate speed", &CameraRotationSpeed ) ) {
                 mCamera.SetRotationSpeed( CameraRotationSpeed );
             }
-            if( im::DragFloat2( "speed up scale", &CameraSpeedUp.x ) ) {
+            if( im::DragFloat2( "speed up", &CameraSpeedUp.x, 0.1f, 0.01f, 1000.0f ) ) {
                 mCamera.SetSpeedUpScales( CameraSpeedUp.x, CameraSpeedUp.y );
             }
             if( im::Button("reset") ) {
@@ -1321,8 +1327,8 @@ void ComputeParticles::updateUI()
             }
 
             im::Separator();
-            //im::Text( "GBuffer.Color" );
-            //im::Image( m_GBuffer.Color->GetDefaultView( TEXTURE_VIEW_SHADER_RESOURCE ), { 300, 200 } );
+            im::Text( "GBuffer.Depth" );
+            im::Image( m_GBuffer.Depth->GetDefaultView( TEXTURE_VIEW_SHADER_RESOURCE ), { 300, 200 } );
 
             static int colorSRBMip = 0;
             im::Text( "GBuffer.ColorSRBs[]" );

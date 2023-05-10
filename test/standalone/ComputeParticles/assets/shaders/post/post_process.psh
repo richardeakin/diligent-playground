@@ -96,7 +96,9 @@ float4 main(in PSInput PSIn) : SV_Target
     else if( g_Constants.glowEnabled ) {
         color += EmissionGlow;
     }
-        
+ 
+    //color = color * 0.001 + float3( 1.0 - Depth, 0, 0 );
+
     // debug: show depth buffer contents
     //color = color * 0.001 + float3(1.0 - Depth, 0, 0);
     // FXAA requires luma to be written to the alpha channel
