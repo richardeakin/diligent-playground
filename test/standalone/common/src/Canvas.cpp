@@ -65,7 +65,7 @@ void Canvas::initPipelineState()
     PSOCreateInfo.GraphicsPipeline.RasterizerDesc.CullMode      = CULL_MODE_NONE;
     PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.DepthEnable = False;
 #else
-    PSOCreateInfo.GraphicsPipeline.RasterizerDesc.CullMode      = CULL_MODE_BACK;
+    PSOCreateInfo.GraphicsPipeline.RasterizerDesc.CullMode      = CULL_MODE_NONE; //CULL_MODE_BACK;
     PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.DepthEnable = True;
 #endif
 

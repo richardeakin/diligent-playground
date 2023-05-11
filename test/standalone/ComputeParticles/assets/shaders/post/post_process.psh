@@ -84,7 +84,8 @@ float4 main(in PSInput PSIn) : SV_Target
         float  LinearDepth = length( WPos - g_Constants.CameraPos );
         float  FogFactor   = saturate( Exp2Fog( LinearDepth, g_Constants.fogIntensity ) );
         
-        if( Depth < 1.0 ) {
+        const float backgroundDepth = 0.9999;
+        if( Depth < backgroundDepth ) {
             
             color = lerp( color, g_Constants.FogColor, FogFactor );
         }

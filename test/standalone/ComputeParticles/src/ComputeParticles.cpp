@@ -92,9 +92,13 @@ struct BackgroundPixelConstants {
     float3 lightDir;
     float padding2;
 
-    float2 resolution;
+
+    float3 fogColor;
     float padding3;
+
+    float2 resolution;
     float padding4;
+    float padding5;
 };
 
 
@@ -862,23 +866,6 @@ void ComputeParticles::Render()
     m_pImmediateContext->ClearRenderTarget( rtv, ClearColor, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
     m_pImmediateContext->ClearDepthStencil( dsv, CLEAR_DEPTH_FLAG, 1.0f, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
 
-    if( mBackgroundCanvas && mDrawBackground ) {
-        float4x4 cameraViewProj = mCamera.GetViewMatrix() * mCamera.GetProjMatrix();
-        auto pixelConstants = mBackgroundCanvas->getPixelConstantsBuffer();
-        MapHelper<BackgroundPixelConstants> cb( m_pImmediateContext, pixelConstants, MAP_WRITE, MAP_FLAG_DISCARD );
-        cb->viewProj = cameraViewProj.Transpose();
-        cb->inverseViewProj = cameraViewProj.Inverse().Transpose();
-        cb->camPos = mCamera.GetPos();
-        cb->camDir = mCamera.GetWorldAhead();
-        cb->lightDir = LightDir;
-
-        auto swapChainDesc = m_pSwapChain->GetDesc();
-        cb->resolution = float2( swapChainDesc.Width, swapChainDesc.Height );
-
-        JU_PROFILE( "BackgroundCanvas", m_pImmediateContext, mProfiler.get() );
-
-        mBackgroundCanvas->render( m_pImmediateContext, mViewProjMatrix );
-    }
 
     // update ParticleConstants cbuffer
     // appears we always need to update this buffer or an assert failure happens (stale buffer)
@@ -905,6 +892,9 @@ void ComputeParticles::Render()
     if( mTestSolid && mDrawTestSolid ) {
         mTestSolid->draw( m_pImmediateContext, mViewProjMatrix );
     }
+
+    // draw background as late as possible as it is raymarching and writing to SV_DEPTH, which breaks early z testing
+    drawBackgroundCanvas();
 
     if( mPostProcessConstants.glowEnabled ) {
         DownSample();
@@ -1047,6 +1037,30 @@ void ComputeParticles::drawParticles()
     else {
         mParticleSolid->draw( m_pImmediateContext, mViewProjMatrix, mNumParticles );
     }
+}
+
+void ComputeParticles::drawBackgroundCanvas()
+{
+    if( ! mBackgroundCanvas || ! mDrawBackground ) {
+        return;
+    }
+
+    float4x4 cameraViewProj = mCamera.GetViewMatrix() * mCamera.GetProjMatrix();
+    auto pixelConstants = mBackgroundCanvas->getPixelConstantsBuffer();
+    MapHelper<BackgroundPixelConstants> cb( m_pImmediateContext, pixelConstants, MAP_WRITE, MAP_FLAG_DISCARD );
+    cb->viewProj = cameraViewProj.Transpose();
+    cb->inverseViewProj = cameraViewProj.Inverse().Transpose();
+    cb->camPos = mCamera.GetPos();
+    cb->camDir = mCamera.GetWorldAhead();
+    cb->lightDir = LightDir;
+    cb->fogColor = mPostProcessConstants.fogColor;
+
+    auto swapChainDesc = m_pSwapChain->GetDesc();
+    cb->resolution = float2( swapChainDesc.Width, swapChainDesc.Height );
+
+    JU_PROFILE( "BackgroundCanvas", m_pImmediateContext, mProfiler.get() );
+
+    mBackgroundCanvas->render( m_pImmediateContext, mViewProjMatrix );
 }
 
 // ------------------------------------------------------------------------------------------------------------

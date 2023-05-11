@@ -42,6 +42,7 @@ private:
 
     void updateParticles();
     void drawParticles();
+    void drawBackgroundCanvas();
     void updateDebugParticleDataUI();
 
     RefCntAutoPtr<dg::IPipelineState>         mRenderParticlePSO;
@@ -87,10 +88,10 @@ private:
         float3  cameraPos;
         int     glowEnabled = 1;
 
-        float3  fogColor = { 0.044f, 0.009f, 0.142f }; // dark purple
+        float3  fogColor = { 0.034f, 0.003f, 0.022f }; // dark purple
         int     fogEnabled = 1;
 
-        float   fogIntensity = 0.092f;
+        float   fogIntensity = 0.042f;
         float   glowIntensity = 1.0f;
         float   padding0;
         float   padding1;

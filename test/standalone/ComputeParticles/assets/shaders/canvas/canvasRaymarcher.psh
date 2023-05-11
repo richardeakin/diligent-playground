@@ -12,9 +12,12 @@ struct BackgroundPixelConstants {
     float3 lightDir;
     float padding2;
 
+    float3 fogColor;
+    float padding3;
+
     float2 resolution;
-    float  padding3;
     float  padding4;
+    float  padding5;
 };
 
 cbuffer Constants {
@@ -125,11 +128,23 @@ float sdf_scene( in float3 p, inout ObjectInfo object )
     result = floor;
     object.id = oid_floor;
 
-    float ball = sdSphere( p - float3( 0, 0.4, 0 ), 0.5 );
+    // one ball in center
+#if 0
+    float ball = sdSphere( p - float3( 0, 0.3, 0 ), 0.5 );
     if( ball < result ) {
         result = ball;
         object.id = oid_ball;
     }
+#endif
+
+    // metaballs
+#if 1
+    float ball = sdSphere( p - float3( 0, 0.3, 0 ), 0.5 );
+    if( ball < result ) {
+        result = ball;
+        object.id = oid_ball;
+    }
+#endif
 
     return result;
 }
@@ -144,58 +159,16 @@ float3 skyColor( in Ray ray )
     float ss2 = smoothstep( 0.0, 5.0, pow( max( ray.dir.y, 0.0 ), 1.3 ) * 10.0 );
     col = lerp( col, float3( 0.02, 0.03, 0.5 ), ss2 );
 
+    // TODO NEXT: mix with mPostProcessConstants at y = 0
+    float horizon = smoothstep( 0, 0.2, ray.dir.y );
+    col = lerp( Constants.fogColor, col, horizon );
+
     return col;
 }
 
 // --------------------------------------------------------------------
 // Raymarching Functions
 // --------------------------------------------------------------------
-
-// world -> view space
-float3x3 calcLookAtMat3( in float3 ro, in float3 target, in float roll )
-{
-    float3 ww = normalize( target - ro );
-    float3 uu = normalize( cross( ww, float3( sin( roll ), cos( roll ), 0.0 ) ) );
-    float3 vv = normalize( cross( uu, ww ) );
-
-    return MatrixFromRows( uu, vv, ww );
-}
-
-float4x4 axis_matrix(float3 right, float3 up, float3 forward)
-{
-    float3 xaxis = right;
-    float3 yaxis = up;
-    float3 zaxis = forward;
-    return float4x4(
-        xaxis.x, yaxis.x, zaxis.x, 0,
-        xaxis.y, yaxis.y, zaxis.y, 0,
-        xaxis.z, yaxis.z, zaxis.z, 0,
-        0, 0, 0, 1
-        );
-}
-
-float4x4 look_at_matrix(float3 at, float3 eye, float3 up)
-{
-    float3 zaxis = normalize(at - eye);
-    float3 xaxis = normalize(cross(up, zaxis));
-    float3 yaxis = cross(zaxis, xaxis);
-    return axis_matrix(xaxis, yaxis, zaxis);
-}
-
-// Returns a Ray for pixel position p
-Ray calcViewRay( in float2 p, in float3 camPos, in float3 camDir, in float camRoll, in float lensLength )
-{
-    float3 camTarget = camPos + camDir;
-    float3x3 viewMatrix = calcLookAtMat3( camPos, camTarget, camRoll );
-    //viewMatrix = transpose( viewMatrix );
-
-    Ray ray;
-    ray.origin = camPos;
-    ray.dir = normalize( mul( viewMatrix, float3( p.xy, lensLength ) ) );
-    //ray.dir.y *= -1; // TODO: figure out why +y is facing down
-    //ray.dir.x *= -1; // why is also flipped..
-    return ray;
-}
 
 float3 sdf_calcNormal( in ObjectInfo object )
 {
@@ -356,6 +329,7 @@ void main( in PSInput PSIn, out PSOutput PSOut )
 #endif
 
     float3 col = float3( 0, 0, 0 );
+    float emission = 0.0;
     ObjectInfo object = initObjectInfo(); 
     IntersectInfo intersect = INTERSECT_FN( ray, object );
     if( object.id != oid_nothing ) {
@@ -384,10 +358,13 @@ void main( in PSInput PSIn, out PSOutput PSOut )
 
             col = baseColor * light_diff;
             col += skyColor * sky_diff * 0.5;
+
+            emission = 0.5; // TODO: write this from material fn, vary based on which object and time
         }
         // set pixel depth in normalized [0, 1] range
         float4 clipPos = mul( float4( object.pos, 1.0 ), Constants.viewProj );
         PSOut.Depth = clipPos.z / clipPos.w;
+
     }
     else {
         col = skyColor( ray );
@@ -400,5 +377,5 @@ void main( in PSInput PSIn, out PSOutput PSOut )
 
     //col = col * 0.001 + float3( uv.x, uv.y, 0 );
 
-    PSOut.Color = float4( col, 0 ); // TODO: .a is 0 for current scene (it is emmissive now). Set back to 1 when this is made the stock canvas shader
+    PSOut.Color = float4( col, emission );
 }
