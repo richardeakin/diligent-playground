@@ -118,21 +118,21 @@ private:
 #endif
 
     bool        mUIEnabled = true;  
-    int         mNumParticles       = 100; // was: 1000
-    float       mParticleScale      = 0.27f;
+    int         mNumParticles       = 5000; // was: 1000
+    float       mParticleScale      = 0.1f;
     float       mParticleScaleVariation = 0.1f;
     float       mParticleBirthPadding = 0.1f;
     float       mSeparation         = 1.9f;
-    float       mAlignment          = 0.122f;
-    float       mCohesion           = 0.051f;
-    float       mSeparationDist     = 0.168f;
-    float       mAlignmentDist      = 0.283f; 
-    float       mCohesionDist       = 0.3f;
+    float       mAlignment          = 0.25f;
+    float       mCohesion           = 0.146f;
+    float       mSeparationDist     = 0.688f;
+    float       mAlignmentDist      = 1.692f; 
+    float       mCohesionDist       = 1.956f;
     float       mSimulationSpeed    = 0.75f;
-    float2      mSpeedMinMax        = { 0.01f, 1.1f };
+    float2      mSpeedMinMax        = { 0.01f, 4.0f };
     float       mParticleSpeedVariation = 0.1f;
-    float3      mWorldMin           = { -5, 0.1f, -5 };
-    float3      mWorldMax           = { 5, 5, 5 };
+    float3      mWorldMin           = { -10, 0.1f, -10 };
+    float3      mWorldMax           = { 10, 10, 10 };
     int3        mGridSize           = { 10, 10, 10 };
     int         mThreadGroupSize    = 256;
     float       mTime               = 0;

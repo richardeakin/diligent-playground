@@ -412,7 +412,7 @@ void main( in PSInput PSIn, out PSOutput PSOut )
 
         if( object.id == oid_bbox ) {
 
-            col = float3( 1, 1, 0 );
+            col = float3( 0.2, 0.2, 0.2 );
         }
 
         // set pixel depth in normalized [0, 1] range

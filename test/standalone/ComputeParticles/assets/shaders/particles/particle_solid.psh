@@ -22,7 +22,7 @@ struct PSOutput {
 
 void main( in  PSInput  PSIn, out PSOutput PSOut )
 {
-    float3 col = lerp( float3( 0.0, 0.63, 0.9 ), float3( 0.9, 0.78, 0.05 ), saturate( PSIn.Temp ) );
+    float3 col = lerp( float3( 0.0, 0.63, 0.9 ), float3( 0.2, 0.78, 0.95 ), saturate( PSIn.Temp ) );
     //col = float3( 1, 1, 1 );
 
     float NdotL = saturate( dot( PSIn.Normal, - SConstants.LightDirection.xyz ) );

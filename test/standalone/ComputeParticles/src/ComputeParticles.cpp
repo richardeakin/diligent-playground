@@ -455,7 +455,7 @@ void ComputeParticles::initParticleBuffers()
     std::uniform_real_distribution<float> posDistrX( birthMin.x, birthMax.x );
     std::uniform_real_distribution<float> posDistrY( birthMin.y, birthMax.y );
     std::uniform_real_distribution<float> posDistrZ( birthMin.z, birthMax.z );
-    std::uniform_real_distribution<float> speedDistr( speed - mParticleSpeedVariation, speed + mParticleSpeedVariation );
+    std::uniform_real_distribution<float> speedDistr( - speed - mParticleSpeedVariation, speed + mParticleSpeedVariation );
     std::uniform_real_distribution<float> sizeDistr( 1.0f - mParticleScaleVariation, 1.0f + mParticleScaleVariation );
 
     for ( auto &particle : ParticleData ) {
@@ -1259,8 +1259,8 @@ void ComputeParticles::updateUI()
             im::Checkbox( "debug copy particles", &mDebugCopyParticles );
             if( mDebugCopyParticles ) {
                 im::Indent();
-                im::Checkbox( "ParticleAttribs ui", &DebugShowParticleAttribsWindow );
-                im::Checkbox( "ParticleLists ui", &DebugShowParticleListssWindow );
+                im::Checkbox( "ParticleAttribs", &DebugShowParticleAttribsWindow );
+                im::Checkbox( "ParticleLists", &DebugShowParticleListssWindow );
                 im::Unindent();
             }
 #endif
@@ -1272,9 +1272,9 @@ void ComputeParticles::updateUI()
             im::DragFloat( "cohesion", &mCohesion, 0.001f, 0.0002f, 2.0f );
 
             // TODO: make sure dists for separation < align < cohesion
-            im::DragFloat( "separation dist", &mSeparationDist, 0.001f, 0.0f, 2.0f );
-            im::DragFloat( "alignment dist", &mAlignmentDist, 0.001f, 0.0f, 2.0f );
-            im::DragFloat( "cohesion dist", &mCohesionDist, 0.001f, 0.0f, 2.0f );
+            im::DragFloat( "separation dist", &mSeparationDist, 0.001f, 0.0f, 100.0f );
+            im::DragFloat( "alignment dist", &mAlignmentDist, 0.001f, 0.0f, 100.0f );
+            im::DragFloat( "cohesion dist", &mCohesionDist, 0.001f, 0.0f, 100.0f );
         }
 
         if( im::CollapsingHeader( "Camera", ImGuiTreeNodeFlags_DefaultOpen ) ) {
