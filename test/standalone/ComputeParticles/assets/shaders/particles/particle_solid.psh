@@ -35,7 +35,16 @@ void main( in  PSInput  PSIn, out PSOutput PSOut )
     
     col = lerp(col, float3(emmissive, 0.0, 0.0), emmissive);
     
-    
+    if( PSIn.InstID == 0 ) {
+        col.r = 1.0;
+    }
+    if( PSIn.InstID == 1 ) {
+        col.g = 1.0;
+    }
+    if( PSIn.InstID == 2 ) {
+        col.b = 1.0;
+    }
+
     //PSOut.Color = float4( PSIn.UV.x, PSIn.UV.y, 0.0, 1.0 );
     PSOut.Color = float4( col, emmissive * 4.0 );
     // PSOut.Color.r = 0;

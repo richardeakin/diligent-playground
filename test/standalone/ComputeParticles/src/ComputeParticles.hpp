@@ -13,6 +13,10 @@
 #define DEBUG_PARTICLE_BUFFERS 1
 
 namespace dg = Diligent;
+using dg::int2;
+using dg::int3;
+using dg::int4;
+using dg::float2;
 using dg::float3;
 using dg::float4;
 using dg::float4x4;
@@ -114,8 +118,10 @@ private:
 #endif
 
     bool        mUIEnabled = true;  
-    int         mNumParticles       = 200; // was: 1000
-    float       mParticleScale      = 1.1f;
+    int         mNumParticles       = 100; // was: 1000
+    float       mParticleScale      = 0.27f;
+    float       mParticleScaleVariation = 0.1f;
+    float       mParticleBirthPadding = 0.1f;
     float       mSeparation         = 1.9f;
     float       mAlignment          = 0.122f;
     float       mCohesion           = 0.051f;
@@ -123,8 +129,11 @@ private:
     float       mAlignmentDist      = 0.283f; 
     float       mCohesionDist       = 0.3f;
     float       mSimulationSpeed    = 0.75f;
-    dg::float2  mSpeedMinMax        = { 0.01f, 1.1f };
-    dg::int3    mGridSize           = { 10, 10, 10 };
+    float2      mSpeedMinMax        = { 0.01f, 1.1f };
+    float       mParticleSpeedVariation = 0.1f;
+    float3      mWorldMin           = { -5, 0.1f, -5 };
+    float3      mWorldMax           = { 5, 5, 5 };
+    int3        mGridSize           = { 10, 10, 10 };
     int         mThreadGroupSize    = 256;
     float       mTime               = 0;
     float       mTimeDelta          = 0;

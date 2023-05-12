@@ -18,6 +18,12 @@ struct BackgroundPixelConstants {
     float2 resolution;
     float  padding4;
     float  padding5;
+
+    float3  worldMin;
+    float   padding6;
+
+    float3  worldMax;
+    float   padding7;
 };
 
 cbuffer Constants {
@@ -95,6 +101,17 @@ float sdPlane( float3 p, float3 n, float h )
     return dot( p, n ) + h;
 }
 
+float sdBoxFrame( float3 p, float3 b, float e )
+{
+	p = abs( p ) - b;
+	float3 q = abs( p + e ) - e;
+	return min( min(
+		length( max( float3( p.x, q.y, q.z ), 0.0 ) ) + min( max( p.x, max( q.y, q.z ) ), 0.0 ),
+		length( max( float3( q.x, p.y, q.z ), 0.0 ) ) + min( max( q.x, max( p.y, q.z ) ), 0.0 ) ),
+		length( max( float3( q.x, q.y, p.z ), 0.0 ) ) + min( max( q.x, max( q.y, p.z ) ), 0.0 )
+	);
+}
+
 // --- analytically box-filtered checkerboard ---
 // http://iquilezles.org/www/articles/checkerfiltering/checkerfiltering.htm
 float checkersGrad( in float2 p, in float2 ddx, in float2 ddy )
@@ -107,6 +124,16 @@ float checkersGrad( in float2 p, in float2 ddx, in float2 ddy )
 	return 0.5 - 0.5 * i.x * i.y;
 }
 
+// x: smooth min, y: blending factor
+// https://iquilezles.org/articles/smin/
+float2 smin( float a, float b, float k )
+{
+	float h = max( k - abs( a - b ), 0.0 ) / k;
+	float m = h * h * 0.5;
+	float s = m * k * ( 1.0 / 2.0 );
+	return ( a < b ) ? float2( a - s, m ) : float2( b - s, 1.0 - m );
+}
+
 // --------------------------------------------------------------------
 // SDF Scene
 // --------------------------------------------------------------------
@@ -114,6 +141,7 @@ float checkersGrad( in float2 p, in float2 ddx, in float2 ddy )
 static const int oid_nothing   = -1;
 static const int oid_floor     = 1;
 static const int oid_ball      = 2;
+static const int oid_bbox      = 3;
 
 float sdf_scene( in float3 p, inout ObjectInfo object )
 {
@@ -129,22 +157,42 @@ float sdf_scene( in float3 p, inout ObjectInfo object )
     object.id = oid_floor;
 
     // one ball in center
-#if 0
-    float ball = sdSphere( p - float3( 0, 0.3, 0 ), 0.5 );
+#if 1
+    float3 ballCenter = float3( 0, 0.3, 0 );
+    float ball = sdSphere( p - ballCenter, 0.5 );
     if( ball < result ) {
-        result = ball;
+        //result = ball;
+        float2 s = smin( result, ball, 0.5 );
+        result = s.x;
         object.id = oid_ball;
+        object.materialPart = s.y; // TODO NEXT: use this to blend with checker ground    }
     }
 #endif
 
     // metaballs
-#if 1
-    float ball = sdSphere( p - float3( 0, 0.3, 0 ), 0.5 );
-    if( ball < result ) {
-        result = ball;
-        object.id = oid_ball;
+#if 0
+    for( int i = 0; i < 10; i++ ) {
+        // TODO NEXT offset this with a random
+        float x = float(i);
+        x -= 4;
+        x *= 0.25;
+        float ball = sdSphere( p - float3( x, 0.3, 0 ), 0.2 );
+        if( ball < result ) {
+            //result = ball;
+            // FIXME: this looks real bad
+            result = smin( result, ball, 0.2 );
+            object.id = oid_ball;
+        }
     }
 #endif
+
+    float3 boundsCenter = 0.5 * ( Constants.worldMin + Constants.worldMax );
+    float3 boundsSize = 0.5 * ( Constants.worldMax - Constants.worldMin ); // from center to edge in each dimension
+    float bbox = sdBoxFrame( p - boundsCenter, boundsSize, 0.03 );
+    if( bbox < result ) {
+        result = bbox;
+        object.id = oid_bbox;
+    }
 
     return result;
 }
@@ -361,6 +409,12 @@ void main( in PSInput PSIn, out PSOutput PSOut )
 
             emission = 0.5; // TODO: write this from material fn, vary based on which object and time
         }
+
+        if( object.id == oid_bbox ) {
+
+            col = float3( 1, 1, 0 );
+        }
+
         // set pixel depth in normalized [0, 1] range
         float4 clipPos = mul( float4( object.pos, 1.0 ), Constants.viewProj );
         PSOut.Depth = clipPos.z / clipPos.w;

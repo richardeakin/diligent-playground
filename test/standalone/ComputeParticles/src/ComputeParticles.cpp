@@ -76,7 +76,13 @@ struct ParticleConstants {
     float   separationDist;
     float   alignmentDist;
     float   cohesionDist;
+    float   padding0;
+
+    float3  worldMin;
     float   padding1;
+
+    float3  worldMax;
+    float   padding2;
 };
 
 struct BackgroundPixelConstants {
@@ -99,6 +105,12 @@ struct BackgroundPixelConstants {
     float2 resolution;
     float padding4;
     float padding5;
+
+    float3  worldMin;
+    float   padding6;
+
+    float3  worldMax;
+    float   padding7;
 };
 
 
@@ -109,6 +121,8 @@ float3 TestSolidLookAt = { 0, 1, 0 };
 bool TestSolidUseLookAt = true;
 QuaternionF TestSolidRotation = {0, 0, 0, 1};
 
+const float3 InitialCameraPos = { -3, 4, -30 };
+const float3 InitialCameraLookAt = { -5.3f, 0.2f, 1 };
 float CameraRotationSpeed = 0.005f;
 float CameraMoveSpeed = 8.0f;
 float2 CameraSpeedUp = { 0.2f, 2.0f }; // speed multipliers when {shift, ctrl} is down
@@ -236,6 +250,7 @@ void ComputeParticles::initRenderParticlePSO()
     shaderCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_HLSL;
     shaderCI.Desc.UseCombinedTextureSamplers = true; // needed for OpenGL support
     // TODO: enable these lines and see if any of my hlsl compile errors are fixed
+    // also try `-HV 2021` flag for more language features https://devblogs.microsoft.com/directx/announcing-hlsl-2021/
     //ShaderCI.ShaderCompiler = SHADER_COMPILER_DXC; // use modern HLSL compiler
     //ShaderCI.HLSLVersion    = {6, 3};
 
@@ -430,25 +445,27 @@ void ComputeParticles::initParticleBuffers()
 
     std::vector<ParticleAttribs> ParticleData( mNumParticles );
 
-    std::mt19937 gen; // Standard mersenne_twister_engine. Use default seed
-                      // to generate consistent distribution.
+    // Standard mersenne_twister_engine. Use default seed to generate consistent distribution.
+    // TODO: try with float3 template argument (once working
+    std::mt19937 gen;
+    float3 birthMin = mWorldMin * ( 1.0f - mParticleBirthPadding );
+    float3 birthMax = mWorldMax * ( 1.0f - mParticleBirthPadding );
+    float speed = ( mSpeedMinMax.y - mSpeedMinMax.x ) / 2.0f;
 
-    std::uniform_real_distribution<float> pos_distr(-1.f, +1.f);
-    std::uniform_real_distribution<float> size_distr(0.5f, 1.f);
+    std::uniform_real_distribution<float> posDistrX( birthMin.x, birthMax.x );
+    std::uniform_real_distribution<float> posDistrY( birthMin.y, birthMax.y );
+    std::uniform_real_distribution<float> posDistrZ( birthMin.z, birthMax.z );
+    std::uniform_real_distribution<float> speedDistr( speed - mParticleSpeedVariation, speed + mParticleSpeedVariation );
+    std::uniform_real_distribution<float> sizeDistr( 1.0f - mParticleScaleVariation, 1.0f + mParticleScaleVariation );
 
-    // TODO: make size based on a member var + variation
-    // - don't need scale at that point, except if I'm using to shape the 
-    constexpr float fMaxParticleSize = 0.05f;
-    float           fSize            = 0.7f / std::sqrt( static_cast<float>( mNumParticles ) );
-    fSize                            = std::min( fMaxParticleSize, fSize );
     for ( auto &particle : ParticleData ) {
-        particle.newPos.x   = pos_distr(gen);
-        particle.newPos.y   = pos_distr(gen);
-        particle.newPos.z   = pos_distr(gen);
-        particle.newVel.x = pos_distr(gen) * fSize * 5.f;
-        particle.newVel.y = pos_distr(gen) * fSize * 5.f;
-        particle.newVel.z = pos_distr(gen) * fSize * 5.f;
-        particle.size       = fSize * size_distr(gen);
+        particle.newPos.x = posDistrX( gen );
+        particle.newPos.y = posDistrY( gen );
+        particle.newPos.z = posDistrZ( gen );
+        particle.newVel.y = speedDistr( gen );
+        particle.newVel.z = speedDistr( gen );
+        particle.newVel.x = speedDistr( gen );
+        particle.size     = sizeDistr( gen );
     }
 
     BufferData VBData;
@@ -572,8 +589,8 @@ void ComputeParticles::initConsantBuffers()
 
 void ComputeParticles::initCamera()
 {
-    mCamera.SetPos( float3{ 0, 0.35f, -4 } );
-    mCamera.SetLookAt( float3{ 0, 0, 1 } );
+    mCamera.SetPos( InitialCameraPos );
+    mCamera.SetLookAt( InitialCameraLookAt );
     mCamera.SetRotationSpeed( CameraRotationSpeed );
     mCamera.SetMoveSpeed( CameraMoveSpeed );
     mCamera.SetSpeedUpScales( CameraSpeedUp.x, CameraSpeedUp.y );
@@ -870,20 +887,22 @@ void ComputeParticles::Render()
     // update ParticleConstants cbuffer
     // appears we always need to update this buffer or an assert failure happens (stale buffer)
     {
-        MapHelper<ParticleConstants> constData( m_pImmediateContext, mParticleConstants, MAP_WRITE, MAP_FLAG_DISCARD );
-        constData->viewProj = mViewProjMatrix.Transpose();
-        constData->numParticles = static_cast<Uint32>( mNumParticles );
-        constData->deltaTime     = std::min( mTimeDelta, 1.f / 60.f) * mSimulationSpeed;
-        constData->time = mTime;
-        constData->scale = mParticleScale;
-        constData->gridSize = mGridSize;
-        constData->speedMinMax = mSpeedMinMax;
-        constData->separation = mSeparation;
-        constData->alignment = mAlignment;
-        constData->cohesion = mCohesion;
-        constData->separationDist = mSeparationDist;
-        constData->alignmentDist = mAlignmentDist;
-        constData->cohesionDist = mCohesionDist;
+        MapHelper<ParticleConstants> cb( m_pImmediateContext, mParticleConstants, MAP_WRITE, MAP_FLAG_DISCARD );
+        cb->viewProj = mViewProjMatrix.Transpose();
+        cb->numParticles = static_cast<Uint32>( mNumParticles );
+        cb->deltaTime     = std::min( mTimeDelta, 1.f / 60.f) * mSimulationSpeed;
+        cb->time = mTime;
+        cb->scale = mParticleScale;
+        cb->gridSize = mGridSize;
+        cb->speedMinMax = mSpeedMinMax;
+        cb->worldMin = mWorldMin;
+        cb->worldMax = mWorldMax;
+        cb->separation = mSeparation;
+        cb->alignment = mAlignment;
+        cb->cohesion = mCohesion;
+        cb->separationDist = mSeparationDist;
+        cb->alignmentDist = mAlignmentDist;
+        cb->cohesionDist = mCohesionDist;
     }
 
     updateParticles();
@@ -1057,6 +1076,8 @@ void ComputeParticles::drawBackgroundCanvas()
 
     auto swapChainDesc = m_pSwapChain->GetDesc();
     cb->resolution = float2( swapChainDesc.Width, swapChainDesc.Height );
+    cb->worldMin = mWorldMin;
+    cb->worldMax = mWorldMax;
 
     JU_PROFILE( "BackgroundCanvas", m_pImmediateContext, mProfiler.get() );
 
@@ -1199,7 +1220,7 @@ void ComputeParticles::updateUI()
         return;
 
     im::SetNextWindowPos( ImVec2( 10, 10 ), ImGuiCond_FirstUseEver );
-    if( im::Begin( "Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize ) ) {
+    if( im::Begin( "Settings", nullptr ) ) {
         im::Checkbox( "ui", &mUIEnabled );
         im::Checkbox( "profiling ui", &mProfilingUIEnabled );
         if( im::CollapsingHeader( "Particles", ImGuiTreeNodeFlags_DefaultOpen ) ) {
@@ -1214,6 +1235,10 @@ void ComputeParticles::updateUI()
             }
             im::SliderFloat( "speed", &mSimulationSpeed, 0.1f, 5.f );
             im::DragFloat( "scale", &mParticleScale, 0.01f, 0.001f, 100.0f );
+            im::DragFloat( "scale variation", &mParticleScaleVariation, 0.002f, 0.0f, 100.0f );            
+            im::DragFloat( "birth padding %", &mParticleBirthPadding, 0.001f, 0.0f, 1.0f );
+            im::DragFloat3( "world min", &mWorldMin.x, 0.01f, -1000, 1000.0f );
+            im::DragFloat3( "world max", &mWorldMax.x, 0.01f, -1000, 1000.0f );
 
             im::Text( "grid size: [%d, %0d, %d]", mGridSize.x, mGridSize.y, mGridSize.y );
 

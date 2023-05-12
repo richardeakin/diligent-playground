@@ -1,31 +1,24 @@
 
-// TODO: add a world bounds and use that for these methods so that locations are not limited to -1:1
-void ClampParticlePosition( inout float3 pos, inout float3 speed, in float size )
+void ClampParticlePosition( inout float3 pos, inout float3 speed, in float size, in float3 worldMin, in float3 worldMax )
 {
-    if( pos.x + size > 1.0 ) {
-        pos.x -= pos.x + size - 1.0;
+    if( speed.x > 0.0 && pos.x > worldMax.x ) {
         speed.x *= -1.0;
     }
-    if( pos.x - size < -1.0 ) {
-        pos.x += -1.0 - ( pos.x - size );
+    if( speed.x < 0.0 && pos.x < worldMin.x ) {
         speed.x *= -1.0;
     }
 
-    if( pos.y + size > 1.0 ) {
-        pos.y -= pos.y + size - 1.0;
+    if( speed.y > 0.0 && pos.y > worldMax.y ) {
         speed.y *= -1.0;
     }
-    if( pos.y - size < -1.0 ) {
-        pos.y += -1.0 - ( pos.y - size );
+    if( speed.y < 0.0 && pos.y < worldMin.y ) {
         speed.y *= -1.0;
     }
 
-    if( pos.z + size > 1.0 ) {
-        pos.z -= pos.z + size - 1.0;
+    if( speed.z > 0.0 && pos.z > worldMax.z ) {
         speed.z *= -1.0;
     }
-    if( pos.z - size < -1.0 ) {
-        pos.z += -1.0 - ( pos.z - size );
+    if( speed.z < 0.0 && pos.z < worldMin.z ) {
         speed.z *= -1.0;
     }
 }
