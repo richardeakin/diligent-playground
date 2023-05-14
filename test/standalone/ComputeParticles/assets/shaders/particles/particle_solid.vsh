@@ -12,18 +12,19 @@ cbuffer PConstants {
 StructuredBuffer<ParticleAttribs> Particles;
 
 struct VSInput {
-    float3 Pos : ATTRIB0;
-    float3 Normal : ATTRIB1;
-    float2 UV  : ATTRIB2;
-
-    uint InstID : SV_InstanceID;
+    float3  Pos     : ATTRIB0;
+    float3  Normal  : ATTRIB1;
+    float2  UV      : ATTRIB2;
+    uint    InstID  : SV_InstanceID;
 };
 
 struct PSInput { 
-    float4 Pos  : SV_POSITION; 
-    float2 UV   : TEX_COORD;
-    float  Temp : TEMPERATURE;
-    float3 Normal : NORMAL;
+    float4 Pos      : SV_POSITION; 
+    float2 UV       : TEX_COORD;
+    float  Temp     : TEMPERATURE;
+    float3 Normal   : NORMAL;
+
+    uint InstID : INSTANCE_ID;
 };
 
 float4 GetRotationFromAxisAngle( in float3 axis, in float angle )
@@ -95,6 +96,7 @@ void main( in VSInput VSIn, out PSInput PSIn )
 
     PSIn.UV  = VSIn.UV;
     PSIn.Temp = Attribs.temperature;
+    PSIn.InstID = VSIn.InstID;
 
     // TODO: normal also needs to be rotated
     PSIn.Normal = mul( float4( VSIn.Normal, 0.0 ), SConstants.NormalTranform ).xyz;

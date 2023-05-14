@@ -15,6 +15,11 @@ namespace {
 ju::FileWatchHandle     ShadersDirWatchHandle;
 bool                    ShaderAssetsMarkedDirty = false;
 
+struct VertexConstants {
+    float2 center;
+    float2 size;
+};
+
 }// anon
 
 Canvas::Canvas( size_t sizePixelConstants )
@@ -23,7 +28,7 @@ Canvas::Canvas( size_t sizePixelConstants )
     {
         BufferDesc CBDesc;
         CBDesc.Name           = "VertexConstants Buffer";
-        CBDesc.Size           = sizeof(float4);
+        CBDesc.Size           = sizeof(VertexConstants);
         CBDesc.Usage          = USAGE_DYNAMIC;
         CBDesc.BindFlags      = BIND_UNIFORM_BUFFER;
         CBDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
@@ -51,11 +56,18 @@ void Canvas::initPipelineState()
     PSOCreateInfo.PSODesc.Name                                  = "Canvas PSO";
     PSOCreateInfo.PSODesc.PipelineType                          = PIPELINE_TYPE_GRAPHICS;
     PSOCreateInfo.GraphicsPipeline.NumRenderTargets             = 1;
-    PSOCreateInfo.GraphicsPipeline.RTVFormats[0]                = global->swapChainImageDesc->ColorBufferFormat;
-    PSOCreateInfo.GraphicsPipeline.DSVFormat                    = global->swapChainImageDesc->DepthBufferFormat;
+    PSOCreateInfo.GraphicsPipeline.RTVFormats[0]                = global->colorBufferFormat;
+    PSOCreateInfo.GraphicsPipeline.DSVFormat                    = global->depthBufferFormat;
     PSOCreateInfo.GraphicsPipeline.PrimitiveTopology            = PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+
+    // TODO: make this optional
+#if 0
     PSOCreateInfo.GraphicsPipeline.RasterizerDesc.CullMode      = CULL_MODE_NONE;
     PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.DepthEnable = False;
+#else
+    PSOCreateInfo.GraphicsPipeline.RasterizerDesc.CullMode      = CULL_MODE_NONE; //CULL_MODE_BACK;
+    PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.DepthEnable = True;
+#endif
 
     ShaderCreateInfo ShaderCI;
     ShaderCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_HLSL;
@@ -79,7 +91,8 @@ void Canvas::initPipelineState()
         ShaderCI.Desc.ShaderType = SHADER_TYPE_PIXEL;
         ShaderCI.EntryPoint      = "main";
         ShaderCI.Desc.Name       = "Canvas PS";
-        ShaderCI.FilePath        = "shaders/canvas/canvas.psh";
+        //ShaderCI.FilePath        = "shaders/canvas/canvas.psh";
+        ShaderCI.FilePath        = "shaders/canvas/canvasRaymarcher.psh";
         global->renderDevice->CreateShader( ShaderCI, &pPS );
     }
 
@@ -89,16 +102,17 @@ void Canvas::initPipelineState()
 
     global->renderDevice->CreateGraphicsPipelineState( PSOCreateInfo, &mPSO );
 
-
-    auto vc = mPSO->GetStaticVariableByName( SHADER_TYPE_VERTEX, "Constants");
-    if( vc ) {
-        vc->Set( mVertexConstants );
+    if( mPSO ) {
+        auto vc = mPSO->GetStaticVariableByName( SHADER_TYPE_VERTEX, "Constants");
+        if( vc ) {
+            vc->Set( mVertexConstants );
+        }
+        auto pc = mPSO->GetStaticVariableByName( SHADER_TYPE_PIXEL, "Constants" );
+        if( pc ) {
+            pc->Set( mPixelConstants );
+        }
+        mPSO->CreateShaderResourceBinding( &mSRB, true );
     }
-    auto pc = mPSO->GetStaticVariableByName( SHADER_TYPE_PIXEL, "Constants" );
-    if( pc ) {
-        pc->Set( mPixelConstants );
-    }
-    mPSO->CreateShaderResourceBinding( &mSRB, true );
 }
 
 void Canvas::watchShadersDir()
@@ -145,12 +159,7 @@ void Canvas::render( IDeviceContext* context, const float4x4 &mvp )
 {
     // update constants buffer
     {
-        struct ShaderConstants {
-            float2 center;
-            float2 size;
-        };
-
-        MapHelper<ShaderConstants> CBConstants( context, mVertexConstants, MAP_WRITE, MAP_FLAG_DISCARD );
+        MapHelper<VertexConstants> CBConstants( context, mVertexConstants, MAP_WRITE, MAP_FLAG_DISCARD );
         CBConstants->center            = mCenter;
         CBConstants->size              = mSize;
     }

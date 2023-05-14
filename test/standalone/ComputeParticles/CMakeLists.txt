@@ -10,6 +10,7 @@ set(SOURCE
     ../common/src/Canvas.cpp
     ../common/src/LivePP.cpp
     ../common/src/Profiler.cpp
+    ../common/src/post/aa/FXAA.cpp
 )
 
 set(INCLUDE
@@ -21,6 +22,7 @@ set(INCLUDE
     ../common/src/FileWatch.h
     ../common/src/FileWatch-Monkman.hpp
     ../common/src/Profiler.h
+    ../common/src/post/aa/FXAA.h
 )
 
 set(SHADERS
@@ -38,7 +40,14 @@ set(SHADERS
     assets/shaders/solids/solid.fxh
     assets/shaders/canvas/canvas.vsh
     assets/shaders/canvas/canvas.psh
+    assets/shaders/canvas/canvasRaymarcher.psh
     assets/shaders/Quaternion.hlsl
+    assets/shaders/post/post_process.vsh
+    assets/shaders/post/post_process.psh
+    assets/shaders/post/downsample.psh
+    assets/shaders/post/aa/fxaa.vsh
+    assets/shaders/post/aa/fxaa.psh
+    assets/shaders/post/aa/FXAA3_11.h
 )
 
 set(ASSETS)

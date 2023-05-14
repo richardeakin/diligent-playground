@@ -1,0 +1,437 @@
+// TODO: try removing the paddings, but make sure it is %16 still
+struct BackgroundPixelConstants {
+    float4x4 viewProj;
+    float4x4 inverseViewProj;
+
+    float3 camPos;
+    float  padding0;
+
+    float3 camDir;
+    float  padding1;
+
+    float3 lightDir;
+    float padding2;
+
+    float3 fogColor;
+    float padding3;
+
+    float2 resolution;
+    float  padding4;
+    float  padding5;
+
+    float3  worldMin;
+    float   padding6;
+
+    float3  worldMax;
+    float   padding7;
+};
+
+cbuffer Constants {
+    BackgroundPixelConstants Constants;
+};
+
+struct PSInput {
+    float4 Pos   : SV_POSITION;
+    float2 UV    : TEX_COORD;
+};
+
+struct PSOutput {
+    float4 Color : SV_TARGET;
+    float  Depth : SV_Depth; // TODO NEXT: write to this
+};
+
+struct Ray {
+    float3 origin;
+    float3 dir;
+};
+
+#define SDF_MAX_ITERATIONS 200
+#define SDF_MIN_DIST 0.01
+#define SDF_MAX_DIST 100.0    
+#define DEBUG_SDF_GRADIENT 0
+
+#define INTERSECT_FN sdf_intersect
+//#define INTERSECT_FN sdf_intersectEnhanced
+
+//! Information for the current object at this pixel
+struct ObjectInfo {
+    int id;                 // defines the intersected object
+    float materialPart;     // define different parts of a material within an object 
+    float3 pos;               // world-space
+    float3 normal;
+    float4 params0;
+    //float3 reflectionColor;
+    //float3 velocity;
+};
+
+ObjectInfo initObjectInfo()
+{
+    ObjectInfo o;
+    o.id = -1;
+    o.materialPart = 0;
+    o.pos = float3( 0, 0, 0 );
+    o.normal = float3( 0, 1, 0 );
+    o.params0 = float4( 0, 0, 0, 0 );
+
+    return o;
+}
+
+// Information about a Ray-Marching intersection
+struct IntersectInfo {
+    float 	dist; //! SDF distance
+    float 	rayLength; //! the distance from ray origin to the intersection
+    int 	iterations; //! number of sphere-tracing iterations to the intersection
+    bool 	isReflection; //! If this intersection is a reflection
+    //    float   reflectionRoughness; //! TODO: thinking about adding this to scale down glowy parts reflected in rough surfaces 
+};
+
+// --------------------------------------------------------------------
+// SDF object functions
+// --------------------------------------------------------------------
+// https://iquilezles.org/articles/distfunctions/
+
+float sdSphere( float3 p, float s )
+{
+    return length( p ) - s;
+}
+
+float sdPlane( float3 p, float3 n, float h )
+{
+    // n must be normalized
+    return dot( p, n ) + h;
+}
+
+float sdBoxFrame( float3 p, float3 b, float e )
+{
+	p = abs( p ) - b;
+	float3 q = abs( p + e ) - e;
+	return min( min(
+		length( max( float3( p.x, q.y, q.z ), 0.0 ) ) + min( max( p.x, max( q.y, q.z ) ), 0.0 ),
+		length( max( float3( q.x, p.y, q.z ), 0.0 ) ) + min( max( q.x, max( p.y, q.z ) ), 0.0 ) ),
+		length( max( float3( q.x, q.y, p.z ), 0.0 ) ) + min( max( q.x, max( q.y, p.z ) ), 0.0 )
+	);
+}
+
+// --- analytically box-filtered checkerboard ---
+// http://iquilezles.org/www/articles/checkerfiltering/checkerfiltering.htm
+float checkersGrad( in float2 p, in float2 ddx, in float2 ddy )
+{
+	// filter kernel
+	float2 w = max( abs( ddx ), abs( ddy ) ) + 0.01;
+	// analytical integral (box filter)
+	float2 i = 2.0 * ( abs( frac( ( p - 0.5 * w ) / 2.0 ) - 0.5 ) - abs( frac( ( p + 0.5 * w ) / 2.0 ) - 0.5 ) ) / w;
+	// xor pattern
+	return 0.5 - 0.5 * i.x * i.y;
+}
+
+// x: smooth min, y: blending factor
+// https://iquilezles.org/articles/smin/
+float2 smin( float a, float b, float k )
+{
+	float h = max( k - abs( a - b ), 0.0 ) / k;
+	float m = h * h * 0.5;
+	float s = m * k * ( 1.0 / 2.0 );
+	return ( a < b ) ? float2( a - s, m ) : float2( b - s, 1.0 - m );
+}
+
+// --------------------------------------------------------------------
+// SDF Scene
+// --------------------------------------------------------------------
+
+static const int oid_nothing   = -1;
+static const int oid_floor     = 1;
+static const int oid_ball      = 2;
+static const int oid_bbox      = 3;
+
+float sdf_scene( in float3 p, inout ObjectInfo object )
+{
+    int id;
+    float dist;
+    float result = SDF_MAX_DIST + 1;
+
+    //float floor = dot( p, float3( 0, 1, 0 ) ); // plane with normal pointing up
+
+    // ground plane, normal pointing up
+    float floor = sdPlane( p, normalize( float3( 0, 1, 0 ) ), 0 ); 
+    result = floor;
+    object.id = oid_floor;
+
+    // TODO NEXT: using spheres to make a volcano
+#if 1
+    float3 ballCenter = float3( 0, 1.8, 0 );
+    float ball = sdSphere( p - ballCenter, 2.5 );
+
+    float3 ballCenter2 = float3( 0, 4.8, 0 );
+    float ball2 = sdSphere( p - ballCenter2, 1.5 );
+    ball = smin( ball, ball2, 2.1 );
+    //result = ball;
+    //if( ball < result ) {
+        //result = ball;
+        float2 s = smin( result, ball, 3.5 );
+        result = s.x;
+        object.id = oid_ball;
+        object.materialPart = s.y; // TODO NEXT: use this to blend with checker ground    }
+    //}
+#endif
+
+
+    float3 boundsCenter = 0.5 * ( Constants.worldMin + Constants.worldMax );
+    float3 boundsSize = 0.5 * ( Constants.worldMax - Constants.worldMin ); // from center to edge in each dimension
+    float bbox = sdBoxFrame( p - boundsCenter, boundsSize, 0.03 );
+    if( bbox < result ) {
+        result = bbox;
+        object.id = oid_bbox;
+    }
+
+    return result;
+}
+
+float3 skyColor( in Ray ray )
+{
+    float3 col = float3( 0.1, 0.05, 0.1 ) * 0.1;
+    float ss1 = smoothstep( 0.0, 4.0, max( ray.dir.y + 0.1, 0.0 ) * 5.0 );
+    col = lerp( col, float3( 0.7, 0.17, 0.03 ), ss1 );
+    //col += ray.dir.y * 0.15;
+
+    float ss2 = smoothstep( 0.0, 5.0, pow( max( ray.dir.y, 0.0 ), 1.3 ) * 10.0 );
+    col = lerp( col, float3( 0.02, 0.03, 0.5 ), ss2 );
+
+    // TODO NEXT: mix with mPostProcessConstants at y = 0
+    float horizon = smoothstep( 0, 0.2, ray.dir.y );
+    col = lerp( Constants.fogColor, col, horizon );
+
+    return col;
+}
+
+// --------------------------------------------------------------------
+// Raymarching Functions
+// --------------------------------------------------------------------
+
+float3 sdf_calcNormal( in ObjectInfo object )
+{
+    float3 pos = object.pos;
+
+    // precision of the normal computation
+    const float eps = 0.002;
+
+    const float3 v1 = float3(  1.0, -1.0, -1.0 );
+    const float3 v2 = float3( -1.0, -1.0,  1.0 );
+    const float3 v3 = float3( -1.0,  1.0, -1.0 );
+    const float3 v4 = float3(  1.0,  1.0,  1.0 );
+
+    float3 N = v1 * sdf_scene( pos + v1 * eps, object ) 
+             + v2 * sdf_scene( pos + v2 * eps, object )
+             + v3 * sdf_scene( pos + v3 * eps, object ) 
+             + v4 * sdf_scene( pos + v4 * eps, object );
+
+#if DEBUG_SDF_GRADIENT
+    return N;
+#else
+    return normalize( N );
+#endif
+}
+
+IntersectInfo sdf_intersect( in Ray ray, inout ObjectInfo object )
+{
+    float scene = SDF_MIN_DIST * 2.0;
+    float t = 0.0;
+    float dist = -1.0;
+    int i;
+    for( i = 0; i < SDF_MAX_ITERATIONS; i++ ) {
+        if( scene < SDF_MIN_DIST || t > SDF_MAX_DIST )
+            break;
+
+        object.pos = ray.origin + ray.dir * t;
+        scene = sdf_scene( object.pos, object );
+        t += scene;
+    }
+
+    if( t < SDF_MAX_DIST ) {
+        dist = t;
+        object.normal = sdf_calcNormal( object );
+    }
+    else
+        object.id = oid_nothing;
+
+    IntersectInfo result;
+    result.dist = dist;
+    result.rayLength = t;
+    result.iterations = i;
+
+    return result;
+}
+
+// Implementation of Enhanced Sphere Tracing algo from https://www.shadertoy.com/view/ldfyWs
+IntersectInfo sdf_intersectEnhanced( in Ray ray, inout ObjectInfo object )
+{
+    float omega = 1.2;
+    float t = SDF_MIN_DIST;
+    float candidate_error = 1.0 / 0.0;
+    float candidate_t = SDF_MIN_DIST;
+    float previousRadius = 0.0;
+    float stepLength = 0.0;
+    float pixelRadius = 0.001; // TODO: need to calculate this?
+
+    // TODO: check if this causes distortion at different aspect ratios. It might have to be min( res.x, res.y )
+    //float pixelRadius       = 1.0 / uResolution.y;
+
+    IntersectInfo result;
+    result.iterations = 0;
+    for( int i = 0; i < SDF_MAX_ITERATIONS; i++ ) {
+        result.iterations += 1;
+        object.pos = ray.origin + ray.dir * t;
+        float signedRadius = sdf_scene( object.pos, object );
+        float radius       = abs( signedRadius );
+
+        bool sorFail = omega > 1.0 && ( radius + previousRadius ) < stepLength;
+        if( sorFail ) {
+            stepLength -= omega * stepLength;
+            omega = 1.0;
+        }
+        else {
+            stepLength = signedRadius * omega;
+        }
+
+        previousRadius = radius;
+
+        float error = radius / t;
+
+        if( ! sorFail && error < candidate_error ) {
+            candidate_t     = t;
+            candidate_error = error;
+        }
+
+        if( ! sorFail && error < pixelRadius || t > SDF_MAX_DIST )
+            break;
+
+        t += stepLength;
+    }
+
+    float intersection = -1;
+    bool hit = t <= SDF_MAX_DIST && candidate_error <= pixelRadius;
+    if( hit ) {
+        object.pos = ray.origin + ray.dir * candidate_t;
+        intersection = sdf_scene( object.pos, object );
+        result.iterations += 1;
+
+        const int discontinuityReductionIterations = 3;
+        const float discontinuityReductionEpsilon  = 0.1;
+        for( int i = 0; i < discontinuityReductionIterations; i++ ) {
+            object.pos += ray.dir * ( intersection - discontinuityReductionEpsilon );
+            intersection = sdf_scene( object.pos, object );
+            result.iterations += 1;
+        }
+
+        object.normal = sdf_calcNormal( object );
+    }
+    else {
+        object.id = oid_nothing;
+    }
+
+    result.dist = intersection;
+    result.rayLength = t;
+
+    return result;
+}
+
+void main( in PSInput PSIn, out PSOutput PSOut )
+{
+#if 0
+    // TODO: remove unused functions if this remains #ifed out
+    float camLensLength = 2.0;
+    float camRoll = 0.0;
+
+    // FIXME: pixel coords are coming in backward in PSIn.Pos, so I'm flipping for now
+    float2 pixelCoord = PSIn.Pos.xy;
+    //pixelCoord.x = Constants.resolution.x - pixelCoord.x;
+    pixelCoord.y = Constants.resolution.y - pixelCoord.y;
+    float2 p = ( -Constants.resolution.xy + 2.0 * pixelCoord ) / Constants.resolution.y;
+
+    Ray ray = calcViewRay( p, Constants.camPos, Constants.camDir, camRoll, camLensLength );
+#else
+    float2 pixelCoord = PSIn.Pos.xy;
+
+    float2 uv       = PSIn.UV;
+    uv.y = 1.0 - uv.y;
+    float4 worldPos = mul( float4( uv * 2.0 - 1.0, 1.0, 1.0 ), Constants.inverseViewProj );
+
+    Ray ray;
+    ray.origin = Constants.camPos;
+    ray.dir    = normalize( worldPos.xyz / worldPos.w - Constants.camPos );
+#endif
+
+    float3 col = float3( 0, 0, 0 );
+    float emission = 0.0;
+    ObjectInfo object = initObjectInfo(); 
+    IntersectInfo intersect = INTERSECT_FN( ray, object );
+    if( object.id != oid_nothing ) {
+        //col = sdf_shadeScene( ray, object, intersect );
+
+        float3 skyColor = float3( 0.25, 0.1, 0.4 ); // should match background horizon, may want to sample it
+        float3 lightDir = normalize( -Constants.lightDir ); 
+        float light_diff = saturate( dot( object.normal, lightDir ) );
+        float sky_diff = saturate( dot( object.normal, float3( 0, 1, 0 ) ) );
+
+        // checker floor pattern
+        float2 xz = object.pos.xz;
+        float2 x_ddx = ddx( xz ); 
+        float2 x_ddy = ddy( xz ); 
+        float checker = checkersGrad( xz, x_ddx, x_ddy );
+        float3 checkerCol = 0.1 + checker * float3( 0.3, 0.3, 0.3 );
+        //checkerCol = float3( 0, 0, 1 );
+        //if( object.id == oid_floor ) {
+            col = checkerCol;
+            //col = float3( 0, 0, 1 ); // TODO NEXT: make this blend smoothly with red sphere as in iq article
+        //}
+        //if( object.id == oid_ball ) {
+            //col = float3( 0.1, 0, 0 );
+
+            float3 baseColor = float3( 1.0, 0.5, 0.1 );
+
+            float3 ballCol = baseColor * light_diff;
+            ballCol += skyColor * sky_diff * 0.5;
+
+            col = lerp( checkerCol, ballCol, object.materialPart );
+            //col = checkerCol;
+
+            //col = float3( object.materialPart, 0, 0 );
+            //if( object.materialPart > 0.7 ) {
+            //    col = float3( 1, 0, 0 );
+            //}
+
+            //emission = 0.5; // TODO: write this from material fn, vary based on which object and time
+        //}
+
+        if( object.id == oid_bbox ) {
+
+            col = float3( 0.5, 0.5, 0.5 );
+        }
+
+        // set pixel depth in normalized [0, 1] range
+        float4 clipPos = mul( float4( object.pos, 1.0 ), Constants.viewProj );
+        PSOut.Depth = clipPos.z / clipPos.w;
+
+#if DEBUG_SDF_GRADIENT
+    float nl = length( object.normal );
+    if( nl <= 0 ) {
+        col = float3( 1, 0, 0 );
+    }
+    else if( nl < 0.1 ) {
+        col.g = smoothstep( 0.0, 0.1, nl );
+    }
+#endif
+
+    }
+    else {
+        col = skyColor( ray );
+        PSOut.Depth = 0.9999;
+    }
+
+    //if( p.y > 0.0 ) {
+    //    col = float3( 0, 1, 0 );
+    //}
+
+    //col = col * 0.001 + float3( uv.x, uv.y, 0 );
+
+    PSOut.Color = float4( col, emission );
+}

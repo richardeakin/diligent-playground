@@ -1,0 +1,109 @@
+
+struct PostProcessConstants {
+    float4x4 ViewProjInv;
+
+    float3  CameraPos;
+    int     glowEnabled;
+
+    float3  FogColor;
+    int     fogEnabled;
+    
+    float   fogIntensity;
+    float   glowIntensity;
+    float   padding0;
+    float   padding1;
+};
+
+cbuffer PostProcessConstantsCB {
+    PostProcessConstants g_Constants;
+};
+
+Texture2D    g_GBuffer_Color;
+SamplerState g_GBuffer_Color_sampler;
+Texture2D    g_GBuffer_Depth;
+
+struct PSInput { 
+    float4 Pos : SV_POSITION; 
+    float2 UV  : TEX_COORD; 
+};
+
+float3 ScreenPosToWorldPos(float2 ScreenSpaceUV, float Depth, float4x4 ViewProjInv)
+{
+    float4 PosClipSpace;
+    PosClipSpace.xy = ScreenSpaceUV * float2(2.0, -2.0) + float2(-1.0, 1.0);
+    PosClipSpace.z = Depth;
+    PosClipSpace.w = 1.0;
+    float4 WorldPos = mul(PosClipSpace, ViewProjInv);
+    return WorldPos.xyz / WorldPos.w;
+}
+
+float Exp2Fog(float dist, float density)
+{
+    float d = density * dist;
+    return 1.0 - saturate(exp2(d * d * -1.442695));
+}
+
+float4 main(in PSInput PSIn) : SV_Target
+{
+    float2 dim;
+    g_GBuffer_Color.GetDimensions( dim.x, dim.y );    
+#if defined(DESKTOP_GL) || defined(GL_ES)
+    float2 screenUV = float2( PSIn.UV.x, PSIn.UV.y );
+#else
+    float2 screenUV = float2( PSIn.UV.x, 1.0 - PSIn.UV.y );
+#endif
+    int3   texelPos = int3( screenUV * dim, 0 );
+    float3 color    = g_GBuffer_Color.Load( texelPos ).rgb;
+    float  Depth    = g_GBuffer_Depth.Load( texelPos ).x;
+
+    float3 EmissionGlow;
+    if( g_Constants.glowEnabled ) {
+        // RGB - color, A - emission
+        float4 color0 = g_GBuffer_Color.SampleLevel( g_GBuffer_Color_sampler, screenUV, 0 );
+        float4 color1 = g_GBuffer_Color.SampleLevel( g_GBuffer_Color_sampler, screenUV, 1 );
+        float4 color2 = g_GBuffer_Color.SampleLevel( g_GBuffer_Color_sampler, screenUV, 2 );
+        float4 color3 = g_GBuffer_Color.SampleLevel( g_GBuffer_Color_sampler, screenUV, 3 );
+        float4 color4 = g_GBuffer_Color.SampleLevel( g_GBuffer_Color_sampler, screenUV, 4 );
+        color0.rgb *= color0.a;
+        color1.rgb *= color1.a;
+        color2.rgb *= color2.a;
+        color3.rgb *= color3.a;
+        color4.rgb *= color4.a;
+        EmissionGlow = (color0 + color1 + color2 + color3 + color4).rgb / 5.0;
+        EmissionGlow *= g_Constants.glowIntensity;
+    }
+    else {
+        float4 color0 = g_GBuffer_Color.SampleLevel( g_GBuffer_Color_sampler, screenUV, 0);
+        color0.rgb *= (color0.a * 0.2);
+        EmissionGlow = color0.rgb;
+    }
+
+    // Apply fog
+    if( g_Constants.fogEnabled ) {
+        float3 WPos        = ScreenPosToWorldPos( PSIn.UV, Depth, g_Constants.ViewProjInv );
+        float  LinearDepth = length( WPos - g_Constants.CameraPos );
+        float  FogFactor   = saturate( Exp2Fog( LinearDepth, g_Constants.fogIntensity ) );
+        
+        const float backgroundDepth = 0.9999;
+        if( Depth < backgroundDepth ) {
+            
+            color = lerp( color, g_Constants.FogColor, FogFactor );
+        }
+
+        if( g_Constants.glowEnabled ) {
+            color += EmissionGlow * ( 1.0 - FogFactor * 0.5 );
+        }
+    }
+    else if( g_Constants.glowEnabled ) {
+        color += EmissionGlow;
+    }
+ 
+    //color = color * 0.001 + float3( 1.0 - Depth, 0, 0 );
+
+    // debug: show depth buffer contents
+    //color = color * 0.001 + float3(1.0 - Depth, 0, 0);
+    // FXAA requires luma to be written to the alpha channel
+    float luma = dot( color, float3( 0.299, 0.587, 0.114 ) );
+    
+    return float4( color, luma );
+}

@@ -12,7 +12,8 @@ namespace dg = Diligent;
 struct AppGlobal {
 		dg::IRenderDevice*										renderDevice = nullptr;
 		dg::RefCntAutoPtr<dg::IShaderSourceInputStreamFactory>	shaderSourceFactory;
-		const dg::SwapChainDesc*								swapChainImageDesc = nullptr;
+		dg::TEXTURE_FORMAT										colorBufferFormat = dg::TEX_FORMAT_RGBA8_UNORM;
+		dg::TEXTURE_FORMAT										depthBufferFormat = dg::TEX_FORMAT_UNKNOWN;
 };
 
 AppGlobal* global();

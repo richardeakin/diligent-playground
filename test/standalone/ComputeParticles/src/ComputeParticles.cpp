@@ -11,9 +11,12 @@
 
 #include "AppGlobal.h"
 #include "../../common/src/FileWatch.h"
-#include "../../common/src/LivePP.h"
 
+#define LIVEPP_ENABLED 0
+#if LIVEPP_ENABLED
+#include "../../common/src/LivePP.h"
 #define LPP_PATH "../../../../../tools/LivePP"
+#endif
 
 #include <filesystem>
 #include <random>
@@ -53,13 +56,15 @@ struct ParticleAttribs {
 
 // TODO: rather than duplicating all these vars as member vars, would be easier to keep this struct in
 // the class and then pass in our copy of ParticleConstants to MapHelper (or use map fns directly)
+// - do it the same way that PostProcessConstants is handled
+// - consider storing all structures in assets/shaders/structures.fxh
 struct ParticleConstants {
     float4x4 viewProj;
 
     uint    numParticles;
+    float   time;
     float   deltaTime;
     float   separation;
-    float   padding0;
 
     float   scale;
     int3    gridSize;
@@ -71,18 +76,43 @@ struct ParticleConstants {
     float   separationDist;
     float   alignmentDist;
     float   cohesionDist;
+    float   padding0;
+
+    float3  worldMin;
     float   padding1;
+
+    float3  worldMax;
+    float   padding2;
 };
 
 struct BackgroundPixelConstants {
+    float4x4 viewProj;
+    float4x4 inverseViewProj;
+
     float3 camPos;
     float padding0;
+
     float3 camDir;
     float padding1;
-    float2 resolution;
+
+    float3 lightDir;
     float padding2;
+
+
+    float3 fogColor;
     float padding3;
+
+    float2 resolution;
+    float padding4;
+    float padding5;
+
+    float3  worldMin;
+    float   padding6;
+
+    float3  worldMax;
+    float   padding7;
 };
+
 
 bool UseFirstPersonCamera = true;
 float3 TestSolidTranslate = { 0, 0, 0 };
@@ -91,14 +121,17 @@ float3 TestSolidLookAt = { 0, 1, 0 };
 bool TestSolidUseLookAt = true;
 QuaternionF TestSolidRotation = {0, 0, 0, 1};
 
+const float3 InitialCameraPos = { -3, 4, -30 };
+const float3 InitialCameraLookAt = { -5.3f, 0.2f, 1 };
 float CameraRotationSpeed = 0.005f;
 float CameraMoveSpeed = 8.0f;
-float2 CameraSpeedUp = { 0.2f, 10.0f }; // speed multipliers when {shift, ctrl} is down
+float2 CameraSpeedUp = { 0.2f, 2.0f }; // speed multipliers when {shift, ctrl} is down
 
 dg::float3      LightDir  = normalize( float3( 1, -0.5f, -0.1f ) );
 
-ju::FileWatchHandle     ShadersDirWatchHandle;
-bool                    ShaderAssetsMarkedDirty = false;
+ju::FileWatchHandle     ShadersDirWatchHandle, ShadersDirWatchHandle2;
+bool                    ParticleShaderAssetsMarkedDirty = false;
+bool                    PostShaderAssetsMarkedDirty = false;
 
 std::vector<ParticleAttribs> DebugParticleAttribsData;
 std::vector<int> DebugParticleListsData;
@@ -141,31 +174,51 @@ void ComputeParticles::ModifyEngineInitInfo( const ModifyEngineInitInfoAttribs& 
     Attribs.EngineCI.Features.ComputeShaders    = DEVICE_FEATURE_STATE_ENABLED;
     Attribs.EngineCI.Features.TimestampQueries  = DEVICE_FEATURE_STATE_OPTIONAL;
     Attribs.EngineCI.Features.DurationQueries   = DEVICE_FEATURE_STATE_OPTIONAL;
+
+    Attribs.SCDesc.DepthBufferFormat = TEX_FORMAT_UNKNOWN; // we're rendering to offscreen buffers so no need for depth buffer on the swap chain
 }
 
 void ComputeParticles::Initialize( const SampleInitInfo& InitInfo )
 {
+#if LIVEPP_ENABLED
     ju::initLivePP( LPP_PATH );
+#endif
 
     SampleBase::Initialize( InitInfo );
 
-    ImGuiIO& io    = ImGui::GetIO();
-    io.IniFilename = "imgui.ini";
-
-    initConsantBuffer();
-    initRenderParticlePSO();
-    initUpdateParticlePSO();
-    initParticleBuffers();
+    // re-enable imgui.ini save file
+    im::GetIO().IniFilename = "imgui.ini";
 
     auto global = app::global();
     global->renderDevice = m_pDevice;
-    global->swapChainImageDesc = &m_pSwapChain->GetDesc();
     m_pEngineFactory->CreateDefaultShaderSourceStreamFactory( nullptr, &global->shaderSourceFactory );
+
+    // set texture formats (used when creating render targets)
+	if( m_pDevice->GetTextureFormatInfoExt( TEX_FORMAT_D32_FLOAT ).BindFlags & BIND_DEPTH_STENCIL ) {
+		global->depthBufferFormat = TEX_FORMAT_D32_FLOAT;
+    }
+	else if( m_pDevice->GetTextureFormatInfoExt( TEX_FORMAT_D24_UNORM_S8_UINT ).BindFlags & BIND_DEPTH_STENCIL ) {
+		global->depthBufferFormat = TEX_FORMAT_D24_UNORM_S8_UINT;
+    }
+
+	// Use HDR format if supported.
+	constexpr auto RTFlags = BIND_RENDER_TARGET | BIND_SHADER_RESOURCE;
+	if( ( m_pDevice->GetTextureFormatInfoExt( TEX_FORMAT_RGBA16_FLOAT ).BindFlags & RTFlags ) == RTFlags ) {
+        global->colorBufferFormat = TEX_FORMAT_RGBA16_FLOAT;
+    }
+
+    initConsantBuffers();
+    initRenderParticlePSO();
+    initUpdateParticlePSO();
+    initParticleBuffers();
+    initPostProcessPSO();
+
 
     mBackgroundCanvas = std::make_unique<ju::Canvas>( sizeof(BackgroundPixelConstants) );
     initSolids();
     initCamera();
 
+    mFXAA = std::make_unique<ju::aa::FXAA>( m_pSwapChain->GetDesc().ColorBufferFormat );
     mProfiler = std::make_unique<ju::Profiler>( m_pDevice );
 
     watchShadersDir();
@@ -181,8 +234,8 @@ void ComputeParticles::initRenderParticlePSO()
     psoCreateInfo.PSODesc.PipelineType = PIPELINE_TYPE_GRAPHICS;
 
     psoCreateInfo.GraphicsPipeline.NumRenderTargets             = 1;
-    psoCreateInfo.GraphicsPipeline.RTVFormats[0]                = m_pSwapChain->GetDesc().ColorBufferFormat;
-    psoCreateInfo.GraphicsPipeline.DSVFormat                    = m_pSwapChain->GetDesc().DepthBufferFormat;
+    psoCreateInfo.GraphicsPipeline.RTVFormats[0]                = app::global()->colorBufferFormat;
+    psoCreateInfo.GraphicsPipeline.DSVFormat                    = app::global()->depthBufferFormat;
     psoCreateInfo.GraphicsPipeline.PrimitiveTopology            = PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
 
     psoCreateInfo.GraphicsPipeline.RasterizerDesc.CullMode      = CULL_MODE_NONE;
@@ -197,6 +250,7 @@ void ComputeParticles::initRenderParticlePSO()
     shaderCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_HLSL;
     shaderCI.Desc.UseCombinedTextureSamplers = true; // needed for OpenGL support
     // TODO: enable these lines and see if any of my hlsl compile errors are fixed
+    // also try `-HV 2021` flag for more language features https://devblogs.microsoft.com/directx/announcing-hlsl-2021/
     //ShaderCI.ShaderCompiler = SHADER_COMPILER_DXC; // use modern HLSL compiler
     //ShaderCI.HLSLVersion    = {6, 3};
 
@@ -358,6 +412,7 @@ void ComputeParticles::initSolids()
         options.name = "Particle Solid";
         options.shaderResourceVars.push_back( { { SHADER_TYPE_VERTEX, "Particles", SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE }, particleAttribsBufferSRV } );
         options.staticShaderVars.push_back( { SHADER_TYPE_VERTEX, "PConstants", mParticleConstants } );
+        options.staticShaderVars.push_back( { SHADER_TYPE_PIXEL, "PConstants", mParticleConstants } );
 
         if( mParticleType == ParticleType::Cube ) {
             mParticleSolid = std::make_unique<ju::Cube>( options );
@@ -390,23 +445,27 @@ void ComputeParticles::initParticleBuffers()
 
     std::vector<ParticleAttribs> ParticleData( mNumParticles );
 
-    std::mt19937 gen; // Standard mersenne_twister_engine. Use default seed
-                      // to generate consistent distribution.
+    // Standard mersenne_twister_engine. Use default seed to generate consistent distribution.
+    // TODO: try with float3 template argument (once working
+    std::mt19937 gen;
+    float3 birthMin = mWorldMin * ( 1.0f - mParticleBirthPadding );
+    float3 birthMax = mWorldMax * ( 1.0f - mParticleBirthPadding );
+    float speed = ( mSpeedMinMax.y - mSpeedMinMax.x ) / 2.0f;
 
-    std::uniform_real_distribution<float> pos_distr(-1.f, +1.f);
-    std::uniform_real_distribution<float> size_distr(0.5f, 1.f);
+    std::uniform_real_distribution<float> posDistrX( birthMin.x, birthMax.x );
+    std::uniform_real_distribution<float> posDistrY( birthMin.y, birthMax.y );
+    std::uniform_real_distribution<float> posDistrZ( birthMin.z, birthMax.z );
+    std::uniform_real_distribution<float> speedDistr( - speed - mParticleSpeedVariation, speed + mParticleSpeedVariation );
+    std::uniform_real_distribution<float> sizeDistr( 1.0f - mParticleScaleVariation, 1.0f + mParticleScaleVariation );
 
-    constexpr float fMaxParticleSize = 0.05f;
-    float           fSize            = 0.7f / std::sqrt( static_cast<float>( mNumParticles ) );
-    fSize                            = std::min( fMaxParticleSize, fSize );
     for ( auto &particle : ParticleData ) {
-        particle.newPos.x   = pos_distr(gen);
-        particle.newPos.y   = pos_distr(gen);
-        particle.newPos.z   = pos_distr(gen);
-        particle.newVel.x = pos_distr(gen) * fSize * 5.f;
-        particle.newVel.y = pos_distr(gen) * fSize * 5.f;
-        particle.newVel.z = pos_distr(gen) * fSize * 5.f;
-        particle.size       = fSize * size_distr(gen);
+        particle.newPos.x = posDistrX( gen );
+        particle.newPos.y = posDistrY( gen );
+        particle.newPos.z = posDistrZ( gen );
+        particle.newVel.y = speedDistr( gen );
+        particle.newVel.z = speedDistr( gen );
+        particle.newVel.x = speedDistr( gen );
+        particle.size     = sizeDistr( gen );
     }
 
     BufferData VBData;
@@ -503,21 +562,35 @@ void ComputeParticles::initParticleBuffers()
     }
 }
 
-void ComputeParticles::initConsantBuffer()
+void ComputeParticles::initConsantBuffers()
 {
-    BufferDesc BuffDesc;
-    BuffDesc.Name           = "ParticleConstants buffer";
-    BuffDesc.Usage          = USAGE_DYNAMIC;
-    BuffDesc.BindFlags      = BIND_UNIFORM_BUFFER;
-    BuffDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
-    BuffDesc.Size           = sizeof(ParticleConstants);
-    m_pDevice->CreateBuffer( BuffDesc, nullptr, &mParticleConstants );
+    // ParticleConstants
+    {
+        BufferDesc BuffDesc;
+        BuffDesc.Name           = "ParticleConstants buffer";
+        BuffDesc.Usage          = USAGE_DYNAMIC;
+        BuffDesc.BindFlags      = BIND_UNIFORM_BUFFER;
+        BuffDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
+        BuffDesc.Size           = sizeof(ParticleConstants);
+        m_pDevice->CreateBuffer( BuffDesc, nullptr, &mParticleConstants );
+    }
+
+    // PostProcessConstants
+    {
+        BufferDesc BuffDesc;
+        BuffDesc.BindFlags            = BIND_UNIFORM_BUFFER;
+        BuffDesc.Usage                = USAGE_DEFAULT;
+        BuffDesc.Size                 = sizeof(PostProcessConstants);
+        BuffDesc.ImmediateContextMask = (Uint64{1} << m_pImmediateContext->GetDesc().ContextId);
+        BuffDesc.Name                 = "PostProcessConstants buffer";
+        m_pDevice->CreateBuffer( BuffDesc, nullptr, &mPostProcessConstantsBuffer );
+    }
 }
 
 void ComputeParticles::initCamera()
 {
-    mCamera.SetPos( float3{ 0, 0, -4 } );
-    mCamera.SetLookAt( float3{ 0, 0, 1 } );
+    mCamera.SetPos( InitialCameraPos );
+    mCamera.SetLookAt( InitialCameraLookAt );
     mCamera.SetRotationSpeed( CameraRotationSpeed );
     mCamera.SetMoveSpeed( CameraMoveSpeed );
     mCamera.SetSpeedUpScales( CameraSpeedUp.x, CameraSpeedUp.y );
@@ -525,51 +598,99 @@ void ComputeParticles::initCamera()
 
 void ComputeParticles::watchShadersDir()
 {
-    std::filesystem::path shaderDir( "shaders/particles" );
+    // particles
+    {
+        std::filesystem::path shaderDir( "shaders/particles" );
 
-    if( std::filesystem::exists( shaderDir ) ) {
-        LOG_INFO_MESSAGE( __FUNCTION__, "| watching assets directory: ", shaderDir );
-        try {
-            ShadersDirWatchHandle = std::make_unique<FileWatchType>( shaderDir.string(),
-                [=](const PathType &path, const filewatch::Event change_type ) {
+        if( std::filesystem::exists( shaderDir ) ) {
+            LOG_INFO_MESSAGE( __FUNCTION__, "| watching assets directory: ", shaderDir );
+            try {
+                ShadersDirWatchHandle = std::make_unique<FileWatchType>( shaderDir.string(),
+                    [=](const PathType &path, const filewatch::Event change_type ) {
 
-                    // make a list of files we actually want to update if changed and check that here
-                    const static std::vector<PathType> checkFilenames = {
-                        "interact_particles.csh",
-                        "move_particles.csh",
-                        "reset_particles.csh",
-                        "particle_sprite.vsh",
-                        "particle_sprite.psh",
-                        "particle.fxh",
-                        "structures.fxh"
-                    };
+                        // make a list of files we actually want to update if changed and check that here
+                        const static std::vector<PathType> checkFilenames = {
+                            "interact_particles.csh",
+                            "move_particles.csh",
+                            "reset_particles.csh",
+                            "particle_sprite.vsh",
+                            "particle_sprite.psh",
+                            "particle.fxh",
+                            "structures.fxh"
+                        };
 
-                    for( const auto &p : checkFilenames ) {
-                        if( p == path ) {
-                            LOG_INFO_MESSAGE( __FUNCTION__, "| \t- file event type: ", watchEventTypeToString( change_type ) , ", path: " , path );
-                            ShaderAssetsMarkedDirty = true;
+                        for( const auto &p : checkFilenames ) {
+                            if( p == path ) {
+                                LOG_INFO_MESSAGE( __FUNCTION__, "| \t- file event type: ", watchEventTypeToString( change_type ) , ", path: " , path );
+                                ParticleShaderAssetsMarkedDirty = true;
+                            }
                         }
                     }
-                }
-            );
+                );
+            }
+            catch( std::system_error &exc ) {
+                LOG_ERROR_MESSAGE( __FUNCTION__, "| exception caught attempting to watch directory (assets): ", shaderDir, ", what: ", exc.what() );
+            }
         }
-        catch( std::system_error &exc ) {
-            LOG_ERROR_MESSAGE( __FUNCTION__, "| exception caught attempting to watch directory (assets): ", shaderDir, ", what: ", exc.what() );
+        else {
+            LOG_WARNING_MESSAGE( __FUNCTION__, "| shader directory couldn't be found (not watching): ", shaderDir );
         }
     }
-    else {
-        LOG_WARNING_MESSAGE( __FUNCTION__, "| shader directory couldn't be found (not watching): ", shaderDir );
+
+    // post
+    {
+        std::filesystem::path shaderDir( "shaders/post" );
+
+        if( std::filesystem::exists( shaderDir ) ) {
+            LOG_INFO_MESSAGE( __FUNCTION__, "| watching assets directory: ", shaderDir );
+            try {
+                ShadersDirWatchHandle2 = std::make_unique<FileWatchType>( shaderDir.string(),
+                    [=](const PathType &path, const filewatch::Event change_type ) {
+
+                        // make a list of files we actually want to update if changed and check that here
+                        const static std::vector<PathType> checkFilenames = {
+                            "post_process.vsh",
+                            "post_process.psh",
+                        };
+
+                        for( const auto &p : checkFilenames ) {
+                            if( p == path ) {
+                                LOG_INFO_MESSAGE( __FUNCTION__, "| \t- file event type: ", watchEventTypeToString( change_type ) , ", path: " , path );
+                                PostShaderAssetsMarkedDirty = true;
+                            }
+                        }
+                    }
+                );
+            }
+            catch( std::system_error &exc ) {
+                LOG_ERROR_MESSAGE( __FUNCTION__, "| exception caught attempting to watch directory (assets): ", shaderDir, ", what: ", exc.what() );
+            }
+        }
+        else {
+            LOG_WARNING_MESSAGE( __FUNCTION__, "| shader directory couldn't be found (not watching): ", shaderDir );
+        }
     }
+
 }
 
-void ComputeParticles::reloadOnAssetsUpdated()
+void ComputeParticles::checkReloadOnAssetsUpdated()
 {
-    LOG_INFO_MESSAGE( __FUNCTION__, "| re-initializing shader assets" );
+    if( ParticleShaderAssetsMarkedDirty ) {
+        LOG_INFO_MESSAGE( __FUNCTION__, "| re-initializing Particle shader assets" );
 
-    initRenderParticlePSO();
-    initUpdateParticlePSO();
+        initRenderParticlePSO();
+        initUpdateParticlePSO();
 
-    ShaderAssetsMarkedDirty = false;
+        ParticleShaderAssetsMarkedDirty = false;
+    }
+
+    if( PostShaderAssetsMarkedDirty ) {
+        LOG_INFO_MESSAGE( __FUNCTION__, "| re-initializing Post Process shader assets" );
+
+        initPostProcessPSO();
+
+        PostShaderAssetsMarkedDirty = false;
+    }
 }
 
 void ComputeParticles::WindowResize( Uint32 Width, Uint32 Height )
@@ -578,12 +699,103 @@ void ComputeParticles::WindowResize( Uint32 Width, Uint32 Height )
 
     // Update projection matrix.
     float aspectRatio = static_cast<float>(Width) / static_cast<float>(Height);
-    mCamera.SetProjAttribs( 0.1f, 1000.0f, aspectRatio, PI_F / 4.0f, m_pSwapChain->GetDesc().PreTransform, m_pDevice->GetDeviceInfo().IsGLDevice() );
+    mCamera.SetProjAttribs( 0.01f, 10000.0f, aspectRatio, PI_F / 4.0f, m_pSwapChain->GetDesc().PreTransform, m_pDevice->GetDeviceInfo().IsGLDevice() );
 
     // TODO: re-enable once Canvas pixel shader is reworked to be drawing in pixel coordinates
     //if( mBackgroundCanvas ) {
     //    mBackgroundCanvas->setSize( int2( Width, Height ) );
     //}
+
+    // --------------------
+    // Post Process
+
+    // Set minimal render target size
+    Width  = std::max(Width, 1u << DownSampleFactor);
+    Height = std::max(Height, 1u << DownSampleFactor);
+
+    // Check if the image needs to be recreated.
+	if( m_GBuffer.Color != nullptr && m_GBuffer.Color->GetDesc().Width == Width && m_GBuffer.Color->GetDesc().Height == Height ) {
+        return;
+    }
+
+    m_GBuffer = {};
+
+	// Create window-size G-buffer textures.
+	{
+	    TextureDesc RTDesc;
+	    RTDesc.Name = "GBuffer Color";
+	    RTDesc.Type = RESOURCE_DIM_TEX_2D;
+	    RTDesc.Width = Width;
+	    RTDesc.Height = Height;
+	    RTDesc.MipLevels = DownSampleFactor;
+	    RTDesc.BindFlags = BIND_RENDER_TARGET | BIND_SHADER_RESOURCE;
+	    RTDesc.Format = app::global()->colorBufferFormat;
+	    m_pDevice->CreateTexture( RTDesc, nullptr, &m_GBuffer.Color );
+
+	    // Create texture view
+	    for( Uint32 Mip = 0; Mip < DownSampleFactor; ++Mip ) {
+		    TextureViewDesc ViewDesc;
+		    ViewDesc.ViewType = TEXTURE_VIEW_RENDER_TARGET;
+		    ViewDesc.TextureDim = RESOURCE_DIM_TEX_2D;
+		    ViewDesc.MostDetailedMip = Mip;
+		    ViewDesc.NumMipLevels = 1;
+
+		    m_GBuffer.Color->CreateView( ViewDesc, &m_GBuffer.ColorRTVs[Mip] );
+
+		    ViewDesc.ViewType = TEXTURE_VIEW_SHADER_RESOURCE;
+		    m_GBuffer.Color->CreateView( ViewDesc, &m_GBuffer.ColorSRBs[Mip] );
+	    }
+
+	    RTDesc.Name = "GBuffer Depth";
+	    RTDesc.MipLevels = 1;
+	    RTDesc.BindFlags = BIND_DEPTH_STENCIL | BIND_SHADER_RESOURCE;
+	    RTDesc.Format = app::global()->depthBufferFormat;
+	    m_pDevice->CreateTexture( RTDesc, nullptr, &m_GBuffer.Depth );
+
+	    // Create post-processing SRB
+		mPostProcessSRB.Release();
+        if( mPostProcessPSO ) {
+            mPostProcessPSO->CreateShaderResourceBinding( &mPostProcessSRB );
+            mPostProcessSRB->GetVariableByName( SHADER_TYPE_PIXEL, "PostProcessConstantsCB" )->Set( mPostProcessConstantsBuffer );
+            mPostProcessSRB->GetVariableByName( SHADER_TYPE_PIXEL, "g_GBuffer_Color" )->Set( m_GBuffer.Color->GetDefaultView( TEXTURE_VIEW_SHADER_RESOURCE ) );
+            mPostProcessSRB->GetVariableByName( SHADER_TYPE_PIXEL, "g_GBuffer_Depth" )->Set( m_GBuffer.Depth->GetDefaultView( TEXTURE_VIEW_SHADER_RESOURCE ) );
+        }
+	}
+
+	// Create down sample SRB
+	for( Uint32 Mip = 0; Mip < DownSampleFactor; ++Mip ) {
+		auto& SRB = mDownSampleSRB[Mip];
+		SRB.Release();
+		mDownSamplePSO->CreateShaderResourceBinding( &SRB );
+		SRB->GetVariableByName( SHADER_TYPE_PIXEL, "g_GBuffer_Color" )->Set( m_GBuffer.ColorSRBs[Mip] );
+	}
+
+    // Create window-size offscreen render target to render post-processing into, so we can anti-alias after
+    {
+        TextureDesc RTColorDesc;
+        RTColorDesc.Name      = "Post Process Render Target";
+        RTColorDesc.Type      = RESOURCE_DIM_TEX_2D;
+        RTColorDesc.Width     = m_pSwapChain->GetDesc().Width;
+        RTColorDesc.Height    = m_pSwapChain->GetDesc().Height;
+        RTColorDesc.MipLevels = 1;
+        RTColorDesc.Format    = m_pSwapChain->GetDesc().ColorBufferFormat;
+        RTColorDesc.BindFlags = BIND_SHADER_RESOURCE | BIND_RENDER_TARGET;
+
+        RTColorDesc.ClearValue.Format   = RTColorDesc.Format;
+        RTColorDesc.ClearValue.Color[0] = 0.350f;
+        RTColorDesc.ClearValue.Color[1] = 0.350f;
+        RTColorDesc.ClearValue.Color[2] = 0.350f;
+        RTColorDesc.ClearValue.Color[3] = 1.f;
+
+        RefCntAutoPtr<ITexture> pRTColor;
+        m_pDevice->CreateTexture( RTColorDesc, nullptr, &pRTColor );
+        // Store the render target view
+        mPostProcessRTV = pRTColor->GetDefaultView( TEXTURE_VIEW_RENDER_TARGET );
+
+        if( mFXAA ) {
+           mFXAA->setTexture( pRTColor->GetDefaultView( TEXTURE_VIEW_SHADER_RESOURCE ) );
+        }
+    }
 }
 
 void ComputeParticles::Update( double CurrTime, double ElapsedTime )
@@ -591,10 +803,9 @@ void ComputeParticles::Update( double CurrTime, double ElapsedTime )
     SampleBase::Update( CurrTime, ElapsedTime );
     updateUI();
 
-    if( ShaderAssetsMarkedDirty ) {
-        reloadOnAssetsUpdated();
-    }
+    checkReloadOnAssetsUpdated();
 
+    mTime = (float)CurrTime;
     mTimeDelta = (float)ElapsedTime;
     mCamera.Update( m_InputController, mTimeDelta );
 
@@ -656,41 +867,42 @@ void ComputeParticles::Update( double CurrTime, double ElapsedTime )
 // Render a frame
 void ComputeParticles::Render()
 {
-    const float ClearColor[] = {0.350f, 0.350f, 0.350f, 1.0f};
+    const float gray = 0.00f;
+    const float ClearColor[] = { gray, gray, gray, 0.0f}; // alpha channel is for glow intensity
 
-    auto* rtv = m_pSwapChain->GetCurrentBackBufferRTV();
-    auto* dsv = m_pSwapChain->GetDepthBufferDSV();
+    //auto* rtv = m_pSwapChain->GetCurrentBackBufferRTV();
+    //auto* dsv = m_pSwapChain->GetDepthBufferDSV();
+    
+    // Render to GBuffer
+	ITextureView* rtv = m_GBuffer.Color->GetDefaultView( TEXTURE_VIEW_RENDER_TARGET );
+	ITextureView* dsv = m_GBuffer.Depth->GetDefaultView( TEXTURE_VIEW_DEPTH_STENCIL );
+	m_pImmediateContext->SetRenderTargets( 1, &rtv, dsv, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+
+    // TODO: tut23 says "transitions is not needed" - why not?
+    // - uses RESOURCE_STATE_TRANSITION_MODE_VERIFY instead
     m_pImmediateContext->ClearRenderTarget( rtv, ClearColor, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
-    m_pImmediateContext->ClearDepthStencil( dsv, CLEAR_DEPTH_FLAG, 1.f, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+    m_pImmediateContext->ClearDepthStencil( dsv, CLEAR_DEPTH_FLAG, 1.0f, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
 
-    if( mBackgroundCanvas && mDrawBackground ) {
-        auto pixelConstants = mBackgroundCanvas->getPixelConstantsBuffer();
-        MapHelper<BackgroundPixelConstants> cb( m_pImmediateContext, pixelConstants, MAP_WRITE, MAP_FLAG_DISCARD );
-        cb->camPos = mCamera.GetPos();
-        cb->camDir = mCamera.GetWorldAhead();
-
-        auto swapChainDesc = m_pSwapChain->GetDesc();
-        cb->resolution = float2( swapChainDesc.Width, swapChainDesc.Height );
-
-        mBackgroundCanvas->render( m_pImmediateContext, mViewProjMatrix );
-    }
 
     // update ParticleConstants cbuffer
     // appears we always need to update this buffer or an assert failure happens (stale buffer)
     {
-        MapHelper<ParticleConstants> constData( m_pImmediateContext, mParticleConstants, MAP_WRITE, MAP_FLAG_DISCARD );
-        constData->viewProj = mViewProjMatrix.Transpose();
-        constData->numParticles = static_cast<Uint32>( mNumParticles );
-        constData->deltaTime     = std::min( mTimeDelta, 1.f / 60.f) * mSimulationSpeed;
-        constData->scale = mParticleScale;
-        constData->gridSize = mGridSize;
-        constData->speedMinMax = mSpeedMinMax;
-        constData->separation = mSeparation;
-        constData->alignment = mAlignment;
-        constData->cohesion = mCohesion;
-        constData->separationDist = mSeparationDist;
-        constData->alignmentDist = mAlignmentDist;
-        constData->cohesionDist = mCohesionDist;
+        MapHelper<ParticleConstants> cb( m_pImmediateContext, mParticleConstants, MAP_WRITE, MAP_FLAG_DISCARD );
+        cb->viewProj = mViewProjMatrix.Transpose();
+        cb->numParticles = static_cast<Uint32>( mNumParticles );
+        cb->deltaTime     = std::min( mTimeDelta, 1.f / 60.f) * mSimulationSpeed;
+        cb->time = mTime;
+        cb->scale = mParticleScale;
+        cb->gridSize = mGridSize;
+        cb->speedMinMax = mSpeedMinMax;
+        cb->worldMin = mWorldMin;
+        cb->worldMax = mWorldMax;
+        cb->separation = mSeparation;
+        cb->alignment = mAlignment;
+        cb->cohesion = mCohesion;
+        cb->separationDist = mSeparationDist;
+        cb->alignmentDist = mAlignmentDist;
+        cb->cohesionDist = mCohesionDist;
     }
 
     updateParticles();
@@ -698,6 +910,43 @@ void ComputeParticles::Render()
 
     if( mTestSolid && mDrawTestSolid ) {
         mTestSolid->draw( m_pImmediateContext, mViewProjMatrix );
+    }
+
+    // draw background as late as possible as it is raymarching and writing to SV_DEPTH, which breaks early z testing
+    drawBackgroundCanvas();
+
+    if( mPostProcessConstants.glowEnabled ) {
+        DownSample();
+    }
+
+    // Final pass
+    // TODO: cleanup
+    ITextureView *mainRenderTarget = m_pSwapChain->GetCurrentBackBufferRTV();
+    if( ! mFXAAEnabled ) {
+        m_pImmediateContext->SetRenderTargets( 1, &mainRenderTarget, nullptr, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+
+        PostProcess();
+    }
+
+
+    if( mFXAAEnabled ) {
+        // TODO: render to a new target and then pass its TextureView into FXAA apply
+        // - code below needs to be called from FXAA->preDraw() or something
+        // - can depth buffer view be null?
+        
+        // Clear the offscreen render target and depth buffer
+        const float clearColor[] = { 0.0f, 0.05f, 0.4f, 1.0f };
+        m_pImmediateContext->SetRenderTargets( 1, &mPostProcessRTV, nullptr, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+        m_pImmediateContext->ClearRenderTarget( mPostProcessRTV, clearColor, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+        //m_pImmediateContext->ClearDepthStencil(m_pDepthDSV, CLEAR_DEPTH_FLAG, 1.0f, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+
+        PostProcess();
+
+        // bind the main render target and render AA into main target
+        m_pImmediateContext->SetRenderTargets( 1, &mainRenderTarget, nullptr, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+
+        JU_PROFILE( "FXAA", m_pImmediateContext, mProfiler.get() );
+        mFXAA->apply( m_pImmediateContext, m_GBuffer.Color->GetDefaultView( TEXTURE_VIEW_SHADER_RESOURCE ) );
     }
 }
 
@@ -809,6 +1058,158 @@ void ComputeParticles::drawParticles()
     }
 }
 
+void ComputeParticles::drawBackgroundCanvas()
+{
+    if( ! mBackgroundCanvas || ! mDrawBackground ) {
+        return;
+    }
+
+    float4x4 cameraViewProj = mCamera.GetViewMatrix() * mCamera.GetProjMatrix();
+    auto pixelConstants = mBackgroundCanvas->getPixelConstantsBuffer();
+    MapHelper<BackgroundPixelConstants> cb( m_pImmediateContext, pixelConstants, MAP_WRITE, MAP_FLAG_DISCARD );
+    cb->viewProj = cameraViewProj.Transpose();
+    cb->inverseViewProj = cameraViewProj.Inverse().Transpose();
+    cb->camPos = mCamera.GetPos();
+    cb->camDir = mCamera.GetWorldAhead();
+    cb->lightDir = LightDir;
+    cb->fogColor = mPostProcessConstants.fogColor;
+
+    auto swapChainDesc = m_pSwapChain->GetDesc();
+    cb->resolution = float2( swapChainDesc.Width, swapChainDesc.Height );
+    cb->worldMin = mWorldMin;
+    cb->worldMax = mWorldMax;
+
+    JU_PROFILE( "BackgroundCanvas", m_pImmediateContext, mProfiler.get() );
+
+    mBackgroundCanvas->render( m_pImmediateContext, mViewProjMatrix );
+}
+
+// ------------------------------------------------------------------------------------------------------------
+// Post Process
+// ------------------------------------------------------------------------------------------------------------
+// TODO: move to separate class
+
+void ComputeParticles::initPostProcessPSO()
+{
+    //ShaderMacroHelper Macros;
+    //Macros.AddShaderMacro("GLOW", 1);
+
+    GraphicsPipelineStateCreateInfo PSOCreateInfo;
+
+    PSOCreateInfo.PSODesc.Name         = "Post process PSO";
+    PSOCreateInfo.PSODesc.PipelineType = PIPELINE_TYPE_GRAPHICS;
+
+    PSOCreateInfo.GraphicsPipeline.NumRenderTargets                  = 1;
+    PSOCreateInfo.GraphicsPipeline.RTVFormats[0]                     = m_pSwapChain->GetDesc().ColorBufferFormat;
+    PSOCreateInfo.GraphicsPipeline.PrimitiveTopology                 = PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.DepthEnable      = false;
+    PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.DepthWriteEnable = false;
+
+    const SamplerDesc SamLinearClampDesc {
+        FILTER_TYPE_LINEAR, FILTER_TYPE_LINEAR, FILTER_TYPE_LINEAR,
+        TEXTURE_ADDRESS_CLAMP, TEXTURE_ADDRESS_CLAMP, TEXTURE_ADDRESS_CLAMP
+    };
+    const ImmutableSamplerDesc ImtblSamplers[] = {
+        {SHADER_TYPE_PIXEL, "g_GBuffer_Color", SamLinearClampDesc}
+    };
+    PSOCreateInfo.PSODesc.ResourceLayout.ImmutableSamplers    = ImtblSamplers;
+    PSOCreateInfo.PSODesc.ResourceLayout.NumImmutableSamplers = _countof(ImtblSamplers);
+    PSOCreateInfo.PSODesc.ResourceLayout.DefaultVariableType  = SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE;
+
+    ShaderCreateInfo shaderCI;
+    shaderCI.SourceLanguage             = SHADER_SOURCE_LANGUAGE_HLSL;
+    shaderCI.pShaderSourceStreamFactory = app::global()->shaderSourceFactory;
+
+	RefCntAutoPtr<IShader> vertShader;
+	{
+		shaderCI.Desc = { "Post process VS", SHADER_TYPE_VERTEX, true };
+		shaderCI.EntryPoint = "main";
+		shaderCI.FilePath = "shaders/post/post_process.vsh";
+		m_pDevice->CreateShader( shaderCI, &vertShader );
+	}
+
+	RefCntAutoPtr<IShader> pixelShader;
+	{
+		shaderCI.Desc = { "Post process PS", SHADER_TYPE_PIXEL, true };
+		shaderCI.EntryPoint = "main";
+        shaderCI.FilePath = "shaders/post/post_process.psh";
+		m_pDevice->CreateShader( shaderCI, &pixelShader );
+	}
+
+    PSOCreateInfo.pVS = vertShader;
+    PSOCreateInfo.pPS = pixelShader;
+
+    mPostProcessPSO.Release();
+    m_pDevice->CreateGraphicsPipelineState( PSOCreateInfo, &mPostProcessPSO );
+
+    // downsample buffers for glow
+    RefCntAutoPtr<IShader> downSamplePS;
+    {
+        shaderCI.Desc       = { "Down sample PS", SHADER_TYPE_PIXEL, true };
+        shaderCI.EntryPoint = "main";
+        shaderCI.FilePath   = "shaders/post/downsample.psh";
+        m_pDevice->CreateShader( shaderCI, &downSamplePS );
+    }
+    PSOCreateInfo.pPS = downSamplePS;
+
+    PSOCreateInfo.PSODesc.Name                   = "Downsample PSO";
+    PSOCreateInfo.GraphicsPipeline.RTVFormats[0] = app::global()->colorBufferFormat;
+
+    PSOCreateInfo.PSODesc.ResourceLayout.ImmutableSamplers    = nullptr;
+    PSOCreateInfo.PSODesc.ResourceLayout.NumImmutableSamplers = 0;
+
+    mDownSamplePSO.Release();
+    m_pDevice->CreateGraphicsPipelineState( PSOCreateInfo, &mDownSamplePSO );
+}
+
+void ComputeParticles::DownSample()
+{
+    JU_PROFILE( "downsample", m_pImmediateContext, mProfiler.get() );
+
+	m_pImmediateContext->SetPipelineState( mDownSamplePSO );
+	m_pImmediateContext->SetVertexBuffers( 0, 0, nullptr, nullptr, RESOURCE_STATE_TRANSITION_MODE_NONE, SET_VERTEX_BUFFERS_FLAG_RESET );
+	m_pImmediateContext->SetIndexBuffer( nullptr, 0, RESOURCE_STATE_TRANSITION_MODE_NONE );
+
+	StateTransitionDesc Barrier{ m_GBuffer.Color, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE, 0u, 1u };
+
+	for( Uint32 Mip = 1; Mip < DownSampleFactor; ++Mip ) {
+		Barrier.FirstMipLevel = Mip - 1;
+		m_pImmediateContext->TransitionResourceStates( 1, &Barrier );
+
+		m_pImmediateContext->SetRenderTargets( 1, &m_GBuffer.ColorRTVs[Mip], nullptr, RESOURCE_STATE_TRANSITION_MODE_VERIFY );
+
+		m_pImmediateContext->CommitShaderResources( mDownSampleSRB[Mip - 1], RESOURCE_STATE_TRANSITION_MODE_NONE );
+		m_pImmediateContext->Draw( DrawAttribs{ 3, DRAW_FLAG_VERIFY_DRAW_ATTRIBS | DRAW_FLAG_VERIFY_STATES } );
+	}
+
+	// Transit last mipmap level to SRV state.
+	// Now all mipmaps in m_GBuffer.Color are in SRV state, so update resource state.
+	Barrier.FirstMipLevel = DownSampleFactor - 1;
+	Barrier.Flags = STATE_TRANSITION_FLAG_UPDATE_STATE;
+	m_pImmediateContext->TransitionResourceStates( 1, &Barrier );
+}
+
+void ComputeParticles::PostProcess()
+{
+    JU_PROFILE( "post process", m_pImmediateContext, mProfiler.get() );
+
+    const auto ViewProj    = mCamera.GetViewMatrix() * mCamera.GetProjMatrix();
+    const auto ViewProjInv = ViewProj.Inverse();
+
+    mPostProcessConstants.viewProjInv = ViewProjInv.Transpose();
+    mPostProcessConstants.cameraPos   = mCamera.GetPos();
+
+	m_pImmediateContext->UpdateBuffer( mPostProcessConstantsBuffer, 0, sizeof( mPostProcessConstants ), &mPostProcessConstants, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+
+	m_pImmediateContext->SetPipelineState( mPostProcessPSO );
+	m_pImmediateContext->CommitShaderResources( mPostProcessSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+
+	m_pImmediateContext->SetVertexBuffers( 0, 0, nullptr, nullptr, RESOURCE_STATE_TRANSITION_MODE_NONE, SET_VERTEX_BUFFERS_FLAG_RESET );
+	m_pImmediateContext->SetIndexBuffer( nullptr, 0, RESOURCE_STATE_TRANSITION_MODE_NONE );
+
+	m_pImmediateContext->Draw( DrawAttribs{ 3, DRAW_FLAG_VERIFY_ALL } );
+}
+
 // ------------------------------------------------------------------------------------------------------------
 // ImGui
 // ------------------------------------------------------------------------------------------------------------
@@ -819,7 +1220,7 @@ void ComputeParticles::updateUI()
         return;
 
     im::SetNextWindowPos( ImVec2( 10, 10 ), ImGuiCond_FirstUseEver );
-    if( im::Begin( "Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize ) ) {
+    if( im::Begin( "Settings", nullptr ) ) {
         im::Checkbox( "ui", &mUIEnabled );
         im::Checkbox( "profiling ui", &mProfilingUIEnabled );
         if( im::CollapsingHeader( "Particles", ImGuiTreeNodeFlags_DefaultOpen ) ) {
@@ -834,6 +1235,10 @@ void ComputeParticles::updateUI()
             }
             im::SliderFloat( "speed", &mSimulationSpeed, 0.1f, 5.f );
             im::DragFloat( "scale", &mParticleScale, 0.01f, 0.001f, 100.0f );
+            im::DragFloat( "scale variation", &mParticleScaleVariation, 0.002f, 0.0f, 100.0f );            
+            im::DragFloat( "birth padding %", &mParticleBirthPadding, 0.001f, 0.0f, 1.0f );
+            im::DragFloat3( "world min", &mWorldMin.x, 0.01f, -1000, 1000.0f );
+            im::DragFloat3( "world max", &mWorldMax.x, 0.01f, -1000, 1000.0f );
 
             im::Text( "grid size: [%d, %0d, %d]", mGridSize.x, mGridSize.y, mGridSize.y );
 
@@ -854,8 +1259,8 @@ void ComputeParticles::updateUI()
             im::Checkbox( "debug copy particles", &mDebugCopyParticles );
             if( mDebugCopyParticles ) {
                 im::Indent();
-                im::Checkbox( "ParticleAttribs ui", &DebugShowParticleAttribsWindow );
-                im::Checkbox( "ParticleLists ui", &DebugShowParticleListssWindow );
+                im::Checkbox( "ParticleAttribs", &DebugShowParticleAttribsWindow );
+                im::Checkbox( "ParticleLists", &DebugShowParticleListssWindow );
                 im::Unindent();
             }
 #endif
@@ -867,9 +1272,9 @@ void ComputeParticles::updateUI()
             im::DragFloat( "cohesion", &mCohesion, 0.001f, 0.0002f, 2.0f );
 
             // TODO: make sure dists for separation < align < cohesion
-            im::DragFloat( "separation dist", &mSeparationDist, 0.001f, 0.0f, 2.0f );
-            im::DragFloat( "alignment dist", &mAlignmentDist, 0.001f, 0.0f, 2.0f );
-            im::DragFloat( "cohesion dist", &mCohesionDist, 0.001f, 0.0f, 2.0f );
+            im::DragFloat( "separation dist", &mSeparationDist, 0.001f, 0.0f, 100.0f );
+            im::DragFloat( "alignment dist", &mAlignmentDist, 0.001f, 0.0f, 100.0f );
+            im::DragFloat( "cohesion dist", &mCohesionDist, 0.001f, 0.0f, 100.0f );
         }
 
         if( im::CollapsingHeader( "Camera", ImGuiTreeNodeFlags_DefaultOpen ) ) {
@@ -880,7 +1285,7 @@ void ComputeParticles::updateUI()
             if( im::DragFloat( "rotate speed", &CameraRotationSpeed ) ) {
                 mCamera.SetRotationSpeed( CameraRotationSpeed );
             }
-            if( im::DragFloat2( "speed up scale", &CameraSpeedUp.x ) ) {
+            if( im::DragFloat2( "speed up", &CameraSpeedUp.x, 0.1f, 0.01f, 1000.0f ) ) {
                 mCamera.SetSpeedUpScales( CameraSpeedUp.x, CameraSpeedUp.y );
             }
             if( im::Button("reset") ) {
@@ -937,6 +1342,37 @@ void ComputeParticles::updateUI()
             if( im::DragFloat2( "bg size", &bgSize.x, 0.02f ) ) {
                 mBackgroundCanvas->setSize( bgSize );
             }
+        }
+
+        if( im::CollapsingHeader( "Post Process", ImGuiTreeNodeFlags_DefaultOpen ) ) {
+            bool glowEnabled = mPostProcessConstants.glowEnabled;
+            if( im::Checkbox( "glow", &glowEnabled ) ) {
+                mPostProcessConstants.glowEnabled = int(glowEnabled);
+            }
+            im::DragFloat( "glow intensity", &mPostProcessConstants.glowIntensity, 0.002f, 0.0001f, 10.0f );
+
+            bool fogEnabled = mPostProcessConstants.fogEnabled;
+            if( im::Checkbox( "fog", &fogEnabled ) ) {
+                mPostProcessConstants.fogEnabled = int(fogEnabled);
+            }
+            im::ColorEdit3( "fog color", &mPostProcessConstants.fogColor.r, ImGuiColorEditFlags_Float );
+            im::DragFloat( "fog intensity", &mPostProcessConstants.fogIntensity, 0.002f, 0.0001f, 2.0f );
+
+            im::Separator();
+            im::Text( "Antialiasing" );
+            im::Checkbox( "FXAA", &mFXAAEnabled );
+            if( mFXAA ) {
+                mFXAA->updateUI();
+            }
+
+            im::Separator();
+            im::Text( "GBuffer.Depth" );
+            im::Image( m_GBuffer.Depth->GetDefaultView( TEXTURE_VIEW_SHADER_RESOURCE ), { 300, 200 } );
+
+            static int colorSRBMip = 0;
+            im::Text( "GBuffer.ColorSRBs[]" );
+            im::DragInt( "mip", &colorSRBMip, 0.1f, 0, DownSampleFactor - 1 );
+            im::Image( m_GBuffer.ColorSRBs[colorSRBMip], { 300, 200 } );
         }
     }
     im::End(); // Settings

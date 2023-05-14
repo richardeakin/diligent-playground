@@ -1,0 +1,78 @@
+
+// Constants:
+// - qualitySubpix:
+//   Choose the amount of sub-pixel aliasing removal.
+//   This can effect sharpness.
+//   1.00 - upper limit (softer)
+//   0.75 - default amount of filtering
+//   0.50 - lower limit (sharper, less sub-pixel aliasing removal)
+//   0.25 - almost off
+//   0.00 - completely off
+// - qualityEdgeThreshold:
+//   The minimum amount of local contrast required to apply algorithm.
+//   0.333 - too little (faster)
+//   0.250 - low quality
+//   0.166 - default
+//   0.125 - high quality
+//   0.033 - very high quality (slower)
+struct FxaaConstants {
+	float qualitySubpix;
+	float qualityEdgeThreshold;
+	float padding0;
+	float padding1;
+};
+
+cbuffer ConstantsCB {
+    FxaaConstants Constants;
+};
+
+Texture2D    gColor;
+SamplerState gColor_sampler;
+
+#define FXAA_PC 1
+#define FXAA_HLSL_5 1
+#define FXAA_QUALITY__PRESET 39 // EXTREME QUALITY
+#define FXAA_GREEN_AS_LUMA 0 	// if 0, luma must be packed in uTexture.a
+
+#include "shaders/post/aa/FXAA3_11.h"
+
+struct PSInput { 
+    float4 Pos : SV_POSITION; 
+    float2 UV  : TEX_COORD; 
+};
+
+float4 main( in PSInput PSIn ) : SV_Target
+{
+    float2 dim;
+    gColor.GetDimensions( dim.x, dim.y );    
+#if defined(DESKTOP_GL) || defined(GL_ES)
+    float2 screenUV = float2( PSIn.UV.x, PSIn.UV.y );
+#else
+    float2 screenUV = float2( PSIn.UV.x, 1.0 - PSIn.UV.y );
+#endif
+
+	FxaaTex tex;
+	tex.smpl = gColor_sampler;
+	tex.tex = gColor;
+
+	FxaaFloat2 fxaaQualityRcpFrame;
+	fxaaQualityRcpFrame.x = 1.0 / dim.x;
+	fxaaQualityRcpFrame.y = 1.0 / dim.y;
+
+
+	// You dont need to touch theses variables, it have no visible effect
+	FxaaFloat QualityEdgeThresholdMin = 0.0;
+	FxaaFloat ConsoleEdgeSharpness = 8.0;
+	FxaaFloat ConsoleEdgeThreshold = 0.125;
+	FxaaFloat ConsoleEdgeThresholdMin = 0.05;
+	const FxaaFloat4 notUsed = FxaaFloat4( 0, 0, 0, 0 );
+
+	float4 result = FxaaPixelShader( screenUV, notUsed, tex, tex, tex, fxaaQualityRcpFrame,
+		notUsed, notUsed, notUsed, 
+		Constants.qualitySubpix, Constants.qualityEdgeThreshold, QualityEdgeThresholdMin, 
+		ConsoleEdgeSharpness, ConsoleEdgeThreshold, ConsoleEdgeThresholdMin, notUsed
+	);
+
+	result.a = 1.0;
+	return result;
+}

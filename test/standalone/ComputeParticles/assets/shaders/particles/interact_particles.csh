@@ -113,7 +113,7 @@ void main( uint3 Gid  : SV_GroupID,
 
     particle.newVel += particle.accel * Constants.deltaTime;
 
-    // TODO: needed? think it is done in the move pass
+    // TODO: raycast and turn if headed towards boundary
     //ClampParticlePosition( particle.newPos, particle.vel, particle.size * Constants.scale );
 
     Particles[particleId] = particle;

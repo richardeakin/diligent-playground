@@ -25,9 +25,9 @@ struct ParticleConstants {
     float4x4 viewProj; // TODO: should be removed? Or moved to the sprites-only buffer
 
     uint    numParticles;
+    float   time;
     float   deltaTime;
     float   separation;
-    float   padding0;
 
     float   scale; // TODO: make float3 so I can use (0.4, 1, 0.4) to shape the pyramid
     int3    gridSize;
@@ -39,7 +39,13 @@ struct ParticleConstants {
     float   separationDist;
     float   alignmentDist;
     float   cohesionDist;
+    float   padding0;
+
+    float3  worldMin;
     float   padding1;
+
+    float3  worldMax;
+    float   padding2;
 };
 
 // matches struct from solids/solid.fxh
