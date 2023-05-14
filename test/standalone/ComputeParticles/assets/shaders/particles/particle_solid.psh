@@ -30,10 +30,10 @@ void main( in  PSInput  PSIn, out PSOutput PSOut )
     float lighting = NdotL * 0.8 + 0.1;
     col *= lighting;
     
-    float emmissive = pow(PSIn.UV.y, 2);
+    float emmissive = pow( PSIn.UV.y, 2 );
     emmissive *= sin( PConstants.time * 4.0 + float(PSIn.InstID) * 10231.12 ) * 0.5 + 0.5;
     
-    col = lerp(col, float3(emmissive, 0.0, 0.0), emmissive);
+    col = lerp(col, float3( emmissive, emmissive * 0.3f, emmissive * 0.01f ), emmissive);
     
     if( PSIn.InstID == 0 ) {
         col.r = 1.0;

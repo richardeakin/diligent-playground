@@ -46,8 +46,8 @@ struct Ray {
 };
 
 #define SDF_MAX_ITERATIONS 200
-#define SDF_MIN_DIST 0.001
-#define SDF_MAX_DIST 300.0    
+#define SDF_MIN_DIST 0.01
+#define SDF_MAX_DIST 100.0    
 #define DEBUG_SDF_GRADIENT 0
 
 #define INTERSECT_FN sdf_intersect
@@ -156,35 +156,24 @@ float sdf_scene( in float3 p, inout ObjectInfo object )
     result = floor;
     object.id = oid_floor;
 
-    // one ball in center
+    // TODO NEXT: using spheres to make a volcano
 #if 1
-    float3 ballCenter = float3( 0, 0.3, 0 );
-    float ball = sdSphere( p - ballCenter, 0.5 );
-    if( ball < result ) {
+    float3 ballCenter = float3( 0, 1.8, 0 );
+    float ball = sdSphere( p - ballCenter, 2.5 );
+
+    float3 ballCenter2 = float3( 0, 4.8, 0 );
+    float ball2 = sdSphere( p - ballCenter2, 1.5 );
+    ball = smin( ball, ball2, 2.1 );
+    //result = ball;
+    //if( ball < result ) {
         //result = ball;
-        float2 s = smin( result, ball, 0.5 );
+        float2 s = smin( result, ball, 3.5 );
         result = s.x;
         object.id = oid_ball;
         object.materialPart = s.y; // TODO NEXT: use this to blend with checker ground    }
-    }
+    //}
 #endif
 
-    // metaballs
-#if 0
-    for( int i = 0; i < 10; i++ ) {
-        // TODO NEXT offset this with a random
-        float x = float(i);
-        x -= 4;
-        x *= 0.25;
-        float ball = sdSphere( p - float3( x, 0.3, 0 ), 0.2 );
-        if( ball < result ) {
-            //result = ball;
-            // FIXME: this looks real bad
-            result = smin( result, ball, 0.2 );
-            object.id = oid_ball;
-        }
-    }
-#endif
 
     float3 boundsCenter = 0.5 * ( Constants.worldMin + Constants.worldMax );
     float3 boundsSize = 0.5 * ( Constants.worldMax - Constants.worldMin ); // from center to edge in each dimension
@@ -223,10 +212,6 @@ float3 sdf_calcNormal( in ObjectInfo object )
     float3 pos = object.pos;
 
     // precision of the normal computation
-    // TODO: this needs to be exposed as param so uniform isn't buried in this .glsl file
-    // - it can possibly be set as a #define from the cpu side when the RayMarcher is resized
-    //   - PostProcess buffers are already getting resized there (but maybe they shouldn't?)
-    // float eps = 1.0 / uResolution.x;
     const float eps = 0.002;
 
     const float3 v1 = float3(  1.0, -1.0, -1.0 );
@@ -246,7 +231,6 @@ float3 sdf_calcNormal( in ObjectInfo object )
 #endif
 }
 
-// TODO: use sdf_intersectEnhanced
 IntersectInfo sdf_intersect( in Ray ray, inout ObjectInfo object )
 {
     float scene = SDF_MIN_DIST * 2.0;
@@ -382,42 +366,60 @@ void main( in PSInput PSIn, out PSOutput PSOut )
     IntersectInfo intersect = INTERSECT_FN( ray, object );
     if( object.id != oid_nothing ) {
         //col = sdf_shadeScene( ray, object, intersect );
-        if( object.id == oid_floor ) {
-            //col = float3( 0.1, 0, 0 );
-            //col = object.normal;
 
-            // make a checker floor pattern
-            float2 x = object.pos.xz;
-            float2 x_ddx = ddx( x ); 
-            float2 x_ddy = ddy( x ); 
-            float checker = checkersGrad( x, x_ddx, x_ddy );
-            col = 0.1 + checker * float3( 0.3, 0.3, 0.3 );
-        }
-        if( object.id == oid_ball ) {
-            col = object.normal;
+        float3 skyColor = float3( 0.25, 0.1, 0.4 ); // should match background horizon, may want to sample it
+        float3 lightDir = normalize( -Constants.lightDir ); 
+        float light_diff = saturate( dot( object.normal, lightDir ) );
+        float sky_diff = saturate( dot( object.normal, float3( 0, 1, 0 ) ) );
+
+        // checker floor pattern
+        float2 xz = object.pos.xz;
+        float2 x_ddx = ddx( xz ); 
+        float2 x_ddy = ddy( xz ); 
+        float checker = checkersGrad( xz, x_ddx, x_ddy );
+        float3 checkerCol = 0.1 + checker * float3( 0.3, 0.3, 0.3 );
+        //checkerCol = float3( 0, 0, 1 );
+        //if( object.id == oid_floor ) {
+            col = checkerCol;
+            //col = float3( 0, 0, 1 ); // TODO NEXT: make this blend smoothly with red sphere as in iq article
+        //}
+        //if( object.id == oid_ball ) {
             //col = float3( 0.1, 0, 0 );
 
             float3 baseColor = float3( 1.0, 0.5, 0.1 );
-            float3 skyColor = float3( 0.25, 0.1, 0.4 ); // should match background horizon, may want to sample it
 
-            float3 lightDir = normalize( -Constants.lightDir ); 
-            float light_diff = saturate( dot( object.normal, lightDir ) );
-            float sky_diff = saturate( dot( object.normal, float3( 0, 1, 0 ) ) );
+            float3 ballCol = baseColor * light_diff;
+            ballCol += skyColor * sky_diff * 0.5;
 
-            col = baseColor * light_diff;
-            col += skyColor * sky_diff * 0.5;
+            col = lerp( checkerCol, ballCol, object.materialPart );
+            //col = checkerCol;
 
-            emission = 0.5; // TODO: write this from material fn, vary based on which object and time
-        }
+            //col = float3( object.materialPart, 0, 0 );
+            //if( object.materialPart > 0.7 ) {
+            //    col = float3( 1, 0, 0 );
+            //}
+
+            //emission = 0.5; // TODO: write this from material fn, vary based on which object and time
+        //}
 
         if( object.id == oid_bbox ) {
 
-            col = float3( 0.2, 0.2, 0.2 );
+            col = float3( 0.5, 0.5, 0.5 );
         }
 
         // set pixel depth in normalized [0, 1] range
         float4 clipPos = mul( float4( object.pos, 1.0 ), Constants.viewProj );
         PSOut.Depth = clipPos.z / clipPos.w;
+
+#if DEBUG_SDF_GRADIENT
+    float nl = length( object.normal );
+    if( nl <= 0 ) {
+        col = float3( 1, 0, 0 );
+    }
+    else if( nl < 0.1 ) {
+        col.g = smoothstep( 0.0, 0.1, nl );
+    }
+#endif
 
     }
     else {

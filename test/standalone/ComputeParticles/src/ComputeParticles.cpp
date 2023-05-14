@@ -699,7 +699,7 @@ void ComputeParticles::WindowResize( Uint32 Width, Uint32 Height )
 
     // Update projection matrix.
     float aspectRatio = static_cast<float>(Width) / static_cast<float>(Height);
-    mCamera.SetProjAttribs( 0.1f, 1000.0f, aspectRatio, PI_F / 4.0f, m_pSwapChain->GetDesc().PreTransform, m_pDevice->GetDeviceInfo().IsGLDevice() );
+    mCamera.SetProjAttribs( 0.01f, 10000.0f, aspectRatio, PI_F / 4.0f, m_pSwapChain->GetDesc().PreTransform, m_pDevice->GetDeviceInfo().IsGLDevice() );
 
     // TODO: re-enable once Canvas pixel shader is reworked to be drawing in pixel coordinates
     //if( mBackgroundCanvas ) {
