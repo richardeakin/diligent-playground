@@ -1,0 +1,112 @@
+cmake_minimum_required (VERSION 3.8)
+
+project( AppBasic CXX)
+set( APP_TARGET "AppBasic" )
+
+#     ${REPO_PATH}/src/juniper/AppGlobal.h
+#     ${REPO_PATH}/src/juniper/AppGlobal.cpp
+
+set( SOURCES
+     src/AppGlfw.cpp
+     src/AppGlfw.h
+     src/AppBasic.cpp
+     src/AppBasic.h
+)
+if( PLATFORM_MACOS )
+    list( APPEND SOURCES src/SurfaceHelper.mm )
+endif()
+
+set( SHADERS
+     assets/shaders/solid.vsh
+     assets/shaders/solid.psh
+     assets/shaders/solid.fxh
+)
+
+
+set( ASSETS ${SHADERS} )
+
+set_source_files_properties( ${SHADERS}       PROPERTIES VS_TOOL_OVERRIDE "None" )
+
+if( PLATFORM_MACOS )
+    add_executable( ${APP_TARGET} MACOSX_BUNDLE ${SOURCES} ${ASSETS} )
+else()
+    add_executable( ${APP_TARGET} ${SOURCES} ${ASSETS} )
+endif()
+
+target_include_directories( ${APP_TARGET} PUBLIC
+    ${REPO_PATH}/src
+)
+
+#add_dependencies( ${APP_TARGET} cinder )
+
+target_link_libraries( ${APP_TARGET} PRIVATE
+    Juniper
+)
+
+set_target_properties( ${APP_TARGET} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES )
+target_compile_features( ${APP_TARGET} PUBLIC cxx_std_17 )
+
+source_group( TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SOURCES} ${ASSETS} )
+target_include_directories( ${APP_TARGET} PRIVATE "${DILIGENT_PATH}/DiligentCore" )
+if( METAL_SUPPORTED )
+    target_include_directories( ${APP_TARGET} PRIVATE "${DILIGENT_PATH}/DiligentCorePro" )
+endif()
+
+target_compile_definitions( ${APP_TARGET} PRIVATE UNICODE )
+
+set_target_properties( ${APP_TARGET} PROPERTIES
+    FOLDER test/glfw
+)
+
+target_compile_definitions( ${APP_TARGET} PRIVATE ENGINE_DLL=1 )
+target_link_libraries( ${APP_TARGET} PRIVATE
+    Diligent-Common
+    Diligent-GraphicsTools
+    Diligent-RenderStateNotation
+    glfw
+)
+
+if(D3D11_SUPPORTED)
+    target_link_libraries( ${APP_TARGET} PRIVATE Diligent-GraphicsEngineD3D11-shared)
+endif()
+if(D3D12_SUPPORTED)
+    target_link_libraries( ${APP_TARGET} PRIVATE Diligent-GraphicsEngineD3D12-shared)
+endif()
+if(GL_SUPPORTED)
+    target_link_libraries( ${APP_TARGET} PRIVATE Diligent-GraphicsEngineOpenGL-shared)
+endif()
+if(VULKAN_SUPPORTED)
+    target_link_libraries( ${APP_TARGET} PRIVATE Diligent-GraphicsEngineVk-shared)
+endif()
+if(METAL_SUPPORTED)
+    target_link_libraries( ${APP_TARGET} PRIVATE Diligent-GraphicsEngineMetal-shared)
+endif()
+if(PLATFORM_WIN32)
+    copy_required_dlls( ${APP_TARGET})
+endif()
+
+if(MSVC)
+    set_target_properties( ${APP_TARGET} PROPERTIES 
+        VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/assets"
+    )
+endif()
+
+if( PLATFORM_WIN32 OR PLATFORM_LINUX )
+    # Copy assets to target folder
+    add_custom_command( TARGET  ${APP_TARGET} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_CURRENT_SOURCE_DIR}/assets"
+            "\"$<TARGET_FILE_DIR:${APP_TARGET}>\"")
+endif()
+
+if(PLATFORM_MACOS AND VULKAN_LIB_PATH)
+    # Configure rpath so that executables can find vulkan library
+    set_target_properties( ${APP_TARGET} PROPERTIES
+        BUILD_RPATH "${VULKAN_LIB_PATH}"
+    )
+endif()
+
+set_source_files_properties( ${ASSETS} PROPERTIES
+    VS_DEPLOYMENT_LOCATION "."
+    MACOSX_PACKAGE_LOCATION "Resources"
+)

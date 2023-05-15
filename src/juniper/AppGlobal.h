@@ -1,11 +1,10 @@
-// TODO: get rid of this copy, use one in base src folder instead
 #pragma once
 
 #include "RenderDevice.h"
 #include "Shader.h"
 #include "RefCntAutoPtr.hpp"
 
-namespace app {
+namespace juniper {
 
 namespace dg = Diligent;
 
@@ -19,9 +18,5 @@ struct AppGlobal {
 
 AppGlobal* global();
 
-} // namespace app
+} // namespace juniper
 
-
-// Define some Logging helpers
-
-#define JU_LOG_INFO( ... )  LOG_INFO_MESSAGE( __FUNCTION__, ##__VA_ARGS__ )
