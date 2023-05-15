@@ -29,6 +29,8 @@ set_source_files_properties( ${SHADERS}       PROPERTIES VS_TOOL_OVERRIDE "None"
 
 if( PLATFORM_MACOS )
     add_executable( ${APP_TARGET} MACOSX_BUNDLE ${SOURCES} ${ASSETS} )
+elseif( PLATFORM_WIN32 )
+    add_executable( ${APP_TARGET} WIN32 ${SOURCES} ${ASSETS} )
 else()
     add_executable( ${APP_TARGET} ${SOURCES} ${ASSETS} )
 endif()

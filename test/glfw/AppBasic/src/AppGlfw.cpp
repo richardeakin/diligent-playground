@@ -474,10 +474,27 @@ int AppGlfwMain( int argc, const char* const* argv )
 
 	return 0;
 }
+
 } // namespace juniper
 
+#if PLATFORM_WIN32
+//int __stdcall WinMain( HINSTANCE /*hInstance*/, HINSTANCE /*hPrevInstance*/, LPSTR /*lpCmdLine*/, int /*nCmdShow*/ )
+int WINAPI WinMain( HINSTANCE /*instance*/, HINSTANCE, LPSTR, int /*cmdShow*/ )
+{
+#if defined(_DEBUG) || defined(DEBUG)
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+#endif
 
+	// TODO: use this
+	//const auto* cmdLine = GetCommandLineA();
+
+	int argc = 0;
+	const char* argv = nullptr;
+	return juniper::AppGlfwMain( argc, &argv );
+}
+#else
 int main( int argc, const char** argv )
 {
     return juniper::AppGlfwMain( argc, argv );
 }
+#endif

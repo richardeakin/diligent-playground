@@ -96,6 +96,8 @@ void AppBasic::KeyEvent( Key key, KeyState state )
 {
     // TODO: log key + state
     // - will make a copy of cinder's app::KeyEvent, just the GLFW part
+    std::string stateStr = ( state == KeyState::Release ? "Release" : ( state == KeyState::Press ? "Press" : "Release" ) );
+    JU_LOG_INFO( "key: ", (int)key, ", state: ", stateStr );
 #if 0
     if (state == KeyState::Press || state == KeyState::Repeat) {
         switch (key)  {
