@@ -29,7 +29,8 @@
 #include <vector>
 
 #include "AppBasic.h"
-#include "AppGlobal.h"
+#include "juniper/AppGlobal.h"
+#include "juniper/Juniper.h"
 #include "ShaderMacroHelper.hpp"
 #include "CallbackWrapper.hpp"
 

@@ -85,6 +85,7 @@
 #endif
 
 #include "AppGlfw.h"
+#include "juniper/Juniper.h"
 
 #include "GLFW/glfw3native.h"
 #ifdef GetObject
@@ -125,7 +126,7 @@ AppGlfw::~AppGlfw()
 
 bool AppGlfw::CreateWindow(const char* Title, int Width, int Height, int GlfwApiHint)
 {
-    glfwSetErrorCallback( onErrorCallback );
+    glfwSetErrorCallback( GLFW_errorCallback );
 
 	if( glfwInit() != GLFW_TRUE )
 		return false;
@@ -295,11 +296,12 @@ void AppGlfw::GLFW_CursorPosCallback(GLFWwindow* wnd, double xpos, double ypos)
 
 void AppGlfw::GLFW_MouseWheelCallback(GLFWwindow* wnd, double dx, double dy)
 {
+    JU_LOG_INFO( "dx: ", dx, ", dy: ", dy);
 }
 
 void AppGlfw::GLFW_errorCallback( int error, const char *description )
 {
-    // TODO: log in these callbacks
+    JU_LOG_ERROR( "error code: ", error, ", description: ", description );
 }
 
 void AppGlfw::Loop()

@@ -1,7 +1,7 @@
 #include "AppGlobal.h"
 #include <memory>
 
-namespace app {
+namespace juniper {
 
 AppGlobal* global()
 {
@@ -9,4 +9,4 @@ AppGlobal* global()
 	return &global;
 }
 
-} // namespace app
+} // namespace juniper
