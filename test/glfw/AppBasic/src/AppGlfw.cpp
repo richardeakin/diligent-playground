@@ -334,183 +334,122 @@ void AppGlfw::GLFW_errorCallback( int error, const char *description )
 void AppGlfw::Loop()
 {
     m_LastUpdate = TClock::now();
-    for (;;)
-    {
-        if (glfwWindowShouldClose(m_Window))
+    for( ; ; ) {
+        if (glfwWindowShouldClose(m_Window)) {
             return;
+		}
 
         glfwPollEvents();
 
-        for (auto KeyIter = m_ActiveKeys.begin(); KeyIter != m_ActiveKeys.end();)
-        {
-            KeyEvent(KeyIter->key, KeyIter->state);
+        for( auto KeyIter = m_ActiveKeys.begin(); KeyIter != m_ActiveKeys.end(); ) {
+            KeyEvent( KeyIter->key, KeyIter->state );
 
             // GLFW does not send 'Repeat' state again, we have to keep these keys until the 'Release' is received.
-            switch (KeyIter->state)
-            {
-                // clang-format off
-                case KeyState::Release: KeyIter = m_ActiveKeys.erase(KeyIter); break;
-                case KeyState::Press:   KeyIter->state = KeyState::Repeat;     break;
-                case KeyState::Repeat:  ++KeyIter;                             break;
-                // clang-format on
+            switch( KeyIter->state ) {
+                case KeyState::Release:
+					KeyIter = m_ActiveKeys.erase( KeyIter );
+				break;
+                case KeyState::Press:
+					KeyIter->state = KeyState::Repeat;
+				break;
+                case KeyState::Repeat:
+					++KeyIter;                             
+				break;
                 default:
                     break;
             }
         }
 
         const auto time = TClock::now();
-        const auto dt   = std::chrono::duration_cast<TSeconds>(time - m_LastUpdate).count();
+        const auto dt   = std::chrono::duration_cast<TSeconds>( time - m_LastUpdate ).count();
         m_LastUpdate    = time;
 
-        Update(dt);
+        Update( dt );
 
         int w, h;
-        glfwGetWindowSize(m_Window, &w, &h);
+        glfwGetWindowSize(m_Window , &w, &h );
 
         // Skip rendering if window is minimized or too small
-        if (w > 0 && h > 0)
+        if( w > 0 && h > 0 ) {
             Draw();
+		}
     }
 }
 
 void AppGlfw::OnKeyEvent(Key key, KeyState newState)
 {
-    for (auto& active : m_ActiveKeys)
-    {
-        if (active.key == key)
-        {
-            if (newState == KeyState::Release)
-                active.state = newState;
+    for( auto& active : m_ActiveKeys ) {
+        if( active.key == key ) {
+			if( newState == KeyState::Release ) {
+				active.state = newState;
+			}
 
-            return;
+			return;
         }
     }
 
-    m_ActiveKeys.push_back({key, newState});
+    m_ActiveKeys.push_back( { key, newState } );
 }
 
 void AppGlfw::Quit()
 {
-    VERIFY_EXPR(m_Window != nullptr);
-    glfwSetWindowShouldClose(m_Window, GLFW_TRUE);
+    VERIFY_EXPR( m_Window != nullptr );
+    glfwSetWindowShouldClose( m_Window, GLFW_TRUE );
 }
 
-bool AppGlfw::ProcessCommandLine(int argc, const char* const* argv, RENDER_DEVICE_TYPE& DevType)
+// pick a default RENDER_DEVICE_TYPE (user can override
+RENDER_DEVICE_TYPE AppGlfw::chooseDefaultRenderDeviceType() const
 {
-#if PLATFORM_LINUX || PLATFORM_MACOS
-#    define _stricmp strcasecmp
-#endif
-
-    int arg = 0;
-    while (arg < argc && strcmp(argv[arg], "--mode") != 0 && strcmp(argv[arg], "-m") != 0)
-        ++arg;
-    if (arg + 1 < argc)
-    {
-        const auto* mode = argv[arg + 1];
-        if (_stricmp(mode, "D3D11") == 0)
-        {
-#if D3D11_SUPPORTED
-            DevType = RENDER_DEVICE_TYPE_D3D11;
-#else
-            std::cerr << "Direct3D11 is not supported. Please select another device type";
-            return false;
-#endif
-        }
-        else if (_stricmp(mode, "D3D12") == 0)
-        {
-#if D3D12_SUPPORTED
-            DevType = RENDER_DEVICE_TYPE_D3D12;
-#else
-            std::cerr << "Direct3D12 is not supported. Please select another device type";
-            return false;
-#endif
-        }
-        else if (_stricmp(mode, "GL") == 0)
-        {
-#if GL_SUPPORTED
-            DevType = RENDER_DEVICE_TYPE_GL;
-#else
-            std::cerr << "OpenGL is not supported. Please select another device type";
-            return false;
-#endif
-        }
-        else if (_stricmp(mode, "VK") == 0)
-        {
-#if VULKAN_SUPPORTED
-            DevType = RENDER_DEVICE_TYPE_VULKAN;
-#else
-            std::cerr << "Vulkan is not supported. Please select another device type";
-            return false;
-#endif
-        }
-        else if (_stricmp(mode, "MTL") == 0)
-        {
 #if METAL_SUPPORTED
-            DevType = RENDER_DEVICE_TYPE_METAL;
-#else
-            std::cerr << "Metal is not supported. Please select another device type";
-            return false;
-#endif
-        }
-        else
-        {
-            std::cerr << "Unknown device type. Only the following types are supported: D3D11, D3D12, GL, VK";
-            return false;
-        }
-    }
-    else
-    {
-#if METAL_SUPPORTED
-        DevType = RENDER_DEVICE_TYPE_METAL;
-#elif VULKAN_SUPPORTED
-        DevType = RENDER_DEVICE_TYPE_VULKAN;
+	return RENDER_DEVICE_TYPE_METAL;
 #elif D3D12_SUPPORTED
-        DevType = RENDER_DEVICE_TYPE_D3D12;
+	return RENDER_DEVICE_TYPE_D3D12;
+#elif VULKAN_SUPPORTED
+	return RENDER_DEVICE_TYPE_VULKAN;
 #elif D3D11_SUPPORTED
-        DevType = RENDER_DEVICE_TYPE_D3D11;
+	return RENDER_DEVICE_TYPE_D3D11;
 #elif GL_SUPPORTED
-        DevType = RENDER_DEVICE_TYPE_GL;
+	return RENDER_DEVICE_TYPE_GL;
+#else
+	return RENDER_DEVICE_TYPE_UNDEFINED;
 #endif
-    }
-    return true;
 }
 
 int AppGlfwMain( int argc, const char* const* argv )
 {
 	std::unique_ptr<AppGlfw> app{ CreateGLFWApp() };
 
-	RENDER_DEVICE_TYPE deviceType = RENDER_DEVICE_TYPE_UNDEFINED;
-	if( ! app->ProcessCommandLine( argc, argv, deviceType ) ) {
-		return -1;
-	}
-
 	AppSettings settings;
+	settings.renderDeviceType = app->chooseDefaultRenderDeviceType();
 	app->prepareSettings( &settings );
 
 	if( settings.title.empty() ) {
-		std::string title( "AppGlfw" );
-		switch( deviceType ) {
-		case RENDER_DEVICE_TYPE_D3D11:
-			title.append( " (D3D11" );
-		break;
-		case RENDER_DEVICE_TYPE_D3D12:
-			title.append( " (D3D12" );
-		break;
-		case RENDER_DEVICE_TYPE_GL:
-			title.append( " (GL" );
-		break;
-		case RENDER_DEVICE_TYPE_VULKAN:
-			title.append( " (VK" );
-		break;
-		case RENDER_DEVICE_TYPE_METAL:
-			title.append( " (Metal" );
-		break;
-		default:
-			UNEXPECTED( "Unexpected device type" );
+		// set a default title
+		std::string title = app->getTitle();
+		switch( settings.renderDeviceType ) {
+			case RENDER_DEVICE_TYPE_D3D11:
+				title.append( " (D3D11" );
+			break;
+			case RENDER_DEVICE_TYPE_D3D12:
+				title.append( " (D3D12" );
+			break;
+			case RENDER_DEVICE_TYPE_GL:
+				title.append( " (GL" );
+			break;
+			case RENDER_DEVICE_TYPE_VULKAN:
+				title.append( " (VK" );
+			break;
+			case RENDER_DEVICE_TYPE_METAL:
+				title.append( " (Metal" );
+			break;
+			default:
+				UNEXPECTED( "Unexpected device type" );
 		}
 		title.append( ", API " );
 		title.append( std::to_string( DILIGENT_API_VERSION ) );
 		title.push_back( ')' );
+
+		settings.title = title;
 	}
 
 	int APIHint = GLFW_NO_API;
@@ -525,7 +464,7 @@ int AppGlfwMain( int argc, const char* const* argv )
 	if( ! app->CreateWindow( settings, APIHint ) )
 		return -1;
 
-	if( ! app->InitEngine( deviceType ) )
+	if( ! app->InitEngine( settings.renderDeviceType ) )
 		return -1;
 
 	if( ! app->Initialize() )

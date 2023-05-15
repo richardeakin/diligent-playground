@@ -42,6 +42,8 @@ public:
     virtual void KeyEvent( Key key, KeyState state ) override;
     virtual void MouseEvent( float2 pos ) override;
 
+    const char* getTitle() const override  { return "AppBasic"; }
+
 private:
     void CreatePipelineState();
 

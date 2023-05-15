@@ -47,6 +47,7 @@ void AppBasic::prepareSettings( AppSettings *settings )
     settings->windowPos = { 50, 80 };
     settings->windowSize = { 1700, 1200 };
     settings->monitorIndex = 2;
+    //settings->renderDeviceType = RENDER_DEVICE_TYPE_VULKAN;
 }
 
 bool AppBasic::Initialize()

@@ -55,7 +55,7 @@ struct AppSettings {
     int2 windowPos                      = { 0, 0 }; // TODO: set so it is down a bit and you can see the title bar
     int2 windowSize                     = { 1024, 768 };
     int  monitorIndex                    = 0;
-    dg::RENDER_DEVICE_TYPE deviceType   = dg::RENDER_DEVICE_TYPE_UNDEFINED;
+    dg::RENDER_DEVICE_TYPE renderDeviceType   = dg::RENDER_DEVICE_TYPE_UNDEFINED;
     std::string title;
 };
 
@@ -78,6 +78,8 @@ public:
     // TODO: add resize()
     virtual void Update(float dt)   = 0;
     virtual void Draw()             = 0;
+
+    virtual const char* getTitle() const   { return "AppGlfw"; }
 
     // TODO: move this to Events.h file
     enum class Key {
@@ -119,7 +121,7 @@ public:
 private:
     bool CreateWindow( const AppSettings &settings, int glfwApiHint );
     bool InitEngine( dg::RENDER_DEVICE_TYPE DevType );
-    bool ProcessCommandLine( int argc, const char* const* argv, dg::RENDER_DEVICE_TYPE& DevType );
+    dg::RENDER_DEVICE_TYPE chooseDefaultRenderDeviceType() const;
     void Loop();
     void OnKeyEvent( Key key, KeyState state );
 
