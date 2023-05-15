@@ -100,6 +100,10 @@
 extern void* GetNSWindowView(GLFWwindow* wnd);
 #endif
 
+// TODO: move these to AppBasic once there are init settings
+static bool const USE_SECONDARY_MONITOR = 1;
+static bool const FULLSCREEN_WINDOW = 0;
+
 using namespace Diligent;
 
 namespace juniper {
@@ -143,6 +147,26 @@ bool AppGlfw::CreateWindow(const char* Title, int Width, int Height, int GlfwApi
 		LOG_ERROR_MESSAGE( "Failed to create GLFW window" );
 		return false;
 	}
+
+	if( USE_SECONDARY_MONITOR ) {
+		int           monitorCount = 0;
+		GLFWmonitor** monitors = glfwGetMonitors( &monitorCount );
+
+		if( monitorCount > 1 ) {
+			// move our window to the right of the primary monitor
+			int xpos, ypos, width, height;
+			glfwGetMonitorPos( monitors[1], &xpos, &ypos );
+			glfwSetWindowPos( m_Window, xpos, ypos );
+
+			// TODO: this will have to be improved but good enough for now
+			// - window chrome is sitting above
+			if( FULLSCREEN_WINDOW ) {
+				glfwGetMonitorWorkarea( monitors[1], &xpos, &ypos, &width, &height );
+				glfwSetWindowSize( m_Window, width, height );
+			}
+		}
+	}
+
 
 	glfwSetWindowUserPointer( m_Window, this );
 	glfwSetFramebufferSizeCallback( m_Window, &GLFW_ResizeCallback );
@@ -448,56 +472,65 @@ bool AppGlfw::ProcessCommandLine(int argc, const char* const* argv, RENDER_DEVIC
     return true;
 }
 
-int AppGlfwMain(int argc, const char* const* argv)
+int AppGlfwMain( int argc, const char* const* argv )
 {
-    std::unique_ptr<AppGlfw> Samp{CreateGLFWApp()};
+	std::unique_ptr<AppGlfw> app{ CreateGLFWApp() };
 
-    RENDER_DEVICE_TYPE DevType = RENDER_DEVICE_TYPE_UNDEFINED;
-    if (!Samp->ProcessCommandLine(argc, argv, DevType))
-        return -1;
+	RENDER_DEVICE_TYPE deviceType = RENDER_DEVICE_TYPE_UNDEFINED;
+	if( ! app->ProcessCommandLine( argc, argv, deviceType ) ) {
+		return -1;
+	}
 
-    String Title("GLFW Demo");
-    switch (DevType)
-    {
-        case RENDER_DEVICE_TYPE_D3D11: Title.append(" (D3D11"); break;
-        case RENDER_DEVICE_TYPE_D3D12: Title.append(" (D3D12"); break;
-        case RENDER_DEVICE_TYPE_GL: Title.append(" (GL"); break;
-        case RENDER_DEVICE_TYPE_VULKAN: Title.append(" (VK"); break;
-        case RENDER_DEVICE_TYPE_METAL: Title.append(" (Metal"); break;
-        default:
-            UNEXPECTED("Unexpected device type");
-    }
-    Title.append(", API ");
-    Title.append(std::to_string(DILIGENT_API_VERSION));
-    Title.push_back(')');
+	String title( "AppGlfw" );
+	switch( deviceType ) {
+	case RENDER_DEVICE_TYPE_D3D11:
+		title.append( " (D3D11" );
+	break;
+	case RENDER_DEVICE_TYPE_D3D12:
+		title.append( " (D3D12" );
+	break;
+	case RENDER_DEVICE_TYPE_GL:
+		title.append( " (GL" );
+	break;
+	case RENDER_DEVICE_TYPE_VULKAN:
+		title.append( " (VK" );
+	break;
+	case RENDER_DEVICE_TYPE_METAL:
+		title.append( " (Metal" );
+	break;
+	default:
+		UNEXPECTED( "Unexpected device type" );
+	}
+	title.append( ", API " );
+	title.append( std::to_string( DILIGENT_API_VERSION ) );
+	title.push_back( ')' );
 
-    int APIHint = GLFW_NO_API;
+	int APIHint = GLFW_NO_API;
 #if !PLATFORM_WIN32
-    if (DevType == RENDER_DEVICE_TYPE_GL)
-    {
-        // On platforms other than Windows Diligent Engine
-        // attaches to existing OpenGL context
-        APIHint = GLFW_OPENGL_API;
-    }
+	if( DevType == RENDER_DEVICE_TYPE_GL ) {
+		// On platforms other than Windows Diligent Engine
+		// attaches to existing OpenGL context
+		APIHint = GLFW_OPENGL_API;
+	}
 #endif
 
-    if (!Samp->CreateWindow(Title.c_str(), 1024, 768, APIHint))
-        return -1;
+	if( ! app->CreateWindow( title.c_str(), 1024, 768, APIHint ) )
+		return -1;
 
-    if (!Samp->InitEngine(DevType))
-        return -1;
+	if( ! app->InitEngine( deviceType ) )
+		return -1;
 
-    if (!Samp->Initialize())
-        return -1;
+	if( ! app->Initialize() )
+		return -1;
 
-    Samp->Loop();
+	app->Loop();
 
-    return 0;
+	return 0;
 }
 } // namespace juniper
 
 
-int main(int argc, const char** argv)
+int main( int argc, const char** argv )
 {
-    return juniper::AppGlfwMain(argc, argv);
+    return juniper::AppGlfwMain( argc, argv );
 }
