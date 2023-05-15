@@ -65,10 +65,10 @@ public:
     virtual ~AppGlfw();
 
     // Public API
-    dg::IEngineFactory* GetEngineFactory()  { return m_pDevice->GetEngineFactory(); }
-    dg::IRenderDevice*  GetDevice()         { return m_pDevice; }
-    dg::IDeviceContext* GetContext()        { return m_pImmediateContext; }
-    dg::ISwapChain*     GetSwapChain()      { return m_pSwapChain; }
+    dg::IEngineFactory* GetEngineFactory()  { return mRenderDevice->GetEngineFactory(); }
+    dg::IRenderDevice*  GetDevice()         { return mRenderDevice; }
+    dg::IDeviceContext* GetContext()        { return mImmediateContext; }
+    dg::ISwapChain*     GetSwapChain()      { return mSwapChain; }
 
     void Quit();
 
@@ -135,21 +135,21 @@ private:
 	friend int AppGlfwMain( int argc, const char* const* argv );
 
 private:
-    RefCntAutoPtr<dg::IRenderDevice>  m_pDevice;
-    RefCntAutoPtr<dg::IDeviceContext> m_pImmediateContext;
-    RefCntAutoPtr<dg::ISwapChain>     m_pSwapChain;
-    GLFWwindow*                       m_Window = nullptr;
+    RefCntAutoPtr<dg::IRenderDevice>  mRenderDevice;
+    RefCntAutoPtr<dg::IDeviceContext> mImmediateContext;
+    RefCntAutoPtr<dg::ISwapChain>     mSwapChain;
+    GLFWwindow*                       mWindow = nullptr;
 
     struct ActiveKey {
         Key      key;
         KeyState state;
     };
-    std::vector<ActiveKey> m_ActiveKeys;
+    std::vector<ActiveKey> mActiveKeys;
 
     using TClock   = std::chrono::high_resolution_clock;
     using TSeconds = std::chrono::duration<float>;
 
-    TClock::time_point m_LastUpdate = {};
+    TClock::time_point mLastUpdate = {};
 };
 
 AppGlfw* CreateGLFWApp();

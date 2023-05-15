@@ -110,16 +110,16 @@ AppGlfw::AppGlfw()
 
 AppGlfw::~AppGlfw()
 {
-	if( m_pImmediateContext ) {
-		m_pImmediateContext->Flush();
+	if( mImmediateContext ) {
+		mImmediateContext->Flush();
 	}
 
-	m_pSwapChain = nullptr;
-	m_pImmediateContext = nullptr;
-	m_pDevice = nullptr;
+	mSwapChain = nullptr;
+	mImmediateContext = nullptr;
+	mRenderDevice = nullptr;
 
-	if( m_Window ) {
-		glfwDestroyWindow( m_Window );
+	if( mWindow ) {
+		glfwDestroyWindow( mWindow );
 		glfwTerminate();
 	}
 }
@@ -138,8 +138,8 @@ bool AppGlfw::CreateWindow( const AppSettings &settings, int glfwApiHint )
 		glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 2 );
 	}
 
-	m_Window = glfwCreateWindow( settings.windowSize.x, settings.windowSize.y, settings.title.c_str(), nullptr, nullptr );
-	if( m_Window == nullptr ) {
+	mWindow = glfwCreateWindow( settings.windowSize.x, settings.windowSize.y, settings.title.c_str(), nullptr, nullptr );
+	if( mWindow == nullptr ) {
 		LOG_ERROR_MESSAGE( "Failed to create GLFW window" );
 		return false;
 	}
@@ -152,7 +152,7 @@ bool AppGlfw::CreateWindow( const AppSettings &settings, int glfwApiHint )
 			// move our window to the right of the primary monitor
 			int xpos, ypos, width, height;
 			glfwGetMonitorPos( monitors[settings.monitorIndex], &xpos, &ypos );
-			glfwSetWindowPos( m_Window, xpos + settings.windowPos.x, ypos + settings.windowPos.y );
+			glfwSetWindowPos( mWindow, xpos + settings.windowPos.x, ypos + settings.windowPos.y );
 
 			// TODO: use fullScreen settings flag
 			// TODO: this will have to be improved but good enough for now
@@ -167,25 +167,25 @@ bool AppGlfw::CreateWindow( const AppSettings &settings, int glfwApiHint )
 		}
 	}
 	else {
-		glfwSetWindowPos( m_Window, settings.windowPos.x, settings.windowPos.y );
+		glfwSetWindowPos( mWindow, settings.windowPos.x, settings.windowPos.y );
 	}
 
 
-	glfwSetWindowUserPointer( m_Window, this );
-	glfwSetFramebufferSizeCallback( m_Window, &GLFW_ResizeCallback );
-	glfwSetKeyCallback( m_Window, &GLFW_KeyCallback );
-	glfwSetMouseButtonCallback( m_Window, &GLFW_MouseButtonCallback );
-	glfwSetCursorPosCallback( m_Window, &GLFW_CursorPosCallback );
-	glfwSetScrollCallback( m_Window, &GLFW_MouseWheelCallback );
+	glfwSetWindowUserPointer( mWindow, this );
+	glfwSetFramebufferSizeCallback( mWindow, &GLFW_ResizeCallback );
+	glfwSetKeyCallback( mWindow, &GLFW_KeyCallback );
+	glfwSetMouseButtonCallback( mWindow, &GLFW_MouseButtonCallback );
+	glfwSetCursorPosCallback( mWindow, &GLFW_CursorPosCallback );
+	glfwSetScrollCallback( mWindow, &GLFW_MouseWheelCallback );
 
-	glfwSetWindowSizeLimits( m_Window, 320, 240, GLFW_DONT_CARE, GLFW_DONT_CARE );
+	glfwSetWindowSizeLimits( mWindow, 320, 240, GLFW_DONT_CARE, GLFW_DONT_CARE );
 	return true;
 }
 
 bool AppGlfw::InitEngine( RENDER_DEVICE_TYPE DevType )
 {
 #if PLATFORM_WIN32
-	Win32NativeWindow Window{ glfwGetWin32Window( m_Window ) };
+	Win32NativeWindow Window{ glfwGetWin32Window( mWindow ) };
 #endif
 #if PLATFORM_LINUX
 	LinuxNativeWindow Window;
@@ -213,8 +213,8 @@ bool AppGlfw::InitEngine( RENDER_DEVICE_TYPE DevType )
 		auto* pFactoryD3D11 = GetEngineFactoryD3D11();
 
 		EngineD3D11CreateInfo EngineCI;
-		pFactoryD3D11->CreateDeviceAndContextsD3D11( EngineCI, &m_pDevice, &m_pImmediateContext );
-		pFactoryD3D11->CreateSwapChainD3D11( m_pDevice, m_pImmediateContext, SCDesc, FullScreenModeDesc{}, Window, &m_pSwapChain );
+		pFactoryD3D11->CreateDeviceAndContextsD3D11( EngineCI, &mRenderDevice, &mImmediateContext );
+		pFactoryD3D11->CreateSwapChainD3D11( mRenderDevice, mImmediateContext, SCDesc, FullScreenModeDesc{}, Window, &mSwapChain );
 	}
 	break;
 #endif // D3D11_SUPPORTED
@@ -229,8 +229,8 @@ bool AppGlfw::InitEngine( RENDER_DEVICE_TYPE DevType )
 		auto* pFactoryD3D12 = GetEngineFactoryD3D12();
 
 		EngineD3D12CreateInfo EngineCI;
-		pFactoryD3D12->CreateDeviceAndContextsD3D12( EngineCI, &m_pDevice, &m_pImmediateContext );
-		pFactoryD3D12->CreateSwapChainD3D12( m_pDevice, m_pImmediateContext, SCDesc, FullScreenModeDesc{}, Window, &m_pSwapChain );
+		pFactoryD3D12->CreateDeviceAndContextsD3D12( EngineCI, &mRenderDevice, &mImmediateContext );
+		pFactoryD3D12->CreateSwapChainD3D12( mRenderDevice, mImmediateContext, SCDesc, FullScreenModeDesc{}, Window, &mSwapChain );
 	}
 	break;
 #endif // D3D12_SUPPORTED
@@ -247,7 +247,7 @@ bool AppGlfw::InitEngine( RENDER_DEVICE_TYPE DevType )
 
 		EngineGLCreateInfo EngineCI;
 		EngineCI.Window = Window;
-		pFactoryOpenGL->CreateDeviceAndSwapChainGL( EngineCI, &m_pDevice, &m_pImmediateContext, SCDesc, &m_pSwapChain );
+		pFactoryOpenGL->CreateDeviceAndSwapChainGL( EngineCI, &mRenderDevice, &mImmediateContext, SCDesc, &mSwapChain );
 	}
 	break;
 #endif // GL_SUPPORTED
@@ -263,8 +263,8 @@ bool AppGlfw::InitEngine( RENDER_DEVICE_TYPE DevType )
 		auto* pFactoryVk = GetEngineFactoryVk();
 
 		EngineVkCreateInfo EngineCI;
-		pFactoryVk->CreateDeviceAndContextsVk( EngineCI, &m_pDevice, &m_pImmediateContext );
-		pFactoryVk->CreateSwapChainVk( m_pDevice, m_pImmediateContext, SCDesc, Window, &m_pSwapChain );
+		pFactoryVk->CreateDeviceAndContextsVk( EngineCI, &mRenderDevice, &mImmediateContext );
+		pFactoryVk->CreateSwapChainVk( mRenderDevice, mImmediateContext, SCDesc, Window, &mSwapChain );
 	}
 	break;
 #endif // VULKAN_SUPPORTED
@@ -287,7 +287,7 @@ bool AppGlfw::InitEngine( RENDER_DEVICE_TYPE DevType )
 		break;
 	}
 
-	if( m_pDevice == nullptr || m_pImmediateContext == nullptr || m_pSwapChain == nullptr )
+	if( mRenderDevice == nullptr || mImmediateContext == nullptr || mSwapChain == nullptr )
 		return false;
 
 	return true;
@@ -296,8 +296,8 @@ bool AppGlfw::InitEngine( RENDER_DEVICE_TYPE DevType )
 void AppGlfw::GLFW_ResizeCallback(GLFWwindow* wnd, int w, int h)
 {
     auto* pSelf = static_cast<AppGlfw*>(glfwGetWindowUserPointer(wnd));
-    if (pSelf->m_pSwapChain != nullptr)
-        pSelf->m_pSwapChain->Resize(static_cast<Uint32>(w), static_cast<Uint32>(h));
+    if (pSelf->mSwapChain != nullptr)
+        pSelf->mSwapChain->Resize(static_cast<Uint32>(w), static_cast<Uint32>(h));
 }
 
 void AppGlfw::GLFW_KeyCallback(GLFWwindow* wnd, int key, int, int state, int)
@@ -333,21 +333,21 @@ void AppGlfw::GLFW_errorCallback( int error, const char *description )
 
 void AppGlfw::Loop()
 {
-    m_LastUpdate = TClock::now();
+    mLastUpdate = TClock::now();
     for( ; ; ) {
-        if (glfwWindowShouldClose(m_Window)) {
+        if (glfwWindowShouldClose(mWindow)) {
             return;
 		}
 
         glfwPollEvents();
 
-        for( auto KeyIter = m_ActiveKeys.begin(); KeyIter != m_ActiveKeys.end(); ) {
+        for( auto KeyIter = mActiveKeys.begin(); KeyIter != mActiveKeys.end(); ) {
             KeyEvent( KeyIter->key, KeyIter->state );
 
             // GLFW does not send 'Repeat' state again, we have to keep these keys until the 'Release' is received.
             switch( KeyIter->state ) {
                 case KeyState::Release:
-					KeyIter = m_ActiveKeys.erase( KeyIter );
+					KeyIter = mActiveKeys.erase( KeyIter );
 				break;
                 case KeyState::Press:
 					KeyIter->state = KeyState::Repeat;
@@ -361,13 +361,13 @@ void AppGlfw::Loop()
         }
 
         const auto time = TClock::now();
-        const auto dt   = std::chrono::duration_cast<TSeconds>( time - m_LastUpdate ).count();
-        m_LastUpdate    = time;
+        const auto dt   = std::chrono::duration_cast<TSeconds>( time - mLastUpdate ).count();
+        mLastUpdate    = time;
 
         Update( dt );
 
         int w, h;
-        glfwGetWindowSize(m_Window , &w, &h );
+        glfwGetWindowSize( mWindow , &w, &h );
 
         // Skip rendering if window is minimized or too small
         if( w > 0 && h > 0 ) {
@@ -378,7 +378,7 @@ void AppGlfw::Loop()
 
 void AppGlfw::OnKeyEvent(Key key, KeyState newState)
 {
-    for( auto& active : m_ActiveKeys ) {
+    for( auto& active : mActiveKeys ) {
         if( active.key == key ) {
 			if( newState == KeyState::Release ) {
 				active.state = newState;
@@ -388,13 +388,13 @@ void AppGlfw::OnKeyEvent(Key key, KeyState newState)
         }
     }
 
-    m_ActiveKeys.push_back( { key, newState } );
+    mActiveKeys.push_back( { key, newState } );
 }
 
 void AppGlfw::Quit()
 {
-    VERIFY_EXPR( m_Window != nullptr );
-    glfwSetWindowShouldClose( m_Window, GLFW_TRUE );
+    VERIFY_EXPR( mWindow != nullptr );
+    glfwSetWindowShouldClose( mWindow, GLFW_TRUE );
 }
 
 // pick a default RENDER_DEVICE_TYPE (user can override
