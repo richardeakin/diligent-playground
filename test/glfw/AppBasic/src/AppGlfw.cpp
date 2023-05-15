@@ -100,10 +100,6 @@
 extern void* GetNSWindowView(GLFWwindow* wnd);
 #endif
 
-// TODO: move these to AppBasic once there are init settings
-static bool const USE_SECONDARY_MONITOR = 1;
-static bool const FULLSCREEN_WINDOW = 0;
-
 using namespace Diligent;
 
 namespace juniper {
@@ -128,43 +124,50 @@ AppGlfw::~AppGlfw()
 	}
 }
 
-bool AppGlfw::CreateWindow(const char* Title, int Width, int Height, int GlfwApiHint)
+bool AppGlfw::CreateWindow( const AppSettings &settings, int glfwApiHint )
 {
     glfwSetErrorCallback( GLFW_errorCallback );
 
 	if( glfwInit() != GLFW_TRUE )
 		return false;
 
-	glfwWindowHint( GLFW_CLIENT_API, GlfwApiHint );
-	if( GlfwApiHint == GLFW_OPENGL_API ) {
+	glfwWindowHint( GLFW_CLIENT_API, glfwApiHint );
+	if( glfwApiHint == GLFW_OPENGL_API ) {
 		// We need compute shaders, so request OpenGL 4.2 at least
 		glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 4 );
 		glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 2 );
 	}
 
-	m_Window = glfwCreateWindow( Width, Height, Title, nullptr, nullptr );
+	m_Window = glfwCreateWindow( settings.windowSize.x, settings.windowSize.y, settings.title.c_str(), nullptr, nullptr );
 	if( m_Window == nullptr ) {
 		LOG_ERROR_MESSAGE( "Failed to create GLFW window" );
 		return false;
 	}
 
-	if( USE_SECONDARY_MONITOR ) {
+	if( settings.monitorIndex > 0 ) {
 		int           monitorCount = 0;
 		GLFWmonitor** monitors = glfwGetMonitors( &monitorCount );
 
-		if( monitorCount > 1 ) {
+		if( monitorCount > settings.monitorIndex ) {
 			// move our window to the right of the primary monitor
 			int xpos, ypos, width, height;
-			glfwGetMonitorPos( monitors[1], &xpos, &ypos );
-			glfwSetWindowPos( m_Window, xpos, ypos );
+			glfwGetMonitorPos( monitors[settings.monitorIndex], &xpos, &ypos );
+			glfwSetWindowPos( m_Window, xpos + settings.windowPos.x, ypos + settings.windowPos.y );
 
+			// TODO: use fullScreen settings flag
 			// TODO: this will have to be improved but good enough for now
 			// - window chrome is sitting above
-			if( FULLSCREEN_WINDOW ) {
-				glfwGetMonitorWorkarea( monitors[1], &xpos, &ypos, &width, &height );
-				glfwSetWindowSize( m_Window, width, height );
-			}
+			//if( FULLSCREEN_WINDOW ) {
+			//	glfwGetMonitorWorkarea( monitors[1], &xpos, &ypos, &width, &height );
+			//	glfwSetWindowSize( m_Window, width, height );
+			//}
 		}
+		else {
+			JU_LOG_WARNING( "settings.monitorIndex out of range (", settings.monitorIndex, ")" );
+		}
+	}
+	else {
+		glfwSetWindowPos( m_Window, settings.windowPos.x, settings.windowPos.y );
 	}
 
 
@@ -481,29 +484,34 @@ int AppGlfwMain( int argc, const char* const* argv )
 		return -1;
 	}
 
-	String title( "AppGlfw" );
-	switch( deviceType ) {
-	case RENDER_DEVICE_TYPE_D3D11:
-		title.append( " (D3D11" );
-	break;
-	case RENDER_DEVICE_TYPE_D3D12:
-		title.append( " (D3D12" );
-	break;
-	case RENDER_DEVICE_TYPE_GL:
-		title.append( " (GL" );
-	break;
-	case RENDER_DEVICE_TYPE_VULKAN:
-		title.append( " (VK" );
-	break;
-	case RENDER_DEVICE_TYPE_METAL:
-		title.append( " (Metal" );
-	break;
-	default:
-		UNEXPECTED( "Unexpected device type" );
+	AppSettings settings;
+	app->prepareSettings( &settings );
+
+	if( settings.title.empty() ) {
+		std::string title( "AppGlfw" );
+		switch( deviceType ) {
+		case RENDER_DEVICE_TYPE_D3D11:
+			title.append( " (D3D11" );
+		break;
+		case RENDER_DEVICE_TYPE_D3D12:
+			title.append( " (D3D12" );
+		break;
+		case RENDER_DEVICE_TYPE_GL:
+			title.append( " (GL" );
+		break;
+		case RENDER_DEVICE_TYPE_VULKAN:
+			title.append( " (VK" );
+		break;
+		case RENDER_DEVICE_TYPE_METAL:
+			title.append( " (Metal" );
+		break;
+		default:
+			UNEXPECTED( "Unexpected device type" );
+		}
+		title.append( ", API " );
+		title.append( std::to_string( DILIGENT_API_VERSION ) );
+		title.push_back( ')' );
 	}
-	title.append( ", API " );
-	title.append( std::to_string( DILIGENT_API_VERSION ) );
-	title.push_back( ')' );
 
 	int APIHint = GLFW_NO_API;
 #if !PLATFORM_WIN32
@@ -514,7 +522,7 @@ int AppGlfwMain( int argc, const char* const* argv )
 	}
 #endif
 
-	if( ! app->CreateWindow( title.c_str(), 1024, 768, APIHint ) )
+	if( ! app->CreateWindow( settings, APIHint ) )
 		return -1;
 
 	if( ! app->InitEngine( deviceType ) )

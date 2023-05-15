@@ -35,6 +35,7 @@ using namespace Diligent;
 
 class AppBasic final : public AppGlfw {
 public:
+    void prepareSettings( AppSettings *settings ) override;
     virtual bool Initialize() override;
     virtual void Update(float dt) override;
     virtual void Draw() override;

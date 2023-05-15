@@ -42,6 +42,13 @@ AppGlfw* CreateGLFWApp()
     return new AppBasic{};
 }
 
+void AppBasic::prepareSettings( AppSettings *settings )
+{
+    settings->windowPos = { 50, 80 };
+    settings->windowSize = { 1700, 1200 };
+    settings->monitorIndex = 2;
+}
+
 bool AppBasic::Initialize()
 {
     try {

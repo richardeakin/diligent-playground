@@ -51,6 +51,14 @@ using dg::float4;
 using dg::float4x4;
 using dg::RefCntAutoPtr;
 
+struct AppSettings {
+    int2 windowPos                      = { 0, 0 }; // TODO: set so it is down a bit and you can see the title bar
+    int2 windowSize                     = { 1024, 768 };
+    int  monitorIndex                    = 0;
+    dg::RENDER_DEVICE_TYPE deviceType   = dg::RENDER_DEVICE_TYPE_UNDEFINED;
+    std::string title;
+};
+
 class AppGlfw {
 public:
     AppGlfw();
@@ -65,11 +73,13 @@ public:
     void Quit();
 
     // Interface
+    virtual void prepareSettings( AppSettings *settings )  {}
     virtual bool Initialize()       = 0;
     // TODO: add resize()
     virtual void Update(float dt)   = 0;
     virtual void Draw()             = 0;
 
+    // TODO: move this to Events.h file
     enum class Key {
         Esc   = GLFW_KEY_ESCAPE,
         Space = GLFW_KEY_SPACE,
@@ -107,7 +117,7 @@ public:
     virtual void MouseEvent( float2 pos ) = 0;
 
 private:
-    bool CreateWindow( const char* Title, int Width, int Height, int GlfwApiHint );
+    bool CreateWindow( const AppSettings &settings, int glfwApiHint );
     bool InitEngine( dg::RENDER_DEVICE_TYPE DevType );
     bool ProcessCommandLine( int argc, const char* const* argv, dg::RENDER_DEVICE_TYPE& DevType );
     void Loop();
