@@ -3,9 +3,6 @@ cmake_minimum_required (VERSION 3.8)
 project( AppBasic CXX)
 set( APP_TARGET "AppBasic" )
 
-#     ${REPO_PATH}/src/juniper/AppGlobal.h
-#     ${REPO_PATH}/src/juniper/AppGlobal.cpp
-
 set( SOURCES
      src/AppGlfw.cpp
      src/AppGlfw.h
@@ -64,7 +61,7 @@ target_compile_definitions( ${APP_TARGET} PRIVATE ENGINE_DLL=1 )
 target_link_libraries( ${APP_TARGET} PRIVATE
     Diligent-Common
     Diligent-GraphicsTools
-    Diligent-RenderStateNotation
+    Diligent-Imgui
     glfw
 )
 

@@ -86,6 +86,7 @@
 
 #include "AppGlfw.h"
 #include "juniper/Juniper.h"
+#include "ImGuiImplWin32.hpp"
 
 #include "GLFW/glfw3native.h"
 #ifdef GetObject
@@ -290,7 +291,16 @@ bool AppGlfw::InitEngine( RENDER_DEVICE_TYPE DevType )
 	if( mRenderDevice == nullptr || mImmediateContext == nullptr || mSwapChain == nullptr )
 		return false;
 
+	// TODO: call virtual resize() here, or make sure it gets called once after initialize()
+
 	return true;
+}
+
+void AppGlfw::initImGui()
+{
+	auto hwnd = glfwGetWin32Window( mWindow );
+	auto scDesc = getSwapChain()->GetDesc();
+	mImGui.reset( new ImGuiImplWin32( hwnd, getDevice(), scDesc.ColorBufferFormat, scDesc.DepthBufferFormat ) );
 }
 
 void AppGlfw::GLFW_ResizeCallback(GLFWwindow* wnd, int w, int h)
@@ -298,6 +308,8 @@ void AppGlfw::GLFW_ResizeCallback(GLFWwindow* wnd, int w, int h)
     auto* pSelf = static_cast<AppGlfw*>(glfwGetWindowUserPointer(wnd));
     if (pSelf->mSwapChain != nullptr)
         pSelf->mSwapChain->Resize(static_cast<Uint32>(w), static_cast<Uint32>(h));
+
+	// TODO: call virtual resize( int2 ) here
 }
 
 void AppGlfw::GLFW_KeyCallback(GLFWwindow* wnd, int key, int, int state, int)
@@ -466,6 +478,8 @@ int AppGlfwMain( int argc, const char* const* argv )
 
 	if( ! app->InitEngine( settings.renderDeviceType ) )
 		return -1;
+
+	app->initImGui();
 
 	if( ! app->Initialize() )
 		return -1;

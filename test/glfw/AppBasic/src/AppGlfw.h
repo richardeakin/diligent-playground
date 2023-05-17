@@ -34,10 +34,13 @@
 #include "RenderDevice.h"
 #include "DeviceContext.h"
 #include "SwapChain.h"
-#include "RenderStateNotationLoader.h"
 #include "BasicMath.hpp"
 
 #include "GLFW/glfw3.h" // TODO: move to cpp (Key stuff to abstracted class)
+
+namespace Diligent {
+    class ImGuiImplDiligent;
+}
 
 namespace juniper {
 
@@ -65,10 +68,10 @@ public:
     virtual ~AppGlfw();
 
     // Public API
-    dg::IEngineFactory* GetEngineFactory()  { return mRenderDevice->GetEngineFactory(); }
-    dg::IRenderDevice*  GetDevice()         { return mRenderDevice; }
-    dg::IDeviceContext* GetContext()        { return mImmediateContext; }
-    dg::ISwapChain*     GetSwapChain()      { return mSwapChain; }
+    dg::IEngineFactory* getEngineFactory()  { return mRenderDevice->GetEngineFactory(); }
+    dg::IRenderDevice*  getDevice()         { return mRenderDevice; }
+    dg::IDeviceContext* getContext()        { return mImmediateContext; }
+    dg::ISwapChain*     getSwapChain()      { return mSwapChain; }
 
     void Quit();
 
@@ -118,9 +121,14 @@ public:
 
     virtual void MouseEvent( float2 pos ) = 0;
 
+protected:
+    std::unique_ptr<Diligent::ImGuiImplDiligent> mImGui;
+    bool                               mShowUI = true; // TODO: add public api for this instead of accessing as protected
+
 private:
     bool CreateWindow( const AppSettings &settings, int glfwApiHint );
     bool InitEngine( dg::RENDER_DEVICE_TYPE DevType );
+    void initImGui();
     dg::RENDER_DEVICE_TYPE chooseDefaultRenderDeviceType() const;
     void Loop();
     void OnKeyEvent( Key key, KeyState state );

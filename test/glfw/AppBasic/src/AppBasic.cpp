@@ -34,13 +34,21 @@
 #include "ShaderMacroHelper.hpp"
 #include "CallbackWrapper.hpp"
 
-namespace juniper {
+#include "imgui.h"
+#include "ImGuiImplDiligent.hpp"
 
+namespace juniper {
 
 AppGlfw* CreateGLFWApp()
 {
     return new AppBasic{};
 }
+
+AppBasic::~AppBasic()
+{
+    mImGui.reset();
+}
+
 
 void AppBasic::prepareSettings( AppSettings *settings )
 {
@@ -53,8 +61,8 @@ void AppBasic::prepareSettings( AppSettings *settings )
 bool AppBasic::Initialize()
 {
     try {
-        GetEngineFactory()->CreateDefaultShaderSourceStreamFactory(nullptr, &m_pShaderSourceFactory);
-        CHECK_THROW(m_pShaderSourceFactory);
+        getEngineFactory()->CreateDefaultShaderSourceStreamFactory( nullptr, &m_pShaderSourceFactory );
+        CHECK_THROW( m_pShaderSourceFactory );
 
         CreatePipelineState();
 
@@ -72,24 +80,43 @@ void AppBasic::Update( float dt )
 
     dt = std::min( dt, MaxDT );
 
+	if( mImGui ) {
+		const auto& swapDesc = getSwapChain()->GetDesc();
+		mImGui->NewFrame( swapDesc.Width, swapDesc.Height, swapDesc.PreTransform );
+		//if( m_bShowAdaptersDialog ) {
+		//	UpdateAdaptersDialog();
+		//}
+
+        ImGui::Text( "Hello ImGui" );
+	}
+
 }
 
 void AppBasic::Draw()
 {
-    auto* pContext   = GetContext();
-    auto* pSwapchain = GetSwapChain();
+    auto* context   = getContext();
+    auto* swapchain = getSwapChain();
 
-    ITextureView* pRTV = pSwapchain->GetCurrentBackBufferRTV();
-    pContext->SetRenderTargets(1, &pRTV, nullptr, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+    ITextureView* rtv = swapchain->GetCurrentBackBufferRTV();
+    context->SetRenderTargets( 1, &rtv, nullptr, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
 
     const float gray = 0.2f;
     const float ClearColor[4] = { gray, gray, gray, gray };
-    pContext->ClearRenderTarget(pRTV, ClearColor, RESOURCE_STATE_TRANSITION_MODE_VERIFY);
+    context->ClearRenderTarget( rtv, ClearColor, RESOURCE_STATE_TRANSITION_MODE_VERIFY );
 
     // TODO: draw solid here
 
-    pContext->Flush();
-    pSwapchain->Present();
+    if( mImGui ) {
+        if( mShowUI ) {
+            mImGui->Render( context );
+        }
+        else {
+            mImGui->EndFrame();
+        }
+    }
+
+    context->Flush();
+    swapchain->Present();
 }
 
 void AppBasic::KeyEvent( Key key, KeyState state )

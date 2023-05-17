@@ -45,6 +45,7 @@ target_compile_definitions( Juniper PRIVATE ENGINE_DLL=1 )
 target_link_libraries( Juniper PRIVATE
     Diligent-Common
     Diligent-GraphicsTools
+    Diligent-Imgui
     glfw
 )
 
