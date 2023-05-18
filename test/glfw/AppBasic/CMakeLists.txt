@@ -4,21 +4,15 @@ project( AppBasic CXX)
 set( APP_TARGET "AppBasic" )
 
 set( SOURCES
-     src/AppGlfw.cpp
-     src/AppGlfw.h
      src/AppBasic.cpp
      src/AppBasic.h
 )
-if( PLATFORM_MACOS )
-    list( APPEND SOURCES src/SurfaceHelper.mm )
-endif()
 
 set( SHADERS
      assets/shaders/solid.vsh
      assets/shaders/solid.psh
      assets/shaders/solid.fxh
 )
-
 
 set( ASSETS ${SHADERS} )
 
@@ -44,6 +38,11 @@ target_link_libraries( ${APP_TARGET} PRIVATE
 
 set_target_properties( ${APP_TARGET} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES )
 target_compile_features( ${APP_TARGET} PUBLIC cxx_std_17 )
+
+# TODO: make optional (Compile And Continue)
+if( PLATFORM_WIN32 )
+   target_compile_options( ${APP_TARGET} PUBLIC "/ZI" )
+endif()
 
 source_group( TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SOURCES} ${ASSETS} )
 target_include_directories( ${APP_TARGET} PRIVATE "${DILIGENT_PATH}/DiligentCore" )

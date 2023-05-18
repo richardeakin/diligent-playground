@@ -85,8 +85,8 @@
 #endif
 
 #include "AppGlfw.h"
-#include "juniper/Juniper.h"
-#include "ImGuiImplWin32.hpp"
+#include "Juniper.h"
+#include "ImGuiImplGlfw.h"
 
 #include "GLFW/glfw3native.h"
 #ifdef GetObject
@@ -171,6 +171,7 @@ bool AppGlfw::CreateWindow( const AppSettings &settings, int glfwApiHint )
 		glfwSetWindowPos( mWindow, settings.windowPos.x, settings.windowPos.y );
 	}
 
+	// TODO: add glfwSetCharCallback, glfwSetDropCallback
 
 	glfwSetWindowUserPointer( mWindow, this );
 	glfwSetFramebufferSizeCallback( mWindow, &GLFW_ResizeCallback );
@@ -298,9 +299,8 @@ bool AppGlfw::InitEngine( RENDER_DEVICE_TYPE DevType )
 
 void AppGlfw::initImGui()
 {
-	auto hwnd = glfwGetWin32Window( mWindow );
 	auto scDesc = getSwapChain()->GetDesc();
-	mImGui.reset( new ImGuiImplWin32( hwnd, getDevice(), scDesc.ColorBufferFormat, scDesc.DepthBufferFormat ) );
+	mImGui.reset( new ImGuiImplGlfw( mWindow, getDevice(), scDesc.ColorBufferFormat, scDesc.DepthBufferFormat ) );
 }
 
 void AppGlfw::GLFW_ResizeCallback(GLFWwindow* wnd, int w, int h)
@@ -343,6 +343,7 @@ void AppGlfw::GLFW_errorCallback( int error, const char *description )
     JU_LOG_ERROR( "error code: ", error, ", description: ", description );
 }
 
+// TODO NEXT: figure out where best to process events (need a native handle for now)
 void AppGlfw::Loop()
 {
     mLastUpdate = TClock::now();

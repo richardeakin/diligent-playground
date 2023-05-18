@@ -88,6 +88,9 @@ void AppBasic::Update( float dt )
 		//}
 
         ImGui::Text( "Hello ImGui" );
+
+        static float s = 0.5f;
+        ImGui::SliderFloat( "test slider", &s, 0, 1 );
 	}
 
 }
@@ -180,27 +183,3 @@ void AppBasic::MouseEvent( float2 pos )
     //LOG_INFO_MESSAGE( __FUNCTION__, "| mouse pos: ", pos );
     JU_LOG_INFO( "mouse pos: ", pos );
 }
-
-
-void AppBasic::CreatePipelineState()
-{
-    //auto Callback = MakeCallback([&](PipelineStateCreateInfo& PipelineCI) {
-    //    auto& GraphicsPipelineCI{static_cast<GraphicsPipelineStateCreateInfo&>(PipelineCI)};
-    //    GraphicsPipelineCI.GraphicsPipeline.RTVFormats[0]    = GetSwapChain()->GetDesc().ColorBufferFormat;
-    //    GraphicsPipelineCI.GraphicsPipeline.NumRenderTargets = 1;
-    //});
-
-    //m_pRSNLoader->LoadPipelineState({"Draw map PSO", PIPELINE_TYPE_GRAPHICS, true, Callback, Callback}, &m_Map.pPSO);
-    //CHECK_THROW(m_Map.pPSO != nullptr);
-
-    //BufferDesc CBDesc;
-    //CBDesc.Name      = "Map constants buffer";
-    //CBDesc.Size      = sizeof(MapConstants);
-    //CBDesc.Usage     = USAGE_DEFAULT;
-    //CBDesc.BindFlags = BIND_UNIFORM_BUFFER;
-
-    //GetDevice()->CreateBuffer(CBDesc, nullptr, &m_Map.pConstants);
-    //CHECK_THROW(m_Map.pConstants != nullptr);
-}
-
-} // namespace Diligent

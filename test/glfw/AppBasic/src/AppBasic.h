@@ -27,8 +27,7 @@
 
 #pragma once
 
-#include "AppGlfw.h"
-
+#include "juniper/AppGlfw.h"
 
 namespace juniper {
 
@@ -48,7 +47,6 @@ public:
     const char* getTitle() const override  { return "AppBasic"; }
 
 private:
-    void CreatePipelineState();
 
 private:
 
