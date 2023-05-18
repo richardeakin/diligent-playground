@@ -33,7 +33,7 @@ target_include_directories( ${APP_TARGET} PUBLIC
 #add_dependencies( ${APP_TARGET} cinder )
 
 target_link_libraries( ${APP_TARGET} PRIVATE
-    Juniper
+    juniper
 )
 
 set_target_properties( ${APP_TARGET} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES )

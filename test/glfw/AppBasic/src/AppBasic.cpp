@@ -64,7 +64,7 @@ bool AppBasic::Initialize()
         getEngineFactory()->CreateDefaultShaderSourceStreamFactory( nullptr, &m_pShaderSourceFactory );
         CHECK_THROW( m_pShaderSourceFactory );
 
-        CreatePipelineState();
+        //CreatePipelineState();
 
         return true;
     }
@@ -183,3 +183,5 @@ void AppBasic::MouseEvent( float2 pos )
     //LOG_INFO_MESSAGE( __FUNCTION__, "| mouse pos: ", pos );
     JU_LOG_INFO( "mouse pos: ", pos );
 }
+
+} // namespace juniper

@@ -3,6 +3,7 @@ cmake_minimum_required( VERSION 3.8 )
 set_property( GLOBAL PROPERTY USE_FOLDERS ON )
 
 project( juniper CXX )
+set( LIB_TARGET "juniper" )
 
 # file(GLOB_RECURSE SHADERS LIST_DIRECTORIES false Shaders/*.*)
 
@@ -33,36 +34,33 @@ if( PLATFORM_MACOS )
     list( APPEND JUNIPER_SOURCES juniper/SurfaceHelper.mm )
 endif()
 
+# TODO: move solid base shaders here
 set( SHADERS
 )
 
 set( ASSETS ${SHADERS} )
 
-add_library( Juniper STATIC ${JUNIPER_SOURCES} ${IMGUI_SOURCES} )
+add_library( ${LIB_TARGET} STATIC ${JUNIPER_SOURCES} ${IMGUI_SOURCES} )
 
-set_target_properties( Juniper PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES )
-target_compile_features( Juniper PUBLIC cxx_std_17 )
+set_target_properties( ${LIB_TARGET} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES )
+target_compile_features( ${LIB_TARGET} PUBLIC cxx_std_17 )
 
-target_compile_definitions( Juniper PRIVATE UNICODE )
+target_compile_definitions( ${LIB_TARGET} PRIVATE UNICODE )
 
-# TODO: this fixes the sources so they match the natural folder structure but still want them to end up in a src/ subtree - how?
-# FIXME SOON: this may work, but Visual Studio cmake updates detection is broken right now.
-# - will do a clean and rebuild when I am done for the day
-# - report bug if I can
+# creates folder layout so all .h and .cpp files live in the "src" folder, relative to their naturual folder hiearchy
 source_group( TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "src" FILES ${JUNIPER_SOURCES} ${ASSETS} )
-
-#source_group( "src" FILES ${JUNIPER_SOURCES} ${ASSETS} )
-#source_group( "assets" FILES ${ASSETS} )
+# imgui files use absolute paths so add their group separately
 source_group( "src/imgui" FILES ${IMGUI_SOURCES} )
+#source_group( "assets" FILES ${ASSETS} )
 
-target_include_directories( Juniper PRIVATE "${DILIGENT_PATH}/DiligentCore" )
+target_include_directories( ${LIB_TARGET} PRIVATE "${DILIGENT_PATH}/DiligentCore" )
 if( METAL_SUPPORTED )
-    target_include_directories( Juniper PRIVATE "${DILIGENT_PATH}/DiligentCorePro" )
+    target_include_directories( ${LIB_TARGET} PRIVATE "${DILIGENT_PATH}/DiligentCorePro" )
 endif()
 
 # These add necessary includes for our library
-target_compile_definitions( Juniper PRIVATE ENGINE_DLL=1 )
-target_link_libraries( Juniper PRIVATE
+target_compile_definitions( ${LIB_TARGET} PRIVATE ENGINE_DLL=1 )
+target_link_libraries( ${LIB_TARGET} PRIVATE
     Diligent-Common
     Diligent-GraphicsTools
     Diligent-Imgui
@@ -70,17 +68,17 @@ target_link_libraries( Juniper PRIVATE
 )
 
 if( D3D11_SUPPORTED )
-    target_link_libraries( Juniper PRIVATE Diligent-GraphicsEngineD3D11-shared )
+    target_link_libraries( ${LIB_TARGET} PRIVATE Diligent-GraphicsEngineD3D11-shared )
 endif()
 if( D3D12_SUPPORTED )
-    target_link_libraries( Juniper PRIVATE Diligent-GraphicsEngineD3D12-shared )
+    target_link_libraries( ${LIB_TARGET} PRIVATE Diligent-GraphicsEngineD3D12-shared )
 endif()
 if( GL_SUPPORTED )
-    target_link_libraries( Juniper PRIVATE Diligent-GraphicsEngineOpenGL-shared )
+    target_link_libraries( ${LIB_TARGET} PRIVATE Diligent-GraphicsEngineOpenGL-shared )
 endif()
 if( VULKAN_SUPPORTED )
-    target_link_libraries( Juniper PRIVATE Diligent-GraphicsEngineVk-shared )
+    target_link_libraries( ${LIB_TARGET} PRIVATE Diligent-GraphicsEngineVk-shared )
 endif()
 if( METAL_SUPPORTED )
-    target_link_libraries( Juniper PRIVATE Diligent-GraphicsEngineMetal-shared )
+    target_link_libraries( ${LIB_TARGET} PRIVATE Diligent-GraphicsEngineMetal-shared )
 endif()
