@@ -391,9 +391,9 @@ void AppGlfw::GLFW_KeyCallback( GLFWwindow* window, int key, int scancode, int a
 		state = KeyEvent::State::Press;
 		// TODO: if convertedChar != 0, we'll get the unicode char value and wait until onCharInput is called.
 		// if convertedChar == 0, that means it is a non-unicode key (ex ctrl), so we'll issue a keydown here.
-		if( convertedChar != 0 ) {
-			processCallback = false;
-		}
+		//if( convertedChar != 0 ) {
+		//	processCallback = false;
+		//}
 	}
 	else if( action == GLFW_RELEASE ) {
 		state = KeyEvent::State::Release;
@@ -502,6 +502,7 @@ void AppGlfw::onKeyEvent( const KeyEvent &key )
 
 	// new key
     mActiveKeys.push_back( key );
+	keyEvent( key );
 }
 
 void AppGlfw::Quit()

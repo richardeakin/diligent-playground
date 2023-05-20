@@ -83,53 +83,11 @@ void AppBasic::keyEvent( const KeyEvent &key )
     auto state = key.getState();
     std::string stateStr = ( state == KeyEvent::State::Release ? "Release" : ( state == KeyEvent::State::Press ? "Press" : "Release" ) );
     JU_LOG_INFO( "key: ", (int)key.getKey(), ", state: ", stateStr );
-#if 0
-    if (state == KeyState::Press || state == KeyState::Repeat) {
-        switch (key)  {
-        case Key::W:
-        case Key::Up:
-        case Key::NP_Up:
-            m_Player.PendingPos.y += 1.0f;
-            break;
 
-        case Key::S:
-        case Key::Down:
-        case Key::NP_Down:
-            m_Player.PendingPos.y -= 1.0f;
-            break;
+    // TODO NEXT: figure out why this breakpoint ion't hitting
+    int blarg = 2;
+    blarg *= (int)key.getKey();
 
-        case Key::D:
-        case Key::Right:
-        case Key::NP_Right:
-            m_Player.PendingPos.x += 1.0f;
-            break;
-
-        case Key::A:
-        case Key::Left:
-        case Key::NP_Left:
-            m_Player.PendingPos.x -= 1.0f;
-            break;
-
-        case Key::Space:
-            m_Player.PendingPos = m_Player.FlashLightDir;
-            break;
-
-        case Key::Esc:
-            Quit();
-            break;
-
-        default:
-            break;
-        }
-    }
-#endif
-
-    //if (key == Key::MB_Left)
-    //    m_Player.LMBPressed = (state != KeyState::Release);
-
-    //// generate new map
-    //if (state == KeyState::Release && key == Key::Tab)
-    //    LoadNewMap();
 }
 
 void AppBasic::mouseEvent( float2 pos )
