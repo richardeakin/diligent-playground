@@ -18,6 +18,8 @@ ci_log_i( "CMAKE_CURRENT_SOURCE_DIR: ${CMAKE_CURRENT_SOURCE_DIR}" )
 set( JUNIPER_SOURCES
 	juniper/AppGlfw.cpp
 	juniper/AppGlfw.h
+	juniper/AppEvents.cpp
+	juniper/AppEvents.h
 	juniper/AppGlobal.cpp
 	juniper/AppGlobal.h
 	juniper/ImGuiImplGlfw.cpp

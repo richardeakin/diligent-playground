@@ -88,6 +88,7 @@
 #include "Juniper.h"
 #include "ImGuiImplGlfw.h"
 
+#include "GLFW/glfw3.h"
 #include "GLFW/glfw3native.h"
 #ifdef GetObject
 #    undef GetObject
@@ -104,6 +105,70 @@ extern void* GetNSWindowView(GLFWwindow* wnd);
 using namespace Diligent;
 
 namespace juniper {
+
+namespace {
+
+//! Translates GLFW \a mods into ci::KeyEvent modifier values
+static int extractKeyModifiers( int mods )
+{
+	uint32_t modifiers = 0;
+	if( mods & GLFW_MOD_SHIFT ) {
+		modifiers |= KeyEvent::SHIFT_DOWN;
+	}
+	if( mods & GLFW_MOD_CONTROL ) {
+		modifiers |= KeyEvent::CTRL_DOWN;
+	}
+	if( mods & GLFW_MOD_ALT ) {
+		modifiers |= KeyEvent::ALT_DOWN;
+	}
+	if( mods & GLFW_MOD_SUPER ) {
+		modifiers |= KeyEvent::META_DOWN;
+	}
+	return modifiers;
+}
+
+//! Limit char8 to ASCII input for now.
+static int8_t modifyCharToASCII( int key, uint32_t modifiers, bool capsLockIsDown )
+{
+	int8_t ret = ( key <= 127 ) ? (char)key : 0;
+	if( ret ) {
+		// a letter key
+		bool shiftIsDown = modifiers & KeyEvent::SHIFT_DOWN;
+		if( ret > 64 && ret < 91 && ! ( shiftIsDown ^ capsLockIsDown ) ) {
+			ret += 32;
+		}
+		// other modifiable keys
+		else if( shiftIsDown ) {
+			switch ( ret ) {
+			case '1': ret = '!'; break;
+			case '2': ret = '@'; break;
+			case '3': ret = '#'; break;
+			case '4': ret = '$'; break;
+			case '5': ret = '%'; break;
+			case '6': ret = '^'; break;
+			case '7': ret = '&'; break;
+			case '8': ret = '*'; break;
+			case '9': ret = '('; break;
+			case '0': ret = ')'; break;
+			case '`': ret = '~'; break;
+			case '-': ret = '_'; break;
+			case '=': ret = '+'; break;
+			case '[': ret = '{'; break;
+			case ']': ret = '}'; break;
+			case '\\': ret = '|'; break;
+			case ';': ret = ':'; break;
+			case '\'': ret = '"'; break;
+			case ',': ret = '<'; break;
+			case '.': ret = '>'; break;
+			case '/': ret = '?'; break;
+			default: break;
+			};
+		}
+	}
+	return ret;
+}
+
+} // anonymous namespace
 
 AppGlfw::AppGlfw()
 {
@@ -125,7 +190,7 @@ AppGlfw::~AppGlfw()
 	}
 }
 
-bool AppGlfw::CreateWindow( const AppSettings &settings, int glfwApiHint )
+bool AppGlfw::createWindow( const AppSettings &settings, int glfwApiHint )
 {
     glfwSetErrorCallback( GLFW_errorCallback );
 
@@ -184,7 +249,7 @@ bool AppGlfw::CreateWindow( const AppSettings &settings, int glfwApiHint )
 	return true;
 }
 
-bool AppGlfw::InitEngine( RENDER_DEVICE_TYPE DevType )
+bool AppGlfw::initEngine( RENDER_DEVICE_TYPE DevType )
 {
 #if PLATFORM_WIN32
 	Win32NativeWindow Window{ glfwGetWin32Window( mWindow ) };
@@ -303,34 +368,63 @@ void AppGlfw::initImGui()
 	mImGui.reset( new ImGuiImplGlfw( mWindow, getDevice(), scDesc.ColorBufferFormat, scDesc.DepthBufferFormat ) );
 }
 
-void AppGlfw::GLFW_ResizeCallback(GLFWwindow* wnd, int w, int h)
+void AppGlfw::GLFW_ResizeCallback( GLFWwindow* wnd, int w, int h )
 {
-    auto* pSelf = static_cast<AppGlfw*>(glfwGetWindowUserPointer(wnd));
-    if (pSelf->mSwapChain != nullptr)
-        pSelf->mSwapChain->Resize(static_cast<Uint32>(w), static_cast<Uint32>(h));
-
-	// TODO: call virtual resize( int2 ) here
+	auto* self = static_cast<AppGlfw*>( glfwGetWindowUserPointer( wnd ) );
+	if( self->mSwapChain != nullptr ) {
+		self->mSwapChain->Resize( static_cast<Uint32>( w ), static_cast<Uint32>( h ) );
+		self->resize( { w, h } );
+	}
 }
 
-void AppGlfw::GLFW_KeyCallback(GLFWwindow* wnd, int key, int, int state, int)
+void AppGlfw::GLFW_KeyCallback( GLFWwindow* window, int key, int scancode, int action, int mods )
 {
-    auto* pSelf = static_cast<AppGlfw*>(glfwGetWindowUserPointer(wnd));
-    pSelf->OnKeyEvent(static_cast<Key>(key), static_cast<KeyState>(state));
+	auto* self = static_cast<AppGlfw*>( glfwGetWindowUserPointer( window ) );
+
+	auto modifiers = extractKeyModifiers( mods );
+	bool capsLock = glfwGetKey( window, GLFW_KEY_CAPS_LOCK );
+	auto convertedChar = modifyCharToASCII( key, modifiers, capsLock );
+	auto state = KeyEvent::State::Unknown;
+	bool processCallback = true;
+
+	if( action == GLFW_PRESS ) {
+		state = KeyEvent::State::Press;
+		// TODO: if convertedChar != 0, we'll get the unicode char value and wait until onCharInput is called.
+		// if convertedChar == 0, that means it is a non-unicode key (ex ctrl), so we'll issue a keydown here.
+		if( convertedChar != 0 ) {
+			processCallback = false;
+		}
+	}
+	else if( action == GLFW_RELEASE ) {
+		state = KeyEvent::State::Release;
+	}
+	else if( action == GLFW_REPEAT ) {
+		// TODO: how handle this?
+		JU_LOG_INFO( "Key Repeat" );
+		state = KeyEvent::State::Repeat;
+	}
+
+	auto keyTranslated = KeyEvent::translateNativeKeyCode( key );
+	auto keyEvent = KeyEvent( keyTranslated, 0, 0, state, modifiers, scancode );
+	self->onKeyEvent( keyEvent );
 }
 
-void AppGlfw::GLFW_MouseButtonCallback(GLFWwindow* wnd, int button, int state, int)
+void AppGlfw::GLFW_MouseButtonCallback( GLFWwindow* wnd, int button, int state, int )
 {
-    auto* pSelf = static_cast<AppGlfw*>(glfwGetWindowUserPointer(wnd));
-    pSelf->OnKeyEvent(static_cast<Key>(button), static_cast<KeyState>(state));
+	auto* self = static_cast<AppGlfw*>( glfwGetWindowUserPointer( wnd ) );
+
+	// TODO: handle as a mouseEvent
+	//self->onKeyEvent(static_cast<Key>(button), static_cast<KeyState>(state));
+
 }
 
-void AppGlfw::GLFW_CursorPosCallback(GLFWwindow* wnd, double xpos, double ypos)
+void AppGlfw::GLFW_CursorPosCallback( GLFWwindow* wnd, double xpos, double ypos )
 {
-    float xscale = 1;
-    float yscale = 1;
-    glfwGetWindowContentScale(wnd, &xscale, &yscale);
-    auto* pSelf = static_cast<AppGlfw*>(glfwGetWindowUserPointer(wnd));
-    pSelf->MouseEvent(float2(static_cast<float>(xpos * xscale), static_cast<float>(ypos * yscale)));
+	float xscale = 1;
+	float yscale = 1;
+	glfwGetWindowContentScale( wnd, &xscale, &yscale );
+	auto* self = static_cast<AppGlfw*>( glfwGetWindowUserPointer( wnd ) );
+	self->mouseEvent( float2( static_cast<float>( xpos * xscale ), static_cast<float>( ypos * yscale ) ) );
 }
 
 void AppGlfw::GLFW_MouseWheelCallback(GLFWwindow* wnd, double dx, double dy)
@@ -343,8 +437,7 @@ void AppGlfw::GLFW_errorCallback( int error, const char *description )
     JU_LOG_ERROR( "error code: ", error, ", description: ", description );
 }
 
-// TODO NEXT: figure out where best to process events (need a native handle for now)
-void AppGlfw::Loop()
+void AppGlfw::loop()
 {
     mLastUpdate = TClock::now();
     for( ; ; ) {
@@ -354,6 +447,8 @@ void AppGlfw::Loop()
 
         glfwPollEvents();
 
+#if 0
+		// TODO: if needed, move to a private function
         for( auto KeyIter = mActiveKeys.begin(); KeyIter != mActiveKeys.end(); ) {
             KeyEvent( KeyIter->key, KeyIter->state );
 
@@ -372,36 +467,41 @@ void AppGlfw::Loop()
                     break;
             }
         }
+#endif
 
         const auto time = TClock::now();
         const auto dt   = std::chrono::duration_cast<TSeconds>( time - mLastUpdate ).count();
         mLastUpdate    = time;
 
-        Update( dt );
+        update( dt );
 
         int w, h;
         glfwGetWindowSize( mWindow , &w, &h );
 
         // Skip rendering if window is minimized or too small
         if( w > 0 && h > 0 ) {
-            Draw();
+            draw();
 		}
     }
 }
 
-void AppGlfw::OnKeyEvent(Key key, KeyState newState)
+void AppGlfw::onKeyEvent( const KeyEvent &key )
 {
+	// update if active
     for( auto& active : mActiveKeys ) {
-        if( active.key == key ) {
-			if( newState == KeyState::Release ) {
-				active.state = newState;
-			}
+        if( active.getKey() == key.getKey() ) {
+			active.setState( key.getState() );
+			// TODO: needed?
+			//if( newState == KeyState::Release ) {
+			//	active.state = newState;
+			//}
 
 			return;
         }
     }
 
-    mActiveKeys.push_back( { key, newState } );
+	// new key
+    mActiveKeys.push_back( key );
 }
 
 void AppGlfw::Quit()
@@ -474,18 +574,15 @@ int AppGlfwMain( int argc, const char* const* argv )
 	}
 #endif
 
-	if( ! app->CreateWindow( settings, APIHint ) )
+	if( ! app->createWindow( settings, APIHint ) )
 		return -1;
 
-	if( ! app->InitEngine( settings.renderDeviceType ) )
+	if( ! app->initEngine( settings.renderDeviceType ) )
 		return -1;
 
 	app->initImGui();
-
-	if( ! app->Initialize() )
-		return -1;
-
-	app->Loop();
+	app->initialize();
+	app->loop();
 
 	return 0;
 }

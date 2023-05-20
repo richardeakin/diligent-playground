@@ -38,11 +38,11 @@ public:
     virtual ~AppBasic();
 
     void prepareSettings( AppSettings *settings ) override;
-    virtual bool Initialize() override;
-    virtual void Update(float dt) override;
-    virtual void Draw() override;
-    virtual void KeyEvent( Key key, KeyState state ) override;
-    virtual void MouseEvent( float2 pos ) override;
+    virtual void initialize() override;
+    virtual void update(float dt) override;
+    virtual void draw() override;
+    virtual void keyEvent( const KeyEvent &key ) override;
+    virtual void mouseEvent( float2 pos ) override;
 
     const char* getTitle() const override  { return "AppBasic"; }
 

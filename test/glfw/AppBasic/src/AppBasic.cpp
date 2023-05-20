@@ -49,6 +49,9 @@ AppBasic::~AppBasic()
     mImGui.reset();
 }
 
+// -------------------------------------------------------------------------------------------------------
+// App Init
+// -------------------------------------------------------------------------------------------------------
 
 void AppBasic::prepareSettings( AppSettings *settings )
 {
@@ -58,23 +61,89 @@ void AppBasic::prepareSettings( AppSettings *settings )
     //settings->renderDeviceType = RENDER_DEVICE_TYPE_VULKAN;
 }
 
-bool AppBasic::Initialize()
+void AppBasic::initialize()
 {
     try {
         getEngineFactory()->CreateDefaultShaderSourceStreamFactory( nullptr, &m_pShaderSourceFactory );
         CHECK_THROW( m_pShaderSourceFactory );
-
-        //CreatePipelineState();
-
-        return true;
     }
     catch ( std::exception &exc ) {
         LOG_ERROR_MESSAGE( __FUNCTION__, "| exception caught during init, what: ", exc.what() );
-        return false;
     }
 }
 
-void AppBasic::Update( float dt )
+// -------------------------------------------------------------------------------------------------------
+// Events
+// -------------------------------------------------------------------------------------------------------
+
+void AppBasic::keyEvent( const KeyEvent &key )
+{
+    // TODO: make enum -> string converters
+    // - will make a copy of cinder's app::KeyEvent, just the GLFW part
+    auto state = key.getState();
+    std::string stateStr = ( state == KeyEvent::State::Release ? "Release" : ( state == KeyEvent::State::Press ? "Press" : "Release" ) );
+    JU_LOG_INFO( "key: ", (int)key.getKey(), ", state: ", stateStr );
+#if 0
+    if (state == KeyState::Press || state == KeyState::Repeat) {
+        switch (key)  {
+        case Key::W:
+        case Key::Up:
+        case Key::NP_Up:
+            m_Player.PendingPos.y += 1.0f;
+            break;
+
+        case Key::S:
+        case Key::Down:
+        case Key::NP_Down:
+            m_Player.PendingPos.y -= 1.0f;
+            break;
+
+        case Key::D:
+        case Key::Right:
+        case Key::NP_Right:
+            m_Player.PendingPos.x += 1.0f;
+            break;
+
+        case Key::A:
+        case Key::Left:
+        case Key::NP_Left:
+            m_Player.PendingPos.x -= 1.0f;
+            break;
+
+        case Key::Space:
+            m_Player.PendingPos = m_Player.FlashLightDir;
+            break;
+
+        case Key::Esc:
+            Quit();
+            break;
+
+        default:
+            break;
+        }
+    }
+#endif
+
+    //if (key == Key::MB_Left)
+    //    m_Player.LMBPressed = (state != KeyState::Release);
+
+    //// generate new map
+    //if (state == KeyState::Release && key == Key::Tab)
+    //    LoadNewMap();
+}
+
+void AppBasic::mouseEvent( float2 pos )
+{
+    // TODO: wrap this in a new macro, as a holdover until using ci::log
+    //LOG_INFO_MESSAGE( __FUNCTION__, "| mouse pos: ", pos );
+    JU_LOG_INFO( "mouse pos: ", pos );
+}
+
+// -------------------------------------------------------------------------------------------------------
+// App Lifecycle
+// -------------------------------------------------------------------------------------------------------
+
+void AppBasic::update( float dt )
 {
     const float MaxDT                 = 1.0f / 30.0f; // TODO: set to 60, not sure why this is limited to 30 here
 
@@ -95,7 +164,7 @@ void AppBasic::Update( float dt )
 
 }
 
-void AppBasic::Draw()
+void AppBasic::draw()
 {
     auto* context   = getContext();
     auto* swapchain = getSwapChain();
@@ -120,68 +189,6 @@ void AppBasic::Draw()
 
     context->Flush();
     swapchain->Present();
-}
-
-void AppBasic::KeyEvent( Key key, KeyState state )
-{
-    // TODO: log key + state
-    // - will make a copy of cinder's app::KeyEvent, just the GLFW part
-    std::string stateStr = ( state == KeyState::Release ? "Release" : ( state == KeyState::Press ? "Press" : "Release" ) );
-    JU_LOG_INFO( "key: ", (int)key, ", state: ", stateStr );
-#if 0
-    if (state == KeyState::Press || state == KeyState::Repeat) {
-        switch (key)  {
-            case Key::W:
-            case Key::Up:
-            case Key::NP_Up:
-                m_Player.PendingPos.y += 1.0f;
-                break;
-
-            case Key::S:
-            case Key::Down:
-            case Key::NP_Down:
-                m_Player.PendingPos.y -= 1.0f;
-                break;
-
-            case Key::D:
-            case Key::Right:
-            case Key::NP_Right:
-                m_Player.PendingPos.x += 1.0f;
-                break;
-
-            case Key::A:
-            case Key::Left:
-            case Key::NP_Left:
-                m_Player.PendingPos.x -= 1.0f;
-                break;
-
-            case Key::Space:
-                m_Player.PendingPos = m_Player.FlashLightDir;
-                break;
-
-            case Key::Esc:
-                Quit();
-                break;
-
-            default:
-                break;
-        }
-    }
-#endif
-
-    //if (key == Key::MB_Left)
-    //    m_Player.LMBPressed = (state != KeyState::Release);
-
-    //// generate new map
-    //if (state == KeyState::Release && key == Key::Tab)
-    //    LoadNewMap();
-}
-
-void AppBasic::MouseEvent( float2 pos )
-{
-    // TODO: wrap this in a new macro, as a holdover until using ci::log
-    //LOG_INFO_MESSAGE( __FUNCTION__, "| mouse pos: ", pos );
-    JU_LOG_INFO( "mouse pos: ", pos );
 }
 
 } // namespace juniper

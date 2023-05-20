@@ -27,8 +27,7 @@
 
 #pragma once
 
-#include <chrono>
-#include <vector>
+#include "AppEvents.h"
 
 #include "RefCntAutoPtr.hpp"
 #include "RenderDevice.h"
@@ -36,7 +35,10 @@
 #include "SwapChain.h"
 #include "BasicMath.hpp"
 
-#include "GLFW/glfw3.h" // TODO: move to cpp (Key stuff to abstracted class)
+#include <chrono>
+#include <vector>
+
+typedef struct GLFWwindow GLFWwindow;
 
 namespace Diligent {
     class ImGuiImplDiligent;
@@ -77,64 +79,32 @@ public:
 
     // Interface
     virtual void prepareSettings( AppSettings *settings )  {}
-    virtual bool Initialize()       = 0;
-    // TODO: add resize()
-    virtual void Update(float dt)   = 0;
-    virtual void Draw()             = 0;
+    virtual void initialize()               {}
+    virtual void resize( const int2 &size ) {}
+    virtual void update( float dt )         {}
+    virtual void draw()                     {}
 
     virtual const char* getTitle() const   { return "AppGlfw"; }
 
-    // TODO: move this to Events.h file
-    enum class Key {
-        Esc   = GLFW_KEY_ESCAPE,
-        Space = GLFW_KEY_SPACE,
-        Tab   = GLFW_KEY_TAB,
-
-        W = GLFW_KEY_W,
-        A = GLFW_KEY_A,
-        S = GLFW_KEY_S,
-        D = GLFW_KEY_D,
-
-        // arrows
-        Left  = GLFW_KEY_LEFT,
-        Right = GLFW_KEY_RIGHT,
-        Up    = GLFW_KEY_UP,
-        Down  = GLFW_KEY_DOWN,
-
-        // numpad arrows
-        NP_Left  = GLFW_KEY_KP_4,
-        NP_Right = GLFW_KEY_KP_6,
-        NP_Up    = GLFW_KEY_KP_8,
-        NP_Down  = GLFW_KEY_KP_2,
-
-        // mouse buttons
-        MB_Left   = GLFW_MOUSE_BUTTON_LEFT,
-        MB_Right  = GLFW_MOUSE_BUTTON_RIGHT,
-        MB_Middle = GLFW_MOUSE_BUTTON_MIDDLE,
-    };
-    enum class KeyState {
-        Release = GLFW_RELEASE,
-        Press   = GLFW_PRESS,
-        Repeat  = GLFW_REPEAT,
-    };
-    virtual void KeyEvent( Key key, KeyState state ) = 0;
-
-    virtual void MouseEvent( float2 pos ) = 0;
+    //! Override to handle keyboard events
+    virtual void keyEvent( const KeyEvent &key ) = 0;
+    //! Override to handle mouse events
+    virtual void mouseEvent( float2 pos ) = 0;
 
 protected:
     std::unique_ptr<Diligent::ImGuiImplDiligent> mImGui;
-    bool                               mShowUI = true; // TODO: add public api for this instead of accessing as protected
+    bool                               mShowUI = true; // TODO: add public api for this (move to AppBasic) instead of accessing as protected
 
 private:
-    bool CreateWindow( const AppSettings &settings, int glfwApiHint );
-    bool InitEngine( dg::RENDER_DEVICE_TYPE DevType );
+    bool createWindow( const AppSettings &settings, int glfwApiHint );
+    bool initEngine( dg::RENDER_DEVICE_TYPE DevType );
     void initImGui();
+    void loop();
+    void onKeyEvent( const KeyEvent &key );
     dg::RENDER_DEVICE_TYPE chooseDefaultRenderDeviceType() const;
-    void Loop();
-    void OnKeyEvent( Key key, KeyState state );
 
 	static void GLFW_ResizeCallback( GLFWwindow* wnd, int w, int h );
-	static void GLFW_KeyCallback( GLFWwindow* wnd, int key, int, int state, int );
+	static void GLFW_KeyCallback( GLFWwindow* window, int key, int scancode, int action, int mods );
 	static void GLFW_MouseButtonCallback( GLFWwindow* wnd, int button, int state, int );
 	static void GLFW_CursorPosCallback( GLFWwindow* wnd, double xpos, double ypos );
 	static void GLFW_MouseWheelCallback( GLFWwindow* wnd, double dx, double dy );
@@ -148,11 +118,7 @@ private:
     RefCntAutoPtr<dg::ISwapChain>     mSwapChain;
     GLFWwindow*                       mWindow = nullptr;
 
-    struct ActiveKey {
-        Key      key;
-        KeyState state;
-    };
-    std::vector<ActiveKey> mActiveKeys;
+    std::vector<KeyEvent> mActiveKeys;
 
     using TClock   = std::chrono::high_resolution_clock;
     using TSeconds = std::chrono::duration<float>;
