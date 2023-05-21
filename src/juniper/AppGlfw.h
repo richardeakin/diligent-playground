@@ -75,7 +75,7 @@ public:
     dg::IDeviceContext* getContext()        { return mImmediateContext; }
     dg::ISwapChain*     getSwapChain()      { return mSwapChain; }
 
-    void Quit();
+    void quit();
 
     // Interface
     virtual void prepareSettings( AppSettings *settings )  {}
@@ -96,15 +96,19 @@ protected:
     bool                               mShowUI = true; // TODO: add public api for this (move to AppBasic) instead of accessing as protected
 
 private:
+    dg::RENDER_DEVICE_TYPE chooseDefaultRenderDeviceType() const;
     bool createWindow( const AppSettings &settings, int glfwApiHint );
     bool initEngine( dg::RENDER_DEVICE_TYPE DevType );
     void initImGui();
+    //void onKeyEvent( const KeyEvent &key, bool processCallback );
+    void addOrUpdateKeyEvent( const KeyEvent &key );
+    void flushOldKeyEvents();
     void loop();
-    void onKeyEvent( const KeyEvent &key );
-    dg::RENDER_DEVICE_TYPE chooseDefaultRenderDeviceType() const;
 
+    // TODO: fix remaining casing
 	static void GLFW_ResizeCallback( GLFWwindow* wnd, int w, int h );
 	static void GLFW_KeyCallback( GLFWwindow* window, int key, int scancode, int action, int mods );
+    static void GLFW_CharCallback( GLFWwindow *glfwWindow, unsigned int codepoint );
 	static void GLFW_MouseButtonCallback( GLFWwindow* wnd, int button, int state, int );
 	static void GLFW_CursorPosCallback( GLFWwindow* wnd, double xpos, double ypos );
 	static void GLFW_MouseWheelCallback( GLFWwindow* wnd, double dx, double dy );
@@ -118,7 +122,8 @@ private:
     RefCntAutoPtr<dg::ISwapChain>     mSwapChain;
     GLFWwindow*                       mWindow = nullptr;
 
-    std::vector<KeyEvent> mActiveKeys;
+    std::vector<KeyEvent>   mActiveKeys;
+    KeyEvent                mLastKeyEvent;
 
     using TClock   = std::chrono::high_resolution_clock;
     using TSeconds = std::chrono::duration<float>;

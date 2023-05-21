@@ -170,6 +170,10 @@ static int8_t modifyCharToASCII( int key, uint32_t modifiers, bool capsLockIsDow
 
 } // anonymous namespace
 
+// ----------------------------------------------------------------------------------
+// Init / Destroy
+// ----------------------------------------------------------------------------------
+
 AppGlfw::AppGlfw()
 {
 }
@@ -188,6 +192,24 @@ AppGlfw::~AppGlfw()
 		glfwDestroyWindow( mWindow );
 		glfwTerminate();
 	}
+}
+
+// pick a default RENDER_DEVICE_TYPE (user can override
+RENDER_DEVICE_TYPE AppGlfw::chooseDefaultRenderDeviceType() const
+{
+#if METAL_SUPPORTED
+	return RENDER_DEVICE_TYPE_METAL;
+#elif D3D12_SUPPORTED
+	return RENDER_DEVICE_TYPE_D3D12;
+#elif VULKAN_SUPPORTED
+	return RENDER_DEVICE_TYPE_VULKAN;
+#elif D3D11_SUPPORTED
+	return RENDER_DEVICE_TYPE_D3D11;
+#elif GL_SUPPORTED
+	return RENDER_DEVICE_TYPE_GL;
+#else
+	return RENDER_DEVICE_TYPE_UNDEFINED;
+#endif
 }
 
 bool AppGlfw::createWindow( const AppSettings &settings, int glfwApiHint )
@@ -241,6 +263,7 @@ bool AppGlfw::createWindow( const AppSettings &settings, int glfwApiHint )
 	glfwSetWindowUserPointer( mWindow, this );
 	glfwSetFramebufferSizeCallback( mWindow, &GLFW_ResizeCallback );
 	glfwSetKeyCallback( mWindow, &GLFW_KeyCallback );
+	glfwSetCharCallback( mWindow, &GLFW_CharCallback );
 	glfwSetMouseButtonCallback( mWindow, &GLFW_MouseButtonCallback );
 	glfwSetCursorPosCallback( mWindow, &GLFW_CursorPosCallback );
 	glfwSetScrollCallback( mWindow, &GLFW_MouseWheelCallback );
@@ -368,6 +391,16 @@ void AppGlfw::initImGui()
 	mImGui.reset( new ImGuiImplGlfw( mWindow, getDevice(), scDesc.ColorBufferFormat, scDesc.DepthBufferFormat ) );
 }
 
+void AppGlfw::quit()
+{
+	VERIFY_EXPR( mWindow != nullptr );
+	glfwSetWindowShouldClose( mWindow, GLFW_TRUE );
+}
+
+// ----------------------------------------------------------------------------------
+// GLFW Callbacks
+// ----------------------------------------------------------------------------------
+
 void AppGlfw::GLFW_ResizeCallback( GLFWwindow* wnd, int w, int h )
 {
 	auto* self = static_cast<AppGlfw*>( glfwGetWindowUserPointer( wnd ) );
@@ -389,11 +422,11 @@ void AppGlfw::GLFW_KeyCallback( GLFWwindow* window, int key, int scancode, int a
 
 	if( action == GLFW_PRESS ) {
 		state = KeyEvent::State::Press;
-		// TODO: if convertedChar != 0, we'll get the unicode char value and wait until onCharInput is called.
+		// if convertedChar != 0, we'll get the unicode char value and wait until onCharInput is called.
 		// if convertedChar == 0, that means it is a non-unicode key (ex ctrl), so we'll issue a keydown here.
-		//if( convertedChar != 0 ) {
-		//	processCallback = false;
-		//}
+		if( convertedChar != 0 ) {
+			processCallback = false;
+		}
 	}
 	else if( action == GLFW_RELEASE ) {
 		state = KeyEvent::State::Release;
@@ -406,7 +439,24 @@ void AppGlfw::GLFW_KeyCallback( GLFWwindow* window, int key, int scancode, int a
 
 	auto keyTranslated = KeyEvent::translateNativeKeyCode( key );
 	auto keyEvent = KeyEvent( keyTranslated, 0, 0, state, modifiers, scancode );
-	self->onKeyEvent( keyEvent );
+
+	self->addOrUpdateKeyEvent( keyEvent );
+
+	if( processCallback ) {
+		self->keyEvent( keyEvent );
+	}
+}
+
+// TODO: test this path, with regular chars and also something in utf32 range
+// - I may need to store a last key event like cinder's impl
+void AppGlfw::GLFW_CharCallback( GLFWwindow *window, unsigned int codepoint )
+{
+	auto* self = static_cast<AppGlfw*>( glfwGetWindowUserPointer( window ) );
+
+	// find active KeyEvent and update with utf32 char, issue event with that.
+	char asciiChar = codepoint < 256 ? (char)codepoint : 0;
+	auto keyEvent = KeyEvent( self->mLastKeyEvent.getKey(), codepoint, asciiChar, self->mLastKeyEvent.getState(), self->mLastKeyEvent.getModifiers(), self->mLastKeyEvent.getNativeKeyCode() );
+	self->keyEvent( keyEvent );
 }
 
 void AppGlfw::GLFW_MouseButtonCallback( GLFWwindow* wnd, int button, int state, int )
@@ -437,37 +487,76 @@ void AppGlfw::GLFW_errorCallback( int error, const char *description )
     JU_LOG_ERROR( "error code: ", error, ", description: ", description );
 }
 
+// ----------------------------------------------------------------------------------
+// Event Handling
+// ----------------------------------------------------------------------------------
+
+void AppGlfw::addOrUpdateKeyEvent( const KeyEvent &key )
+{
+	mLastKeyEvent = key;
+
+	// update if active
+	//bool foundKey = false;
+	//for( auto& active : mActiveKeys ) {
+	// TODO: if this stays do with iter
+	for( int i = 0; i < mActiveKeys.size(); i++ ) {
+		const auto &active = mActiveKeys[i];
+		if( active.getKey() == key.getKey() ) {
+			//foundKey = true;
+			//active.setState( key.getState() );
+			mActiveKeys[i] = key;
+			return;
+		}
+	}
+
+	//if( ! foundKey ) {
+	mActiveKeys.push_back( key );
+	//}
+
+	//if( processCallback ) {
+	//	keyEvent( key );
+	//}
+}
+
+void AppGlfw::flushOldKeyEvents()
+{
+	for( auto keyIter = mActiveKeys.begin(); keyIter != mActiveKeys.end(); ) {
+		//KeyEvent( KeyIter->key, KeyIter->state );
+
+		// GLFW does not send 'Repeat' state again, we have to keep these keys until the 'Release' is received.
+		switch( keyIter->getState() ) {
+			case KeyEvent::State::Release:
+				keyIter = mActiveKeys.erase( keyIter );
+				break;
+			case KeyEvent::State::Press:
+				//keyIter->setState( KeyEvent::State::Repeat ); // TODO: diligent impl was doing this but I'm not sure why
+				++keyIter;                             
+				break;
+			case KeyEvent::State::Repeat:
+				++keyIter;                             
+				break;
+			default:
+				break;
+		}
+	}
+}
+
+// ----------------------------------------------------------------------------------
+// Main Loop
+// ----------------------------------------------------------------------------------
+
 void AppGlfw::loop()
 {
     mLastUpdate = TClock::now();
     for( ; ; ) {
-        if (glfwWindowShouldClose(mWindow)) {
-            return;
+		if( glfwWindowShouldClose( mWindow ) ) {
+			return;
 		}
+
+		flushOldKeyEvents();
 
         glfwPollEvents();
 
-#if 0
-		// TODO: if needed, move to a private function
-        for( auto KeyIter = mActiveKeys.begin(); KeyIter != mActiveKeys.end(); ) {
-            KeyEvent( KeyIter->key, KeyIter->state );
-
-            // GLFW does not send 'Repeat' state again, we have to keep these keys until the 'Release' is received.
-            switch( KeyIter->state ) {
-                case KeyState::Release:
-					KeyIter = mActiveKeys.erase( KeyIter );
-				break;
-                case KeyState::Press:
-					KeyIter->state = KeyState::Repeat;
-				break;
-                case KeyState::Repeat:
-					++KeyIter;                             
-				break;
-                default:
-                    break;
-            }
-        }
-#endif
 
         const auto time = TClock::now();
         const auto dt   = std::chrono::duration_cast<TSeconds>( time - mLastUpdate ).count();
@@ -485,49 +574,9 @@ void AppGlfw::loop()
     }
 }
 
-void AppGlfw::onKeyEvent( const KeyEvent &key )
-{
-	// update if active
-    for( auto& active : mActiveKeys ) {
-        if( active.getKey() == key.getKey() ) {
-			active.setState( key.getState() );
-			// TODO: needed?
-			//if( newState == KeyState::Release ) {
-			//	active.state = newState;
-			//}
-
-			return;
-        }
-    }
-
-	// new key
-    mActiveKeys.push_back( key );
-	keyEvent( key );
-}
-
-void AppGlfw::Quit()
-{
-    VERIFY_EXPR( mWindow != nullptr );
-    glfwSetWindowShouldClose( mWindow, GLFW_TRUE );
-}
-
-// pick a default RENDER_DEVICE_TYPE (user can override
-RENDER_DEVICE_TYPE AppGlfw::chooseDefaultRenderDeviceType() const
-{
-#if METAL_SUPPORTED
-	return RENDER_DEVICE_TYPE_METAL;
-#elif D3D12_SUPPORTED
-	return RENDER_DEVICE_TYPE_D3D12;
-#elif VULKAN_SUPPORTED
-	return RENDER_DEVICE_TYPE_VULKAN;
-#elif D3D11_SUPPORTED
-	return RENDER_DEVICE_TYPE_D3D11;
-#elif GL_SUPPORTED
-	return RENDER_DEVICE_TYPE_GL;
-#else
-	return RENDER_DEVICE_TYPE_UNDEFINED;
-#endif
-}
+// ----------------------------------------------------------------------------------
+// Main
+// ----------------------------------------------------------------------------------
 
 int AppGlfwMain( int argc, const char* const* argv )
 {
