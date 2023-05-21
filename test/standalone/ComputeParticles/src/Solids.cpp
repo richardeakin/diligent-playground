@@ -70,8 +70,8 @@ void Solid::initPipelineState()
     auto global = app::global();
 
     GraphicsPipelineStateCreateInfo PSOCreateInfo;
-    auto nameStr = mOptions.name + " PSO";
-    PSOCreateInfo.PSODesc.Name = nameStr.c_str();
+    auto PSONameStr = mOptions.name + " PSO";
+    PSOCreateInfo.PSODesc.Name = PSONameStr.c_str();
     PSOCreateInfo.PSODesc.PipelineType = PIPELINE_TYPE_GRAPHICS;
 
     PSOCreateInfo.GraphicsPipeline.NumRenderTargets             = 1;
@@ -133,7 +133,7 @@ void Solid::initPipelineState()
         shaderResourceDescVec.push_back( s.desc );
     }
     PSOCreateInfo.PSODesc.ResourceLayout.Variables    = shaderResourceDescVec.data();
-    PSOCreateInfo.PSODesc.ResourceLayout.NumVariables = shaderResourceDescVec.size();
+    PSOCreateInfo.PSODesc.ResourceLayout.NumVariables = (Uint32)shaderResourceDescVec.size();
 
     global->renderDevice->CreateGraphicsPipelineState( PSOCreateInfo, &mPSO );
 
@@ -177,7 +177,7 @@ void Solid::initVertexBuffer( const std::vector<float3> &positions, const std::v
         ( (mOptions.components & VERTEX_COMPONENT_FLAG_NORMAL) ? 3 : 0 ) +
         ( (mOptions.components & VERTEX_COMPONENT_FLAG_TEXCOORD) ? 2 : 0 );
 
-    const Uint32 numVertices = positions.size();
+    const Uint32 numVertices = (Uint32)positions.size();
 
     std::vector<float> vertexData( size_t{totalVertexComponents} * numVertices );
 
@@ -232,7 +232,7 @@ void Solid::initIndexBuffer( const std::vector<Uint32> &indices )
     IBData.DataSize = bufferDesc.Size;
     app::global()->renderDevice->CreateBuffer( bufferDesc, &IBData, &mIndexBuffer );
 
-    mNumIndices = indices.size();
+    mNumIndices = (Uint32)indices.size();
 }
 
 void Solid::watchShadersDir()
