@@ -208,7 +208,7 @@ public:
 	//! Returns the state of this keyboard event
 	State			getState() const				{ return mState; }
 	//! Update the state of this keyboard event
-	void			setState( const State &state )	{ mState = state; }
+	//void			setState( const State &state )	{ mState = state; }
 
 	// TODO: should probably live in AppGlfw if I want to keep this class generic
 	static Key		translateNativeKeyCode( int nativeKeyCode );
@@ -229,12 +229,78 @@ public:
 		Press,
 		Release,
 		Move,
+		Wheel, // TODO: send from callback
 		Unknown
 	};
 
+	MouseEvent() = default;
+	MouseEvent( const dg::float2 &pos, State state, int buttonIndex )
+		: mPos( pos ), mState( state ), mButtonIndex( buttonIndex )
+	{}
+
+	//! Returns the state of this event
+	State				getState() const		{ return mState; }
+	//! Returns the cursor position of this event
+	const dg::float2&	getPos() const			{ return mPos; }
+	//! Returnns the index of the last pressed button, or -1 if none are down
+	int					getButtonIndex() const	{ return mButtonIndex; }
+	//! Returns if this event can be considered a mouse drag
+	bool				isDrag() const			{ return mState == State::Move && mButtonIndex == -1; }
+
+	// TODO: may use this
+	//! Returns whether the initiator for the event was the left mouse button
+//	bool		isLeft() const				{ return ( mInitiator & LEFT_DOWN ) ? true : false; }
+//	//! Returns whether the initiator for the event was the right mouse button
+//	bool		isRight() const				{ return ( mInitiator & RIGHT_DOWN ) ? true : false; }
+//	//! Returns whether the initiator for the event was the middle mouse button
+//	bool		isMiddle() const			{ return ( mInitiator & MIDDLE_DOWN ) ? true : false; }
+//	//! Returns whether the left mouse button was pressed during the event
+//	bool		isLeftDown() const			{ return (mModifiers & LEFT_DOWN) ? true : false; }
+//	//! Returns whether the right mouse button was pressed during the event
+//	bool		isRightDown() const			{ return (mModifiers & RIGHT_DOWN) ? true : false; }
+//	//! Returns whether the middle mouse button was pressed during the event
+//	bool		isMiddleDown() const		{ return (mModifiers & MIDDLE_DOWN) ? true : false; }
+//	//! Returns whether the Shift key was pressed during the event.
+//	bool		isShiftDown() const			{ return (mModifiers & SHIFT_DOWN) ? true : false; }
+//	//! Returns whether the Alt (or Option) key was pressed during the event.
+//	bool		isAltDown() const			{ return (mModifiers & ALT_DOWN) ? true : false; }
+//	//! Returns whether the Control key was pressed during the event.
+//	bool		isControlDown() const		{ return (mModifiers & CTRL_DOWN) ? true : false; }
+//	//! Returns whether the meta key was pressed during the event. Maps to the Windows key on Windows and the Command key on Mac OS X.
+//	bool		isMetaDown() const			{ return (mModifiers & META_DOWN) ? true : false; }
+//	//! Returns whether the accelerator key was pressed during the event. Maps to the Control key on Windows and the Command key on Mac OS X.
+//	bool		isAccelDown() const			{ return (mModifiers & ACCEL_DOWN) ? true : false; }
+//	//! Returns the number of detents the user has wheeled through. Positive values correspond to wheel-up and negative to wheel-down.
+//	float		getWheelIncrement() const	{ return mWheelIncrement; }
+//
+//	//! Returns the platform-native modifier mask
+//	uint32_t	getNativeModifiers() const	{ return mNativeModifiers; }
+//
+//	enum {
+//		LEFT_DOWN	= 0x0001,
+//		RIGHT_DOWN	= 0x0002,
+//		MIDDLE_DOWN = 0x0004,
+//		SHIFT_DOWN	= 0x0008,
+//		ALT_DOWN	= 0x0010,
+//		CTRL_DOWN	= 0x0020,
+//		META_DOWN	= 0x0040,
+//#if defined( CINDER_MSW )
+//		ACCEL_DOWN	= CTRL_DOWN
+//#else
+//		ACCEL_DOWN	= META_DOWN
+//#endif
+//	};
+
 protected:
-	dg::float2	mPos		= { 0, 0 };
-	State		mState		= State::Unknown;
+	dg::float2	mPos			= { 0, 0 };
+	State		mState			= State::Unknown;
+	int			mButtonIndex	= -1;
 };
+
+
+// TODO: add for KeyEvent (will add a key string to the internal map)
+// TODO: add ostream<< versions
+
+const char* getAsString( const MouseEvent::State &s );
 
 } // namespace juniper

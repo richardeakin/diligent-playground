@@ -62,6 +62,7 @@ void BasicTests::initialize()
 namespace {
 
 static std::vector<KeyEvent> sKeyEvents;
+static std::vector<KeyEvent> sMouseEvents;
 
 static int MaxKeyEvents = 100;
 static int MaxMouseEvents = 100;
@@ -70,8 +71,6 @@ static int MaxMouseEvents = 100;
 
 void BasicTests::keyEvent( const KeyEvent &e )
 {
-    // TODO: make enum -> string converters
-    // - will make a copy of cinder's app::KeyEvent, just the GLFW part
     auto state = e.getState();
     if( state == KeyEvent::State::Release ) {
         auto charStr = std::string( 1, e.getChar() );
@@ -85,11 +84,14 @@ void BasicTests::keyEvent( const KeyEvent &e )
     }
 }
 
-void BasicTests::mouseEvent( float2 pos )
+void BasicTests::mouseEvent( const MouseEvent &e )
 {
-    // TODO: wrap this in a new macro, as a holdover until using ci::log
     //LOG_INFO_MESSAGE( __FUNCTION__, "| mouse pos: ", pos );
-    //JU_LOG_INFO( "mouse pos: ", pos );
+    if( e.getState() != MouseEvent::State::Move ) {
+        JU_LOG_INFO( "mouse pos: ", e.getPos(), ", state: ", getAsString( e.getState() ), ", button index: ", e.getButtonIndex() );
+    }
+
+    // TODO: test drag here too
 }
 
 // -------------------------------------------------------------------------------------------------------

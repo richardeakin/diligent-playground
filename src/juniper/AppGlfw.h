@@ -56,7 +56,7 @@ using dg::float4;
 using dg::float4x4;
 using dg::RefCntAutoPtr;
 
-// TODO: make inner struct of AppGlfw, AppBasic will inherit from that for common things not needed by glfw
+// TODO: make inner structA of AppGlfw, AppBasic will inherit from that for common things not needed by glfw
 struct AppSettings {
     int2 windowPos                      = { 0, 0 }; // TODO: set so it is down a bit and you can see the title bar
     int2 windowSize                     = { 1024, 768 };
@@ -90,16 +90,16 @@ public:
     // Optional virtual:
 
     //! Called before engine is constructed
-    virtual void prepareSettings( AppSettings *settings )  {}
+    virtual void prepareSettings( AppSettings *settings )   {}
     //! Called when window size changes
-    virtual void resize( const int2 &size ) {}
+    virtual void resize( const int2 &size )                 {}
 
     //! Override to handle keyboard events
-    virtual void keyEvent( const KeyEvent &key ) {}
+    virtual void keyEvent( const KeyEvent &e )              {}
     //! Override to handle mouse events
-    virtual void mouseEvent( float2 pos ) {}
-
-    virtual const char* getTitle() const   { return "AppGlfw"; }
+    virtual void mouseEvent( const MouseEvent &e )          {}
+    //! Override to return a custom app title
+    virtual const char* getTitle() const                    { return "AppGlfw"; }
 
 protected:
     std::unique_ptr<Diligent::ImGuiImplDiligent> mImGui;

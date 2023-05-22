@@ -167,4 +167,19 @@ KeyEvent::Key KeyEvent::translateNativeKeyCode( int nativeKeyCode )
 		return sKeyTable[nativeKeyCode];
 }
 
+// ----------------------------------------------------------------------------------
+// Enum String Conversions
+// ----------------------------------------------------------------------------------
+
+const char* getAsString( const MouseEvent::State &s )
+{
+	switch( s ) {
+		case MouseEvent::State::Press:		return "Press";
+		case MouseEvent::State::Release:	return "Release";
+		case MouseEvent::State::Move:		return "Move";
+		case MouseEvent::State::Wheel:		return "Wheel";
+		default:							return "Unknown";
+	}
+}
+
 } // namespace juniper

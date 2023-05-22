@@ -472,28 +472,56 @@ void AppGlfw::glfw_charCallback( GLFWwindow *window, unsigned int codepoint )
 	self->keyEvent( keyEvent );
 }
 
-void AppGlfw::glwf_mouseButtonCallback( GLFWwindow* wnd, int button, int state, int )
+// TODO: use mods
+void AppGlfw::glwf_mouseButtonCallback( GLFWwindow* window, int button, int action, int mods )
 {
-	auto* self = static_cast<AppGlfw*>( glfwGetWindowUserPointer( wnd ) );
+	auto* self = static_cast<AppGlfw*>( glfwGetWindowUserPointer( window ) );
 
-	// TODO: handle as a mouseEvent
+	MouseEvent::State state = ( action == GLFW_PRESS ? MouseEvent::State::Press : MouseEvent::State::Release );
+	
+	double xpos, ypos;
+::	glfwGetCursorPos( window, &xpos, &ypos );
+
+	float xscale = 1;
+	float yscale = 1;
+	glfwGetWindowContentScale( window, &xscale, &yscale );
+
 	//self->onKeyEvent(static_cast<Key>(button), static_cast<KeyState>(state));
 
+	float2 pos = { (float)xpos * xscale, (float)ypos * xscale };
+	auto mouseEvent = MouseEvent( pos, state, button );
+	self->mouseEvent( mouseEvent );
 }
 
-void AppGlfw::glfw_cursorPosCallback( GLFWwindow* wnd, double xpos, double ypos )
+void AppGlfw::glfw_cursorPosCallback( GLFWwindow* window, double xpos, double ypos )
 {
 	float xscale = 1;
 	float yscale = 1;
-	glfwGetWindowContentScale( wnd, &xscale, &yscale );
-	auto* self = static_cast<AppGlfw*>( glfwGetWindowUserPointer( wnd ) );
-	self->mouseEvent( float2( static_cast<float>( xpos * xscale ), static_cast<float>( ypos * yscale ) ) );
+	glfwGetWindowContentScale( window, &xscale, &yscale );
+	auto* self = static_cast<AppGlfw*>( glfwGetWindowUserPointer( window ) );
+
+	int buttonIndex = -1; // TODO: check if there are any pressed buttons, and assign to Event if there are
+	float2 pos = { (float)xpos * xscale, (float)ypos * xscale };
+	auto mouseEvent = MouseEvent( pos, MouseEvent::State::Move, buttonIndex );
+	self->mouseEvent( mouseEvent );
 }
 
-void AppGlfw::glfw_mouseWheelCallback(GLFWwindow* wnd, double dx, double dy)
+void AppGlfw::glfw_mouseWheelCallback( GLFWwindow* window, double dx, double dy )
 {
-    JU_LOG_INFO( "dx: ", dx, ", dy: ", dy);
+    //JU_LOG_INFO( "dx: ", dx, ", dy: ", dy);
 	// TODO: call to app virtual functino
+
+	// TODO: should be scaled? need to check with high dpi window but not sure if it matters
+	// - check what cinder does here
+	//float xscale = 1;
+	//float yscale = 1;
+	//glfwGetWindowContentScale( wnd, &xscale, &yscale );
+	//auto* self = static_cast<AppGlfw*>( glfwGetWindowUserPointer( wnd ) );
+
+	//float2 pos = { (float)xpos * xscale, (float)ypos * xscale };
+	//auto mouseEvent = MouseEvent( pos, MouseEvent::State::Wheel );
+	//self->mouseEvent( mouseEvent );
+
 }
 
 void AppGlfw::glfw_errorCallback( int error, const char *description )

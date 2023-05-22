@@ -15,8 +15,8 @@ public:
     void resize( const dg::int2 &size ) override;
     void update( float deltaTime ) override;
     void draw() override;
-    void keyEvent( const ju::KeyEvent &key ) override;
-    void mouseEvent( dg::float2 pos ) override;
+    void keyEvent( const ju::KeyEvent &e ) override;
+    void mouseEvent( const ju::MouseEvent &e ) override;
 
     const char* getTitle() const override  { return "BasicTests"; }
 
