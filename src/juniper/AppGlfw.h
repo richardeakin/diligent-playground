@@ -81,15 +81,18 @@ public:
     virtual void prepareSettings( AppSettings *settings )  {}
     virtual void initialize()               {}
     virtual void resize( const int2 &size ) {}
-    virtual void update( float dt )         {}
-    virtual void draw()                     {}
 
-    virtual const char* getTitle() const   { return "AppGlfw"; }
+    //! Entry point for update loop, implementations handle time and UI there
+    virtual void updateEntry( float dt ) = 0;
+    //! Entry point for draw loop, implementations handle main swapchain/context and UI there
+    virtual void drawEntry() = 0;
 
     //! Override to handle keyboard events
     virtual void keyEvent( const KeyEvent &key ) = 0;
     //! Override to handle mouse events
     virtual void mouseEvent( float2 pos ) = 0;
+
+    virtual const char* getTitle() const   { return "AppGlfw"; }
 
 protected:
     std::unique_ptr<Diligent::ImGuiImplDiligent> mImGui;

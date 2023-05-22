@@ -16,6 +16,8 @@ ci_log_i( "CMAKE_CURRENT_SOURCE_DIR: ${CMAKE_CURRENT_SOURCE_DIR}" )
 
 # mason sources
 set( JUNIPER_SOURCES
+	juniper/AppBasic.cpp
+	juniper/AppBasic.h
 	juniper/AppGlfw.cpp
 	juniper/AppGlfw.h
 	juniper/AppEvents.cpp

@@ -1,15 +1,15 @@
 cmake_minimum_required (VERSION 3.8)
 
-project( AppBasic CXX)
-set( APP_TARGET "AppBasic" )
+project( BasicTests CXX)
+set( APP_TARGET "BasicTests" )
 
 if( PLATFORM_WIN32 )
     option( JUNIPER_ENABLE_EDIT_AND_CONTINUE "Visual Studio Edit and Continue" OFF )
 endif()
 
 set( SOURCES
-     src/AppBasic.cpp
-     src/AppBasic.h
+     src/BasicTests.cpp
+     src/BasicTests.h
 )
 
 set( SHADERS

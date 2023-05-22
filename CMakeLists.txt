@@ -39,7 +39,7 @@ if( ${BUILD_JUNIPER} )
 	ci_log_i( "including Juniper library + apps.." )
 
 	add_subdirectory( src )
-	add_subdirectory( test/glfw/AppBasic )
+	add_subdirectory( test/glfw/BasicTests )
 endif()
 
 if( ${BUILD_MODDED_SAMPLES} )

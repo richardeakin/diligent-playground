@@ -5,22 +5,26 @@
 
 namespace juniper {
 
-using namespace Diligent;
+using namespace Diligent; // TODO: remove
 
 class AppBasic : public AppGlfw {
 public:
     virtual ~AppBasic();
 
-    void prepareSettings( AppSettings *settings ) override;
+    //void prepareSettings( AppSettings *settings ) override;
     virtual void initialize() override;
-    virtual void update(float dt) override;
-    virtual void draw() override;
-    virtual void keyEvent( const KeyEvent &key ) override;
-    virtual void mouseEvent( float2 pos ) override;
+    virtual void updateEntry(float dt) override;
+    virtual void drawEntry() override;
+    //virtual void keyEvent( const KeyEvent &key ) override;
+    //virtual void mouseEvent( float2 pos ) override;
+
+    virtual void update( float dt )         {}
+    virtual void draw()                     {}
 
     const char* getTitle() const override  { return "AppBasic"; }
 
-private:
+    //! Clears the swapchain's rendertarget to specified color
+    void clear( const float4 &color );
 
 private:
 

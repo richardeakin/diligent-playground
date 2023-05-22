@@ -562,14 +562,14 @@ void AppGlfw::loop()
         const auto dt   = std::chrono::duration_cast<TSeconds>( time - mLastUpdate ).count();
         mLastUpdate    = time;
 
-        update( dt );
+        updateEntry( dt );
 
         int w, h;
         glfwGetWindowSize( mWindow , &w, &h );
 
         // Skip rendering if window is minimized or too small
         if( w > 0 && h > 0 ) {
-            draw();
+            drawEntry();
 		}
     }
 }
