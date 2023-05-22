@@ -266,7 +266,7 @@ bool AppGlfw::createWindow( const AppSettings &settings, int glfwApiHint )
 	glfwSetCharCallback( mWindow, &glfw_charCallback );
 	glfwSetMouseButtonCallback( mWindow, &glwf_mouseButtonCallback );
 	glfwSetCursorPosCallback( mWindow, &glfw_cursorPosCallback );
-	glfwSetScrollCallback( mWindow, &glfw_mouseWheelCallback );
+	glfwSetScrollCallback( mWindow, &glfw_mouseScrollCallback );
 
 	glfwSetWindowSizeLimits( mWindow, 320, 240, GLFW_DONT_CARE, GLFW_DONT_CARE );
 	return true;
@@ -486,8 +486,6 @@ void AppGlfw::glwf_mouseButtonCallback( GLFWwindow* window, int button, int acti
 	float yscale = 1;
 	glfwGetWindowContentScale( window, &xscale, &yscale );
 
-	//self->onKeyEvent(static_cast<Key>(button), static_cast<KeyState>(state));
-
 	float2 pos = { (float)xpos * xscale, (float)ypos * xscale };
 	auto mouseEvent = MouseEvent( pos, state, button );
 	self->mouseEvent( mouseEvent );
@@ -506,22 +504,22 @@ void AppGlfw::glfw_cursorPosCallback( GLFWwindow* window, double xpos, double yp
 	self->mouseEvent( mouseEvent );
 }
 
-void AppGlfw::glfw_mouseWheelCallback( GLFWwindow* window, double dx, double dy )
+void AppGlfw::glfw_mouseScrollCallback( GLFWwindow* window, double dx, double dy )
 {
-    //JU_LOG_INFO( "dx: ", dx, ", dy: ", dy);
-	// TODO: call to app virtual functino
+	// TODO: handle mods (same as for mouseButton
 
-	// TODO: should be scaled? need to check with high dpi window but not sure if it matters
-	// - check what cinder does here
-	//float xscale = 1;
-	//float yscale = 1;
-	//glfwGetWindowContentScale( wnd, &xscale, &yscale );
-	//auto* self = static_cast<AppGlfw*>( glfwGetWindowUserPointer( wnd ) );
+	double xpos, ypos;
+	glfwGetCursorPos( window, &xpos, &ypos );
 
-	//float2 pos = { (float)xpos * xscale, (float)ypos * xscale };
-	//auto mouseEvent = MouseEvent( pos, MouseEvent::State::Wheel );
-	//self->mouseEvent( mouseEvent );
+	float xscale = 1;
+	float yscale = 1;
+	glfwGetWindowContentScale( window, &xscale, &yscale );
+	auto* self = static_cast<AppGlfw*>( glfwGetWindowUserPointer( window ) );
 
+	float2 pos = { (float)xpos * xscale, (float)ypos * xscale };
+	float2 scroll = { (float)dx, (float)dy };
+	auto mouseEvent = MouseEvent( pos, MouseEvent::State::Scroll, -1, scroll );
+	self->mouseEvent( mouseEvent );
 }
 
 void AppGlfw::glfw_errorCallback( int error, const char *description )

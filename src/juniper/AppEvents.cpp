@@ -171,13 +171,23 @@ KeyEvent::Key KeyEvent::translateNativeKeyCode( int nativeKeyCode )
 // Enum String Conversions
 // ----------------------------------------------------------------------------------
 
+const char* getAsString( const KeyEvent::State &s )
+{
+	switch( s ) {
+		case KeyEvent::State::Release:		return "Release";
+		case KeyEvent::State::Press:		return "Press";
+		case KeyEvent::State::Repeat:		return "Repeat";
+		default:							return "Unknown";
+	}
+}
+
 const char* getAsString( const MouseEvent::State &s )
 {
 	switch( s ) {
-		case MouseEvent::State::Press:		return "Press";
 		case MouseEvent::State::Release:	return "Release";
+		case MouseEvent::State::Press:		return "Press";
 		case MouseEvent::State::Move:		return "Move";
-		case MouseEvent::State::Wheel:		return "Wheel";
+		case MouseEvent::State::Scroll:		return "Scroll";
 		default:							return "Unknown";
 	}
 }

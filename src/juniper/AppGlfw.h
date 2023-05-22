@@ -120,7 +120,7 @@ private:
     static void glfw_charCallback( GLFWwindow *glfwWindow, unsigned int codepoint );
 	static void glwf_mouseButtonCallback( GLFWwindow* wnd, int button, int state, int );
 	static void glfw_cursorPosCallback( GLFWwindow* wnd, double xpos, double ypos );
-	static void glfw_mouseWheelCallback( GLFWwindow* wnd, double dx, double dy );
+	static void glfw_mouseScrollCallback( GLFWwindow* wnd, double dx, double dy );
     static void glfw_errorCallback( int error, const char *description );
 
 	friend int AppGlfwMain( int argc, const char* const* argv );

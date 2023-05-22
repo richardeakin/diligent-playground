@@ -226,16 +226,16 @@ protected:
 class MouseEvent {
 public:
 	enum class State {
-		Press,
 		Release,
+		Press,
 		Move,
-		Wheel, // TODO: send from callback
+		Scroll,
 		Unknown
 	};
 
 	MouseEvent() = default;
-	MouseEvent( const dg::float2 &pos, State state, int buttonIndex )
-		: mPos( pos ), mState( state ), mButtonIndex( buttonIndex )
+	MouseEvent( const dg::float2 &pos, State state, int buttonIndex, const dg::float2 &scroll = { 0, 0 } )
+		: mPos( pos ), mState( state ), mButtonIndex( buttonIndex ), mScroll( scroll )
 	{}
 
 	//! Returns the state of this event
@@ -244,8 +244,13 @@ public:
 	const dg::float2&	getPos() const			{ return mPos; }
 	//! Returnns the index of the last pressed button, or -1 if none are down
 	int					getButtonIndex() const	{ return mButtonIndex; }
+	//! Returns the cursor scroll (mouse wheel of this event
+	const dg::float2&	getScroll() const		{ return mScroll; }
+
 	//! Returns if this event can be considered a mouse drag
 	bool				isDrag() const			{ return mState == State::Move && mButtonIndex == -1; }
+	//! Returns if this event can be considered a mouse scroll
+	bool				isScroll() const		{ return mState == State::Scroll; }
 
 	// TODO: may use this
 	//! Returns whether the initiator for the event was the left mouse button
@@ -293,14 +298,16 @@ public:
 
 protected:
 	dg::float2	mPos			= { 0, 0 };
+	dg::float2	mScroll			= { 0, 0 };
 	State		mState			= State::Unknown;
 	int			mButtonIndex	= -1;
 };
 
 
-// TODO: add for KeyEvent (will add a key string to the internal map)
+// TODO: add for KeyEvent::Key (will add a key string to the internal map)
 // TODO: add ostream<< versions
 
+const char* getAsString( const KeyEvent::State &s );
 const char* getAsString( const MouseEvent::State &s );
 
 } // namespace juniper
