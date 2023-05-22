@@ -634,7 +634,7 @@ int AppGlfwMain( int argc, const char* const* argv )
 		return -1;
 
 	app->initImGui();
-	app->initialize();
+	app->initEntry();
 
 	int w, h;
 	glfwGetWindowSize( app->mWindow , &w, &h );

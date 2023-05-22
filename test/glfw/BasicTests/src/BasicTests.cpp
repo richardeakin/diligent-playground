@@ -50,8 +50,6 @@ void BasicTests::prepareSettings( AppSettings *settings )
 
 void BasicTests::initialize()
 {
-    AppBasic::initialize();
-
 #if LIVEPP_ENABLED
     ju::initLivePP( LPP_PATH );
 #endif

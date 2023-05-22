@@ -1,6 +1,4 @@
 
-#include <random>
-#include <vector>
 
 #include "juniper/AppBasic.h"
 #include "juniper/AppGlobal.h"
@@ -10,6 +8,9 @@
 
 #include "imgui.h"
 #include "ImGuiImplDiligent.hpp"
+
+#include <random>
+#include <vector>
 
 namespace juniper {
 
@@ -22,13 +23,22 @@ AppBasic::~AppBasic()
 // App Init
 // -------------------------------------------------------------------------------------------------------
 
-void AppBasic::initialize()
+void AppBasic::initEntry()
 {
-    // TODO: setup global() here
+    // re-enable imgui.ini save file
+    ImGui::GetIO().IniFilename = "imgui.ini";
 
     try {
-        getEngineFactory()->CreateDefaultShaderSourceStreamFactory( nullptr, &m_pShaderSourceFactory );
-        CHECK_THROW( m_pShaderSourceFactory );
+        auto g = global();
+        // TODO: setup global() here
+        g->renderDevice = getDevice();
+        getEngineFactory()->CreateDefaultShaderSourceStreamFactory( nullptr, &g->shaderSourceFactory );
+        CHECK_THROW( g->shaderSourceFactory );
+
+        g->colorBufferFormat = getSwapChain()->GetDesc().ColorBufferFormat;
+        g->depthBufferFormat = getSwapChain()->GetDesc().DepthBufferFormat;
+
+        initialize();
     }
     catch ( std::exception &exc ) {
         LOG_ERROR_MESSAGE( __FUNCTION__, "| exception caught during init, what: ", exc.what() );

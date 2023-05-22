@@ -56,6 +56,7 @@ using dg::float4;
 using dg::float4x4;
 using dg::RefCntAutoPtr;
 
+// TODO: make inner struct of AppGlfw, AppBasic will inherit from that for common things not needed by glfw
 struct AppSettings {
     int2 windowPos                      = { 0, 0 }; // TODO: set so it is down a bit and you can see the title bar
     int2 windowSize                     = { 1024, 768 };
@@ -77,20 +78,26 @@ public:
 
     void quit();
 
-    // Interface
-    virtual void prepareSettings( AppSettings *settings )  {}
-    virtual void initialize()               {}
-    virtual void resize( const int2 &size ) {}
-
+    // Required virtual:
+     
+    //! setups up AppGlobal and calls App::initialize()
+    virtual void initEntry() = 0;
     //! Entry point for update loop, implementations handle time and UI there
     virtual void updateEntry( float dt ) = 0;
     //! Entry point for draw loop, implementations handle main swapchain/context and UI there
     virtual void drawEntry() = 0;
 
+    // Optional virtual:
+
+    //! Called before engine is constructed
+    virtual void prepareSettings( AppSettings *settings )  {}
+    //! Called when window size changes
+    virtual void resize( const int2 &size ) {}
+
     //! Override to handle keyboard events
-    virtual void keyEvent( const KeyEvent &key ) = 0;
+    virtual void keyEvent( const KeyEvent &key ) {}
     //! Override to handle mouse events
-    virtual void mouseEvent( float2 pos ) = 0;
+    virtual void mouseEvent( float2 pos ) {}
 
     virtual const char* getTitle() const   { return "AppGlfw"; }
 

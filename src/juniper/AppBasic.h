@@ -12,10 +12,12 @@ public:
     virtual ~AppBasic();
 
     //void prepareSettings( AppSettings *settings ) override;
-    void initialize() override;
+    //! Inits AppGlobal (can be overridden later), calls AppBasic::initialize()
+    void initEntry() override;
     void updateEntry(float dt) override;
     void drawEntry() override;
     
+    virtual void initialize()               {}
     virtual void update( float dt )         {}
     virtual void draw()                     {}
 
@@ -26,7 +28,7 @@ public:
 
 private:
 
-    RefCntAutoPtr<IShaderSourceInputStreamFactory> m_pShaderSourceFactory; // TODO: store on AppGlobal instead. Or can fetch App globally.. undecided
+    //RefCntAutoPtr<IShaderSourceInputStreamFactory> m_pShaderSourceFactory; // TODO: store on AppGlobal instead. Or can fetch App globally.. undecided
 
     // TODO: use these (See SampleBase.cpp)
     float  mSmoothFPS         = 0;
