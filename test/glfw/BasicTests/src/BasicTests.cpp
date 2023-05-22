@@ -86,18 +86,15 @@ void BasicTests::keyEvent( const KeyEvent &e )
 
 void BasicTests::mouseEvent( const MouseEvent &e )
 {
-    // TODO: test drag here too
-
-    //LOG_INFO_MESSAGE( __FUNCTION__, "| mouse pos: ", pos );
-    if( e.getState() != MouseEvent::State::Move ) {
-        if( e.isScroll() ) {
-            JU_LOG_INFO( "mouse pos: ", e.getPos(), ", state: ", getAsString( e.getState() ), ", scroll: ", e.getScroll() );
-        }
-        else {
-            JU_LOG_INFO( "mouse pos: ", e.getPos(), ", state: ", getAsString( e.getState() ), ", button index: ", e.getButtonIndex() );
-        }
+    if( e.isScroll() ) {
+        JU_LOG_INFO( "mouse pos: ", e.getPos(), ", state: ", getAsString( e.getState() ), ", scroll: ", e.getScroll() );
     }
-
+    else if( e.isDrag() ) {
+        JU_LOG_INFO( "mouse drag, pos: ", e.getPos(), ", button index: ", e.getButtonIndex() );
+    }
+    else if( e.getState() != MouseEvent::State::Move ) {
+        JU_LOG_INFO( "mouse pos: ", e.getPos(), ", state: ", getAsString( e.getState() ), ", button index: ", e.getButtonIndex() );
+    }
 }
 
 // -------------------------------------------------------------------------------------------------------
@@ -113,7 +110,6 @@ void BasicTests::resize( const dg::int2 &size )
 void BasicTests::update( float deltaTime )
 {
     ImGui::Text( "deltaTime: %6.3f", deltaTime );
-
     ImGui::SliderFloat( "background darkness", &BackgroundGray, 0, 1 );
 
     if( im::CollapsingHeader( "KeyEvents", ImGuiTreeNodeFlags_DefaultOpen ) ) {
@@ -176,7 +172,6 @@ void BasicTests::update( float deltaTime )
             }
             im::EndTable();
         }
-
     }
 }
 

@@ -248,7 +248,7 @@ public:
 	const dg::float2&	getScroll() const		{ return mScroll; }
 
 	//! Returns if this event can be considered a mouse drag
-	bool				isDrag() const			{ return mState == State::Move && mButtonIndex == -1; }
+	bool				isDrag() const			{ return mState == State::Move && mButtonIndex != -1; }
 	//! Returns if this event can be considered a mouse scroll
 	bool				isScroll() const		{ return mState == State::Scroll; }
 

@@ -498,7 +498,15 @@ void AppGlfw::glfw_cursorPosCallback( GLFWwindow* window, double xpos, double yp
 	glfwGetWindowContentScale( window, &xscale, &yscale );
 	auto* self = static_cast<AppGlfw*>( glfwGetWindowUserPointer( window ) );
 
-	int buttonIndex = -1; // TODO: check if there are any pressed buttons, and assign to Event if there are
+	// check if left or right button is pressed, and assign those if so. TODO: consider other buttons
+	int buttonIndex = -1;
+	if( glfwGetMouseButton( window, GLFW_MOUSE_BUTTON_RIGHT ) == GLFW_PRESS ) {
+		buttonIndex = GLFW_MOUSE_BUTTON_RIGHT;
+	}
+	else if( glfwGetMouseButton( window, GLFW_MOUSE_BUTTON_LEFT ) == GLFW_PRESS ) {
+		buttonIndex = GLFW_MOUSE_BUTTON_LEFT;
+	}
+
 	float2 pos = { (float)xpos * xscale, (float)ypos * xscale };
 	auto mouseEvent = MouseEvent( pos, MouseEvent::State::Move, buttonIndex );
 	self->mouseEvent( mouseEvent );
