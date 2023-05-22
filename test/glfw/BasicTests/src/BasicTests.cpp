@@ -98,6 +98,11 @@ void BasicTests::mouseEvent( float2 pos )
 // App Lifecycle
 // -------------------------------------------------------------------------------------------------------
 
+void BasicTests::resize( const dg::int2 &size )
+{
+    //JU_LOG_INFO( "size: ", size );
+}
+
 // TODO: pass time through as a double always
 void BasicTests::update( float deltaTime )
 {

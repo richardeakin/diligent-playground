@@ -258,7 +258,7 @@ bool AppGlfw::createWindow( const AppSettings &settings, int glfwApiHint )
 		glfwSetWindowPos( mWindow, settings.windowPos.x, settings.windowPos.y );
 	}
 
-	// TODO: add glfwSetCharCallback, glfwSetDropCallback
+	// TODO: glfwSetDropCallback
 
 	glfwSetWindowUserPointer( mWindow, this );
 	glfwSetFramebufferSizeCallback( mWindow, &GLFW_ResizeCallback );
@@ -379,8 +379,6 @@ bool AppGlfw::initEngine( RENDER_DEVICE_TYPE DevType )
 
 	if( mRenderDevice == nullptr || mImmediateContext == nullptr || mSwapChain == nullptr )
 		return false;
-
-	// TODO: call virtual resize() here, or make sure it gets called once after initialize()
 
 	return true;
 }
@@ -523,7 +521,6 @@ void AppGlfw::addOrUpdateKeyEvent( const KeyEvent &key )
 	mLastKeyEvent = key;
 
 	// update if active
-	// TODO: use iter
 	for( int i = 0; i < mActiveKeys.size(); i++ ) {
 		const auto &active = mActiveKeys[i];
 		if( active.getKey() == key.getKey() ) {
@@ -638,6 +635,11 @@ int AppGlfwMain( int argc, const char* const* argv )
 
 	app->initImGui();
 	app->initialize();
+
+	int w, h;
+	glfwGetWindowSize( app->mWindow , &w, &h );
+	app->resize( { w, h } );
+
 	app->loop();
 
 	return 0;

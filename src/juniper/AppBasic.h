@@ -12,12 +12,10 @@ public:
     virtual ~AppBasic();
 
     //void prepareSettings( AppSettings *settings ) override;
-    virtual void initialize() override;
-    virtual void updateEntry(float dt) override;
-    virtual void drawEntry() override;
-    //virtual void keyEvent( const KeyEvent &key ) override;
-    //virtual void mouseEvent( float2 pos ) override;
-
+    void initialize() override;
+    void updateEntry(float dt) override;
+    void drawEntry() override;
+    
     virtual void update( float dt )         {}
     virtual void draw()                     {}
 
