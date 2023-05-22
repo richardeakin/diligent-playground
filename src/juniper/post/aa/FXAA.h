@@ -5,7 +5,7 @@
 #include "RefCntAutoPtr.hpp"
 #include "BasicMath.hpp"
 
-namespace ju { namespace aa {
+namespace juniper { namespace post {
 
 namespace dg = Diligent;
 using dg::RefCntAutoPtr;
@@ -44,4 +44,4 @@ private:
 	FxaaConstants mFxaaConstants;
 };
 
-} } // namespace ju::aa
+} } // namespace juniper::post

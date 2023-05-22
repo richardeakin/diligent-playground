@@ -3,6 +3,10 @@ cmake_minimum_required (VERSION 3.8)
 project( AppBasic CXX)
 set( APP_TARGET "AppBasic" )
 
+if( PLATFORM_WIN32 )
+    option( JUNIPER_ENABLE_EDIT_AND_CONTINUE "Visual Studio Edit and Continue" OFF )
+endif()
+
 set( SOURCES
      src/AppBasic.cpp
      src/AppBasic.h
@@ -39,8 +43,7 @@ target_link_libraries( ${APP_TARGET} PRIVATE
 set_target_properties( ${APP_TARGET} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES )
 target_compile_features( ${APP_TARGET} PUBLIC cxx_std_17 )
 
-# TODO: make optional (Compile And Continue)
-if( PLATFORM_WIN32 )
+if( JUNIPER_ENABLE_EDIT_AND_CONTINUE )
    target_compile_options( ${APP_TARGET} PUBLIC "/ZI" )
 endif()
 

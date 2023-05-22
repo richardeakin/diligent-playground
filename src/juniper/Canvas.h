@@ -5,7 +5,7 @@
 #include "DeviceContext.h"
 #include "Buffer.h"
 
-namespace ju {
+namespace juniper {
 
 namespace dg = Diligent;
 
@@ -40,4 +40,4 @@ private:
 	dg::RefCntAutoPtr<dg::IBuffer>					mVertexConstants, mPixelConstants;
 };
 
-} // namespace ju
+} // namespace juniper

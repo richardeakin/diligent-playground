@@ -6,7 +6,7 @@
 #include <memory>
 #include <map>
 
-namespace ju {
+namespace juniper {
 namespace dg = Diligent;
 
 class Profiler {
@@ -49,9 +49,6 @@ private:
     dg::IDeviceContext*     mContext;
 };
 
-
-
-// TODO: add macros
-} // namespace ju
+} // namespace juniper
 
 #define JU_PROFILE( label, ... )	ju::ScopedProfiler __ju_profile{ label, ##__VA_ARGS__ }

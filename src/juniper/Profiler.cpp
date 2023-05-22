@@ -6,7 +6,7 @@ using namespace Diligent;
 using namespace std;
 namespace im = ImGui;
 
-namespace ju {
+namespace juniper {
 
 Profiler::Profiler( IRenderDevice* device )
 	: mDevice( device )
@@ -147,4 +147,4 @@ void Profiler::updateUI( bool *open )
 	im::End(); // "Profiling"
 }
 
-} // namespace ju
+} // namespace juniper

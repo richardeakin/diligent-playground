@@ -8,7 +8,7 @@
 using namespace std;
 namespace fs = std::filesystem;
 
-namespace ju {
+namespace juniper {
 
 wstring toWideString( const string &utf8String )
 {
@@ -63,4 +63,4 @@ void destroyLivePP()
     //lpp::LppDestroyDefaultAgent(&lppAgent);	
 }
 
-} // namespace ju
+} // namespace juniper

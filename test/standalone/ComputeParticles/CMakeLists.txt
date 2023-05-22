@@ -5,24 +5,24 @@ set(APP_TARGET "ComputeParticles")
 
 set(SOURCE
     src/ComputeParticles.cpp
-    src/Solids.cpp
-    src/AppGlobal.cpp
-    ../common/src/Canvas.cpp
-    ../common/src/LivePP.cpp
-    ../common/src/Profiler.cpp
-    ../common/src/post/aa/FXAA.cpp
+    ../../../src/juniper/AppGlobal.cpp
+    ../../../src/juniper/Solids.cpp
+    ../../../src/juniper/Canvas.cpp
+    ../../../src/juniper/LivePP.cpp 
+    ../../../src/juniper/Profiler.cpp
+    ../../../src/juniper/post/aa/FXAA.cpp
 )
 
 set(INCLUDE
     src/ComputeParticles.hpp
-    src/Solids.h
-    src/AppGlobal.h
-    ../common/src/Canvas.h
-    ../common/src/LivePP.h
-    ../common/src/FileWatch.h
-    ../common/src/FileWatch-Monkman.hpp
-    ../common/src/Profiler.h
-    ../common/src/post/aa/FXAA.h
+    ../../../src/juniper/AppGlobal.h
+    ../../../src/juniper/Solids.h
+    ../../../src/juniper/Canvas.h
+    ../../../src/juniper/LivePP.h
+    ../../../src/juniper/FileWatch.h
+    ../../../src/juniper/FileWatch-Monkman.hpp
+    ../../../src/juniper/Profiler.h
+    ../../../src/juniper/post/aa/FXAA.h
 )
 
 set(SHADERS
@@ -57,13 +57,11 @@ add_sample_app( ${APP_TARGET} "test/standalone" "${SOURCE}" "${INCLUDE}" "${SHAD
 # TODO: move below to common helper
 # note: FileWatch.hpp not currently compiling with C++20 (https://github.com/ThomasMonkman/filewatch/issues/39)
 set_target_properties( ${APP_TARGET} PROPERTIES CXX_STANDARD 17 )
-
-# TODO: not working yet, look at why (could do with cmake version?)
-# https://stackoverflow.com/a/52264858
 set_target_properties( ${APP_TARGET} PROPERTIES VS_DEBUGGER_COMMAND_ARGUMENTS "--mode d3d12 --adapters_dialog false" ) 
 
 set( INCLUDE_USER
-    "../" # access to common/src
+    "../" # for common/src
+    "../../../src/" # for juniper sources
     ${LIVEPP_PATH} # set in top level CMakeLists.txt
 )
 

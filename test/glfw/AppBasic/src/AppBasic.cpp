@@ -50,25 +50,28 @@ void AppBasic::initialize()
 // Events
 // -------------------------------------------------------------------------------------------------------
 
+static std::vector<KeyEvent> sKeyEvents;
+
 void AppBasic::keyEvent( const KeyEvent &key )
 {
     // TODO: make enum -> string converters
     // - will make a copy of cinder's app::KeyEvent, just the GLFW part
     auto state = key.getState();
     std::string stateStr = ( state == KeyEvent::State::Release ? "Release" : ( state == KeyEvent::State::Press ? "Press" : "Release" ) );
-    JU_LOG_INFO( "key: ", (int)key.getKey(), ", state: ", stateStr );
+    //JU_LOG_INFO( "key: ", (int)key.getKey(), ", state: ", stateStr );
 
-    // TODO NEXT: figure out why this breakpoint ion't hitting
-    int blarg = 2;
-    blarg *= (int)key.getKey();
-
+    sKeyEvents.push_back( key );
+    if( sKeyEvents.size() > 100 ) {
+        // pop front
+        sKeyEvents.erase( sKeyEvents.begin() );
+    }
 }
 
 void AppBasic::mouseEvent( float2 pos )
 {
     // TODO: wrap this in a new macro, as a holdover until using ci::log
     //LOG_INFO_MESSAGE( __FUNCTION__, "| mouse pos: ", pos );
-    JU_LOG_INFO( "mouse pos: ", pos );
+    //JU_LOG_INFO( "mouse pos: ", pos );
 }
 
 // -------------------------------------------------------------------------------------------------------
