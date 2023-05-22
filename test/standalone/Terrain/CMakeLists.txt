@@ -38,3 +38,11 @@ set_target_properties("${APP_TARGET}" PROPERTIES
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON
 )
+
+set( INCLUDE_USER
+    "../" # for common/src
+    "../../../src/" # for juniper sources
+    ${LIVEPP_PATH} # set in top level CMakeLists.txt
+)
+
+target_include_directories( ${APP_TARGET} PUBLIC ${INCLUDE_USER} )

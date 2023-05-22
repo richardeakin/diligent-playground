@@ -32,6 +32,7 @@ add_sample_app( ${APP_TARGET} "test/standalone" "${SOURCE}" "${INCLUDE}" "${SHAD
 set_target_properties( ${APP_TARGET} PROPERTIES CXX_STANDARD 20 )
 
 set( INCLUDE_USER
+    "../../../src/" # for juniper sources
     ${LIVEPP_PATH} # set in top level CMakeLists.txt
 )
 
