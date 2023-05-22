@@ -18,9 +18,13 @@
 #define LPP_PATH "../../../../../tools/LivePP"
 #endif
 
-namespace juniper {
+namespace im = ImGui;
+using namespace Diligent;
 
-AppGlfw* CreateGLFWApp()
+using namespace juniper;
+
+// TODO: make macro to avoid this
+juniper::AppGlfw* juniper::CreateGLFWApp()
 {
     return new BasicTests{};
 }
@@ -82,12 +86,17 @@ void BasicTests::mouseEvent( float2 pos )
 // App Lifecycle
 // -------------------------------------------------------------------------------------------------------
 
-void BasicTests::update( float dt )
+// TODO: pass time through as a double always
+void BasicTests::update( float deltaTime )
 {
-    ImGui::Text( "Hello ImGui" );
+    ImGui::Text( "deltaTime: %6.3f", deltaTime );
 
     static float s = 0.5f;
     ImGui::SliderFloat( "test slider", &s, 0, 1 );
+
+    if( im::CollapsingHeader( "KeyEvents", ImGuiTreeNodeFlags_DefaultOpen ) ) {
+        im::Text( "count: %d", sKeyEvents.size() );
+    }
 }
 
 void BasicTests::draw()
@@ -101,5 +110,3 @@ void BasicTests::draw()
     // TODO: draw solid here
     
 }
-
-} // namespace juniper
