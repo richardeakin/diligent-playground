@@ -418,8 +418,10 @@ void AppGlfw::GLFW_KeyCallback( GLFWwindow* window, int key, int scancode, int a
 	bool capsLock = glfwGetKey( window, GLFW_KEY_CAPS_LOCK );
 	auto convertedChar = modifyCharToASCII( key, modifiers, capsLock );
 	auto state = KeyEvent::State::Unknown;
+	auto keyTranslated = KeyEvent::translateNativeKeyCode( key );
 	bool processCallback = true;
 
+	KeyEvent keyEvent;
 	if( action == GLFW_PRESS ) {
 		state = KeyEvent::State::Press;
 		// if convertedChar != 0, we'll get the unicode char value and wait until onCharInput is called.
@@ -427,18 +429,29 @@ void AppGlfw::GLFW_KeyCallback( GLFWwindow* window, int key, int scancode, int a
 		if( convertedChar != 0 ) {
 			processCallback = false;
 		}
+
+		//JU_LOG_INFO( "press key: ", (int)keyTranslated, ", scancode: ", scancode );
+
+		keyEvent = KeyEvent( keyTranslated, 0, convertedChar, state, modifiers, scancode );
 	}
 	else if( action == GLFW_RELEASE ) {
+		KeyEvent* active = self->findActiveKeyEvent( scancode );
+		VERIFY_EXPR( active != nullptr );
+
 		state = KeyEvent::State::Release;
+		keyEvent = KeyEvent( keyTranslated, active->getCharUtf32(), convertedChar, state, modifiers, scancode );
+
+		//JU_LOG_INFO( "release key: ", (int)keyTranslated, ", scancode: ", scancode, ", charUtf32: ", keyEvent.getCharUtf32() );
 	}
 	else if( action == GLFW_REPEAT ) {
-		// TODO: how handle this?
-		JU_LOG_INFO( "Key Repeat" );
-		state = KeyEvent::State::Repeat;
-	}
+		KeyEvent* active = self->findActiveKeyEvent( scancode );
+		VERIFY_EXPR( active != nullptr );
 
-	auto keyTranslated = KeyEvent::translateNativeKeyCode( key );
-	auto keyEvent = KeyEvent( keyTranslated, 0, 0, state, modifiers, scancode );
+		state = KeyEvent::State::Repeat;
+		keyEvent = KeyEvent( keyTranslated, active->getCharUtf32(), convertedChar, state, modifiers, scancode );
+
+		JU_LOG_INFO( "repeat key: ", (int)keyTranslated, ", scancode: ", scancode, ", charUtf32: ", keyEvent.getCharUtf32() );
+	}
 
 	self->addOrUpdateKeyEvent( keyEvent );
 
@@ -447,15 +460,17 @@ void AppGlfw::GLFW_KeyCallback( GLFWwindow* window, int key, int scancode, int a
 	}
 }
 
-// TODO: test this path, with regular chars and also something in utf32 range
-// - I may need to store a last key event like cinder's impl
 void AppGlfw::GLFW_CharCallback( GLFWwindow *window, unsigned int codepoint )
 {
 	auto* self = static_cast<AppGlfw*>( glfwGetWindowUserPointer( window ) );
 
 	// find active KeyEvent and update with utf32 char, issue event with that.
 	char asciiChar = codepoint < 256 ? (char)codepoint : 0;
+
+	//JU_LOG_INFO( "last key: ", (int)self->mLastKeyEvent.getKey(), ", asciiChar: ", asciiChar, ", codepoint: ", codepoint );
+
 	auto keyEvent = KeyEvent( self->mLastKeyEvent.getKey(), codepoint, asciiChar, self->mLastKeyEvent.getState(), self->mLastKeyEvent.getModifiers(), self->mLastKeyEvent.getNativeKeyCode() );
+	self->addOrUpdateKeyEvent( keyEvent );
 	self->keyEvent( keyEvent );
 }
 
@@ -480,63 +495,54 @@ void AppGlfw::GLFW_CursorPosCallback( GLFWwindow* wnd, double xpos, double ypos 
 void AppGlfw::GLFW_MouseWheelCallback(GLFWwindow* wnd, double dx, double dy)
 {
     JU_LOG_INFO( "dx: ", dx, ", dy: ", dy);
+	// TODO: call to app virtual functino
 }
 
 void AppGlfw::GLFW_errorCallback( int error, const char *description )
 {
-    JU_LOG_ERROR( "error code: ", error, ", description: ", description );
+    JU_LOG_ERROR( "GLFW error: ", error, ", description: ", description );
 }
 
 // ----------------------------------------------------------------------------------
 // Event Handling
 // ----------------------------------------------------------------------------------
 
+KeyEvent* AppGlfw::findActiveKeyEvent( int nativeCode )
+{
+	for( auto &active : mActiveKeys ) {
+		if( active.getNativeKeyCode() == nativeCode ) {
+			return &active;
+		}
+	}
+
+	return nullptr;
+}
+
 void AppGlfw::addOrUpdateKeyEvent( const KeyEvent &key )
 {
 	mLastKeyEvent = key;
 
 	// update if active
-	//bool foundKey = false;
-	//for( auto& active : mActiveKeys ) {
-	// TODO: if this stays do with iter
+	// TODO: use iter
 	for( int i = 0; i < mActiveKeys.size(); i++ ) {
 		const auto &active = mActiveKeys[i];
 		if( active.getKey() == key.getKey() ) {
-			//foundKey = true;
-			//active.setState( key.getState() );
 			mActiveKeys[i] = key;
 			return;
 		}
 	}
 
-	//if( ! foundKey ) {
 	mActiveKeys.push_back( key );
-	//}
-
-	//if( processCallback ) {
-	//	keyEvent( key );
-	//}
 }
 
 void AppGlfw::flushOldKeyEvents()
 {
 	for( auto keyIter = mActiveKeys.begin(); keyIter != mActiveKeys.end(); ) {
-		//KeyEvent( KeyIter->key, KeyIter->state );
-
-		// GLFW does not send 'Repeat' state again, we have to keep these keys until the 'Release' is received.
-		switch( keyIter->getState() ) {
-			case KeyEvent::State::Release:
-				keyIter = mActiveKeys.erase( keyIter );
-				break;
-			case KeyEvent::State::Press:
-				//keyIter->setState( KeyEvent::State::Repeat ); // TODO: diligent impl was doing this but I'm not sure why
-				++keyIter;                             
-				break;
-			case KeyEvent::State::Repeat:
-				++keyIter;                             
-				break;
-			default:
-				break;
+		if( keyIter->getState() == KeyEvent::State::Release ) {
+			keyIter = mActiveKeys.erase( keyIter );
+		}
+		else {
+			++keyIter;                             
 		}
 	}
 }

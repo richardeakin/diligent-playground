@@ -103,7 +103,7 @@ private:
     bool createWindow( const AppSettings &settings, int glfwApiHint );
     bool initEngine( dg::RENDER_DEVICE_TYPE DevType );
     void initImGui();
-    //void onKeyEvent( const KeyEvent &key, bool processCallback );
+    KeyEvent* findActiveKeyEvent( int nativeCode );
     void addOrUpdateKeyEvent( const KeyEvent &key );
     void flushOldKeyEvents();
     void loop();

@@ -23,6 +23,8 @@ namespace im = ImGui;
 using namespace Diligent;
 using namespace juniper;
 
+float BackgroundGray = 0.2f;
+
 // -------------------------------------------------------------------------------------------------------
 // App Init
 // -------------------------------------------------------------------------------------------------------
@@ -68,15 +70,17 @@ static int MaxMouseEvents = 100;
 
 } // anon
 
-void BasicTests::keyEvent( const KeyEvent &key )
+void BasicTests::keyEvent( const KeyEvent &e )
 {
     // TODO: make enum -> string converters
     // - will make a copy of cinder's app::KeyEvent, just the GLFW part
-    auto state = key.getState();
-    std::string stateStr = ( state == KeyEvent::State::Release ? "Release" : ( state == KeyEvent::State::Press ? "Press" : "Release" ) );
-    JU_LOG_INFO( "key: ", (int)key.getKey(), ", state: ", stateStr );
+    auto state = e.getState();
+    if( state == KeyEvent::State::Release ) {
+        auto charStr = std::string( 1, e.getChar() );
+        JU_LOG_INFO( "key (", (int)e.getKey(), ") released with char: ", charStr.c_str() );
+    }
 
-    sKeyEvents.push_back( key );
+    sKeyEvents.push_back( e );
     if( sKeyEvents.size() > MaxKeyEvents ) {
         // pop front
         sKeyEvents.erase( sKeyEvents.begin() );
@@ -99,22 +103,27 @@ void BasicTests::update( float deltaTime )
 {
     ImGui::Text( "deltaTime: %6.3f", deltaTime );
 
-    static float s = 0.5f;
-    ImGui::SliderFloat( "test slider", &s, 0, 1 );
+    ImGui::SliderFloat( "background darkness", &BackgroundGray, 0, 1 );
 
     if( im::CollapsingHeader( "KeyEvents", ImGuiTreeNodeFlags_DefaultOpen ) ) {
+        if( im::Button( "clear" ) ) {
+            sKeyEvents.clear();
+        }
+        im::SameLine();
         im::Text( "count: %d", sKeyEvents.size() );
 
         static ImGuiTableFlags flags = ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_Hideable;
         flags |= ImGuiTableFlags_ScrollY;
         flags |= ImGuiTableFlags_SizingFixedFit;
 
-        if( im::BeginTable( "table_KeyEvents", 8, flags ) ) {
+        if( im::BeginTable( "table_KeyEvents", 10, flags ) ) {
             ImGuiTableColumnFlags columnFlags = ImGuiTableColumnFlags_WidthFixed; 
             im::TableSetupScrollFreeze( 0, 1 ); // Make top row always visible
             im::TableSetupColumn( "index", columnFlags, 40 );
-            im::TableSetupColumn( "key", columnFlags, 40 );
             im::TableSetupColumn( "char", columnFlags, 40 );
+            im::TableSetupColumn( "key", columnFlags, 40 );
+            im::TableSetupColumn( "native", columnFlags, 40 );
+            im::TableSetupColumn( "utf32", columnFlags, 40 );
             im::TableSetupColumn( "state", columnFlags, 50 );
             im::TableSetupColumn( "shift", columnFlags, 30 );
             im::TableSetupColumn( "alt", columnFlags, 30 );
@@ -133,13 +142,18 @@ void BasicTests::update( float deltaTime )
                     im::TableSetColumnIndex( column++ );
                     im::Text( "%d", index );
                     im::TableSetColumnIndex( column++ );
-                    im::Text( "%d", (int)e.getKey() ); // ke
-                    im::TableSetColumnIndex( column++ );
                     im::Text( "%c", e.getChar() );
+                    im::TableSetColumnIndex( column++ );
+                    im::Text( "%d", (int)e.getKey() );
+                    im::TableSetColumnIndex( column++ );
+                    im::Text( "%d", (int)e.getNativeKeyCode() );
+                    im::TableSetColumnIndex( column++ );
+
+                    im::Text( "%d", (int)e.getCharUtf32() );
 
 
                     im::TableSetColumnIndex( column++ );
-                    const char* stateStr = ( e.getState() == KeyEvent::State::Release ? "Release" : ( e.getState() == KeyEvent::State::Press ? "Press" : "Release" ) );
+                    const char* stateStr = ( e.getState() == KeyEvent::State::Release ? "Release" : ( e.getState() == KeyEvent::State::Press ? "Press" : "Repeat" ) );
                     im::Text( "%s", stateStr );
 
                     im::TableSetColumnIndex( column++ );
@@ -149,7 +163,7 @@ void BasicTests::update( float deltaTime )
                     im::TableSetColumnIndex( column++ );
                     im::Text( "%d", (int)e.isControlDown() );
                     im::TableSetColumnIndex( column++ );
-DSD                 im::Text( "%d", (int)e.isMetaDown() );
+                    im::Text( "%d", (int)e.isMetaDown() );
                 }
             }
             im::EndTable();
@@ -163,7 +177,7 @@ void BasicTests::draw()
     auto* context   = getContext();
     auto* swapchain = getSwapChain();
 
-    const float gray = 0.15f;
+    const float gray = BackgroundGray;
     clear( float4( gray, gray, gray, gray ) );
 
     // TODO: draw solid here
