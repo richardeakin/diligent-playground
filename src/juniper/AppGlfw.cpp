@@ -537,12 +537,12 @@ void AppGlfw::addOrUpdateKeyEvent( const KeyEvent &key )
 
 void AppGlfw::flushOldKeyEvents()
 {
-	for( auto keyIter = mActiveKeys.begin(); keyIter != mActiveKeys.end(); ) {
-		if( keyIter->getState() == KeyEvent::State::Release ) {
-			keyIter = mActiveKeys.erase( keyIter );
+	for( auto it = mActiveKeys.begin(); it != mActiveKeys.end(); ) {
+		if( it->getState() == KeyEvent::State::Release ) {
+			it = mActiveKeys.erase( it );
 		}
 		else {
-			++keyIter;                             
+			++it;                             
 		}
 	}
 }
