@@ -214,7 +214,7 @@ RENDER_DEVICE_TYPE AppGlfw::chooseDefaultRenderDeviceType() const
 
 bool AppGlfw::createWindow( const AppSettings &settings, int glfwApiHint )
 {
-    glfwSetErrorCallback( GLFW_errorCallback );
+    glfwSetErrorCallback( glfw_errorCallback );
 
 	if( glfwInit() != GLFW_TRUE )
 		return false;
@@ -261,12 +261,12 @@ bool AppGlfw::createWindow( const AppSettings &settings, int glfwApiHint )
 	// TODO: glfwSetDropCallback
 
 	glfwSetWindowUserPointer( mWindow, this );
-	glfwSetFramebufferSizeCallback( mWindow, &GLFW_ResizeCallback );
-	glfwSetKeyCallback( mWindow, &GLFW_KeyCallback );
-	glfwSetCharCallback( mWindow, &GLFW_CharCallback );
-	glfwSetMouseButtonCallback( mWindow, &GLFW_MouseButtonCallback );
-	glfwSetCursorPosCallback( mWindow, &GLFW_CursorPosCallback );
-	glfwSetScrollCallback( mWindow, &GLFW_MouseWheelCallback );
+	glfwSetFramebufferSizeCallback( mWindow, &glfw_resizeCallback );
+	glfwSetKeyCallback( mWindow, &glfw_keyCallback );
+	glfwSetCharCallback( mWindow, &glfw_charCallback );
+	glfwSetMouseButtonCallback( mWindow, &glwf_mouseButtonCallback );
+	glfwSetCursorPosCallback( mWindow, &glfw_cursorPosCallback );
+	glfwSetScrollCallback( mWindow, &glfw_mouseWheelCallback );
 
 	glfwSetWindowSizeLimits( mWindow, 320, 240, GLFW_DONT_CARE, GLFW_DONT_CARE );
 	return true;
@@ -399,7 +399,7 @@ void AppGlfw::quit()
 // GLFW Callbacks
 // ----------------------------------------------------------------------------------
 
-void AppGlfw::GLFW_ResizeCallback( GLFWwindow* wnd, int w, int h )
+void AppGlfw::glfw_resizeCallback( GLFWwindow* wnd, int w, int h )
 {
 	auto* self = static_cast<AppGlfw*>( glfwGetWindowUserPointer( wnd ) );
 	if( self->mSwapChain != nullptr ) {
@@ -408,7 +408,7 @@ void AppGlfw::GLFW_ResizeCallback( GLFWwindow* wnd, int w, int h )
 	}
 }
 
-void AppGlfw::GLFW_KeyCallback( GLFWwindow* window, int key, int scancode, int action, int mods )
+void AppGlfw::glfw_keyCallback( GLFWwindow* window, int key, int scancode, int action, int mods )
 {
 	auto* self = static_cast<AppGlfw*>( glfwGetWindowUserPointer( window ) );
 
@@ -458,7 +458,7 @@ void AppGlfw::GLFW_KeyCallback( GLFWwindow* window, int key, int scancode, int a
 	}
 }
 
-void AppGlfw::GLFW_CharCallback( GLFWwindow *window, unsigned int codepoint )
+void AppGlfw::glfw_charCallback( GLFWwindow *window, unsigned int codepoint )
 {
 	auto* self = static_cast<AppGlfw*>( glfwGetWindowUserPointer( window ) );
 
@@ -472,7 +472,7 @@ void AppGlfw::GLFW_CharCallback( GLFWwindow *window, unsigned int codepoint )
 	self->keyEvent( keyEvent );
 }
 
-void AppGlfw::GLFW_MouseButtonCallback( GLFWwindow* wnd, int button, int state, int )
+void AppGlfw::glwf_mouseButtonCallback( GLFWwindow* wnd, int button, int state, int )
 {
 	auto* self = static_cast<AppGlfw*>( glfwGetWindowUserPointer( wnd ) );
 
@@ -481,7 +481,7 @@ void AppGlfw::GLFW_MouseButtonCallback( GLFWwindow* wnd, int button, int state, 
 
 }
 
-void AppGlfw::GLFW_CursorPosCallback( GLFWwindow* wnd, double xpos, double ypos )
+void AppGlfw::glfw_cursorPosCallback( GLFWwindow* wnd, double xpos, double ypos )
 {
 	float xscale = 1;
 	float yscale = 1;
@@ -490,13 +490,13 @@ void AppGlfw::GLFW_CursorPosCallback( GLFWwindow* wnd, double xpos, double ypos 
 	self->mouseEvent( float2( static_cast<float>( xpos * xscale ), static_cast<float>( ypos * yscale ) ) );
 }
 
-void AppGlfw::GLFW_MouseWheelCallback(GLFWwindow* wnd, double dx, double dy)
+void AppGlfw::glfw_mouseWheelCallback(GLFWwindow* wnd, double dx, double dy)
 {
     JU_LOG_INFO( "dx: ", dx, ", dy: ", dy);
 	// TODO: call to app virtual functino
 }
 
-void AppGlfw::GLFW_errorCallback( int error, const char *description )
+void AppGlfw::glfw_errorCallback( int error, const char *description )
 {
     JU_LOG_ERROR( "GLFW error: ", error, ", description: ", description );
 }

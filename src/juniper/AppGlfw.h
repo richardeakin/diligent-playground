@@ -108,14 +108,13 @@ private:
     void flushOldKeyEvents();
     void loop();
 
-    // TODO: fix remaining casing
-	static void GLFW_ResizeCallback( GLFWwindow* wnd, int w, int h );
-	static void GLFW_KeyCallback( GLFWwindow* window, int key, int scancode, int action, int mods );
-    static void GLFW_CharCallback( GLFWwindow *glfwWindow, unsigned int codepoint );
-	static void GLFW_MouseButtonCallback( GLFWwindow* wnd, int button, int state, int );
-	static void GLFW_CursorPosCallback( GLFWwindow* wnd, double xpos, double ypos );
-	static void GLFW_MouseWheelCallback( GLFWwindow* wnd, double dx, double dy );
-    static void GLFW_errorCallback( int error, const char *description );
+	static void glfw_resizeCallback( GLFWwindow* wnd, int w, int h );
+	static void glfw_keyCallback( GLFWwindow* window, int key, int scancode, int action, int mods );
+    static void glfw_charCallback( GLFWwindow *glfwWindow, unsigned int codepoint );
+	static void glwf_mouseButtonCallback( GLFWwindow* wnd, int button, int state, int );
+	static void glfw_cursorPosCallback( GLFWwindow* wnd, double xpos, double ypos );
+	static void glfw_mouseWheelCallback( GLFWwindow* wnd, double dx, double dy );
+    static void glfw_errorCallback( int error, const char *description );
 
 	friend int AppGlfwMain( int argc, const char* const* argv );
 

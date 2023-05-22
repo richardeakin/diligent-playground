@@ -28,9 +28,6 @@ private:
 
     RefCntAutoPtr<IShaderSourceInputStreamFactory> m_pShaderSourceFactory; // TODO: store on AppGlobal instead. Or can fetch App globally.. undecided
 
-    // TODO: store ImGuiImpl in AppGlfw.h?
-    //ImGuiImplDiligent*            mImGui = nullptr;
-
     // TODO: use these (See SampleBase.cpp)
     float  mSmoothFPS         = 0;
     double mLastFPSTime        = 0;
