@@ -32,6 +32,7 @@ endif()
 
 target_include_directories( ${APP_TARGET} PUBLIC
     ${REPO_PATH}/src
+    ${LIVEPP_PATH} # set in top level CMakeLists.txt
 )
 
 #add_dependencies( ${APP_TARGET} cinder )

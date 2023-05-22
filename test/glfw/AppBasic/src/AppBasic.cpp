@@ -111,7 +111,7 @@ void AppBasic::draw()
     const float ClearColor[4] = { gray, gray, gray, gray };
     context->ClearRenderTarget( rtv, ClearColor, RESOURCE_STATE_TRANSITION_MODE_VERIFY );
 
-    // TODO: draw solid here
+    // TODO: this is where App impls draw() will have to get called (once this is moved to lib and subclassed
 
     if( mImGui ) {
         if( mShowUI ) {

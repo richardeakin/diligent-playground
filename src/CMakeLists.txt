@@ -22,9 +22,21 @@ set( JUNIPER_SOURCES
 	juniper/AppEvents.h
 	juniper/AppGlobal.cpp
 	juniper/AppGlobal.h
+	juniper/Canvas.cpp
+	juniper/Canvas.h
+	juniper/FileWatch.h
+	juniper/FileWatch-Monkman.hpp
 	juniper/ImGuiImplGlfw.cpp
 	juniper/ImGuiImplGlfw.h
+	juniper/LivePP.cpp
+	juniper/LivePP.h
 	juniper/Juniper.h
+	juniper/Profiler.cpp
+	juniper/Profiler.h
+	juniper/Solids.cpp
+	juniper/Solids.h
+	juniper/post/aa/FXAA.cpp
+	juniper/post/aa/FXAA.h
 )
 
 set( IMGUI_SOURCES
@@ -55,6 +67,13 @@ source_group( TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "src" FILES ${JUNIPER_SOUR
 source_group( "src/imgui" FILES ${IMGUI_SOURCES} )
 #source_group( "assets" FILES ${ASSETS} )
 
+set( INCLUDE_USER
+	"." # juniper lib sources
+	${LIVEPP_PATH} # set in top level CMakeLists.txt
+)
+
+target_include_directories( ${LIB_TARGET} PUBLIC ${INCLUDE_USER} )
+
 target_include_directories( ${LIB_TARGET} PRIVATE "${DILIGENT_PATH}/DiligentCore" )
 if( METAL_SUPPORTED )
     target_include_directories( ${LIB_TARGET} PRIVATE "${DILIGENT_PATH}/DiligentCorePro" )
@@ -66,6 +85,7 @@ target_link_libraries( ${LIB_TARGET} PRIVATE
     Diligent-Common
     Diligent-GraphicsTools
     Diligent-Imgui
+    Diligent-TextureLoader
     glfw
 )
 
