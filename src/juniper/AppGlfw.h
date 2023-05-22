@@ -117,7 +117,7 @@ private:
 	static void GLFW_MouseWheelCallback( GLFWwindow* wnd, double dx, double dy );
     static void GLFW_errorCallback( int error, const char *description );
 
-	friend int AppGlfwMain( int argc, const char* const* argv );
+	friend int AppGlfwMain( AppGlfw *app );
 
 private:
     RefCntAutoPtr<dg::IRenderDevice>  mRenderDevice;
@@ -134,6 +134,13 @@ private:
     TClock::time_point mLastUpdate = {};
 };
 
-AppGlfw* CreateGLFWApp();
+//AppGlfw* CreateGLFWApp();
 
 } // namespace juniper
+
+#define JUNIPER_APP( APP )                                  \
+int WINAPI WinMain( HINSTANCE, HINSTANCE, LPSTR, int )      \
+{                                                           \
+	std::unique_ptr<AppGlfw> userApp{ new APP };            \
+    return juniper::AppGlfwMain( userApp.get() );          \
+}

@@ -24,10 +24,10 @@ using namespace Diligent;
 using namespace juniper;
 
 // TODO: make macro to avoid this
-juniper::AppGlfw* juniper::CreateGLFWApp()
-{
-    return new BasicTests{};
-}
+//juniper::AppGlfw* juniper::CreateGLFWApp()
+//{
+//    return new BasicTests{};
+//}
 
 BasicTests::~BasicTests()
 {
@@ -110,3 +110,5 @@ void BasicTests::draw()
     // TODO: draw solid here
     
 }
+
+JUNIPER_APP( BasicTests )

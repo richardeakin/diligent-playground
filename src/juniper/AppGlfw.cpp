@@ -578,9 +578,18 @@ void AppGlfw::loop()
 // Main
 // ----------------------------------------------------------------------------------
 
-int AppGlfwMain( int argc, const char* const* argv )
+int AppGlfwMain( AppGlfw *app )
 {
-	std::unique_ptr<AppGlfw> app{ CreateGLFWApp() };
+#if PLATFORM_WIN32
+#if defined(_DEBUG) || defined(DEBUG)                                   
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+#endif
+#endif
+
+	// TODO: use this rather than argc + argv on windows
+	//const auto* cmdLine = GetCommandLineA();
+
+	//std::unique_ptr<AppGlfw> app{ CreateGLFWApp() };
 
 	AppSettings settings;
 	settings.renderDeviceType = app->chooseDefaultRenderDeviceType();
@@ -639,9 +648,10 @@ int AppGlfwMain( int argc, const char* const* argv )
 
 } // namespace juniper
 
+#if 0
 #if PLATFORM_WIN32
 //int __stdcall WinMain( HINSTANCE /*hInstance*/, HINSTANCE /*hPrevInstance*/, LPSTR /*lpCmdLine*/, int /*nCmdShow*/ )
-int WINAPI WinMain( HINSTANCE /*instance*/, HINSTANCE, LPSTR, int /*cmdShow*/ )
+int WINAPI WinMain( HINSTANCE, HINSTANCE, LPSTR, int )
 {
 #if defined(_DEBUG) || defined(DEBUG)
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
@@ -659,4 +669,5 @@ int main( int argc, const char** argv )
 {
     return juniper::AppGlfwMain( argc, argv );
 }
+#endif
 #endif
