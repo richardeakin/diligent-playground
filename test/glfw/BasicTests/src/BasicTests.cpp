@@ -11,6 +11,13 @@
 #include "imgui.h"
 #include "ImGuiImplDiligent.hpp"
 
+// TODO: move this to AppBasic? Can add a flag for it..
+#define LIVEPP_ENABLED 1
+#if LIVEPP_ENABLED
+#include "juniper/LivePP.h"
+#define LPP_PATH "../../../../../tools/LivePP"
+#endif
+
 namespace juniper {
 
 AppGlfw* CreateGLFWApp()
@@ -38,6 +45,9 @@ void BasicTests::initialize()
 {
     AppBasic::initialize();
 
+#if LIVEPP_ENABLED
+    ju::initLivePP( LPP_PATH );
+#endif
 }
 
 // -------------------------------------------------------------------------------------------------------
@@ -52,7 +62,7 @@ void BasicTests::keyEvent( const KeyEvent &key )
     // - will make a copy of cinder's app::KeyEvent, just the GLFW part
     auto state = key.getState();
     std::string stateStr = ( state == KeyEvent::State::Release ? "Release" : ( state == KeyEvent::State::Press ? "Press" : "Release" ) );
-    //JU_LOG_INFO( "key: ", (int)key.getKey(), ", state: ", stateStr );
+    JU_LOG_INFO( "key: ", (int)key.getKey(), ", state: ", stateStr );
 
     sKeyEvents.push_back( key );
     if( sKeyEvents.size() > 100 ) {
@@ -85,8 +95,8 @@ void BasicTests::draw()
     auto* context   = getContext();
     auto* swapchain = getSwapChain();
 
-    const float gray = 0.2f;
-    clear( float4( 0.5f, gray, gray, gray ) );
+    const float gray = 0.15f;
+    clear( float4( gray, gray, gray, gray ) );
 
     // TODO: draw solid here
     

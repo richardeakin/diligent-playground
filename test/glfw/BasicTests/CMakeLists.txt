@@ -112,3 +112,13 @@ set_source_files_properties( ${ASSETS} PROPERTIES
     VS_DEPLOYMENT_LOCATION "."
     MACOSX_PACKAGE_LOCATION "Resources"
 )
+
+# https://liveplusplus.tech/docs/documentation.html#linker_settings
+set( LINK_OPTIONS
+    /FUNCTIONPADMIN
+    /OPT:NOREF
+    /OPT:NOICF
+    /DEBUG:FULL
+)
+
+target_link_options( ${APP_TARGET} PRIVATE "${LINK_OPTIONS}" )
