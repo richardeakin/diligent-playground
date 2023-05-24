@@ -31,8 +31,8 @@ set( CINDER_SOURCES
 list( APPEND CINDER_SOURCES 
     ${CINDER_PATH}/src/cinder/app/msw/PlatformMsw.cpp
     ${CINDER_PATH}/include/cinder/app/msw/PlatformMsw.h
-    ${CINDER_PATH}/src/cinder/msw/StackWalker.cpp
-    ${CINDER_PATH}/include/cinder/msw/StackWalker.h
+    # ${CINDER_PATH}/src/cinder/msw/StackWalker.cpp # TODO: get this compiling
+    # ${CINDER_PATH}/include/cinder/msw/StackWalker.h
 )
 
 add_library( ${LIB_TARGET} STATIC ${CINDER_SOURCES} )

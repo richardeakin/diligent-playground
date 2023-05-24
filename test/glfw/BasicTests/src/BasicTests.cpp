@@ -11,7 +11,7 @@
 #include "imgui.h"
 #include "ImGuiImplDiligent.hpp"
 
-#include "cinder/Log.h"
+//#include "cinder/Log.h" // TODO: get this working
 
 // TODO: move this to AppBasic? Can add a flag for it..
 // TODO: set LPP_PATH as a define from cmake
@@ -86,8 +86,8 @@ void BasicTests::keyEvent( const KeyEvent &e )
     auto state = e.getState();
     if( state == KeyEvent::State::Release ) {
         auto charStr = std::string( 1, e.getChar() );
-        //JU_LOG_INFO( "key (", (int)e.getKey(), ") released with char: ", charStr.c_str() );
-        CI_LOG_I( "key (" << (int)e.getKey() << ") released with char: " << charStr.c_str() );
+        JU_LOG_INFO( "key (", (int)e.getKey(), ") released with char: ", charStr.c_str() );
+        //CI_LOG_I( "key (" << (int)e.getKey() << ") released with char: " << charStr.c_str() ); // TODO: use
     }
 
     sKeyEvents.push_back( e );
