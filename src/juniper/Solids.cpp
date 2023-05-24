@@ -25,6 +25,7 @@ struct SceneConstants {
 Solid::Solid( const Options &options )
     : mOptions( options )
 {
+    auto repoPath = getRepoRootPath();
     if( mOptions.vertPath.empty() ) {
         mOptions.vertPath = "shaders/solids/solid.vsh";
     }

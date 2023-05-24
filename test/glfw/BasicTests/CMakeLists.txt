@@ -51,7 +51,7 @@ target_compile_definitions( ${APP_TARGET} PRIVATE UNICODE )
 target_compile_definitions( ${APP_TARGET} PRIVATE ENGINE_DLL=1 )
 
 set_target_properties( ${APP_TARGET} PROPERTIES
-    FOLDER test/glfw
+    FOLDER test/juniper
 )
 
 if(D3D11_SUPPORTED)
@@ -131,6 +131,6 @@ target_link_libraries( ${APP_TARGET} PRIVATE
     Diligent-Imgui
     Diligent-TextureLoader
     juniper
-    glfw # make sure before cinder-lite to prevent compile errors
     cinder-lite
+    glfw
 )

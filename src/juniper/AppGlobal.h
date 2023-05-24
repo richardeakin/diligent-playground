@@ -4,9 +4,12 @@
 #include "Shader.h"
 #include "RefCntAutoPtr.hpp"
 
+#include <filesystem>
+
 namespace juniper {
 
 namespace dg = Diligent;
+namespace fs = std::filesystem;
 
 // simple struct to pass around global data for creating things, created by the main app but used in other files.
 struct AppGlobal {
@@ -17,6 +20,9 @@ struct AppGlobal {
 };
 
 AppGlobal* global();
+
+const fs::path& getRepoRootPath( const fs::path &rootFile = ".git" );
+
 
 } // namespace juniper
 

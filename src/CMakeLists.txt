@@ -62,21 +62,23 @@ add_library( ${LIB_TARGET} STATIC ${JUNIPER_SOURCES} ${IMGUI_SOURCES} )
 
 set_target_properties( ${LIB_TARGET} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES )
 target_compile_features( ${LIB_TARGET} PUBLIC cxx_std_17 )
-
 target_compile_definitions( ${LIB_TARGET} PRIVATE UNICODE )
+
+target_include_directories( ${LIB_TARGET}
+	PUBLIC
+	. # juniper lib sources
+	${DILIGENT_PATH}/DiligentSamples/ThirdParty/glfw/include # add this before cinder's include so it gets priority (another copy of glfw lives in cinder/include)
+	${CINDER_INCLUDE_USER}
+	PRIVATE
+	${LIVEPP_PATH} # set in top level CMakeLists.txt
+
+)
 
 # creates folder layout so all .h and .cpp files live in the "src" folder, relative to their naturual folder hiearchy
 source_group( TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "src" FILES ${JUNIPER_SOURCES} )
 # imgui files use absolute paths so add their group separately
 source_group( "src/imgui" FILES ${IMGUI_SOURCES} )
 source_group( "assets" FILES ${ASSETS} ) # FIXME: these aren't getting added to project
-
-set( INCLUDE_USER
-	"." # juniper lib sources
-	${LIVEPP_PATH} # set in top level CMakeLists.txt
-)
-
-target_include_directories( ${LIB_TARGET} PUBLIC ${INCLUDE_USER} )
 
 target_include_directories( ${LIB_TARGET} PRIVATE "${DILIGENT_PATH}/DiligentCore" )
 if( METAL_SUPPORTED )
@@ -106,7 +108,6 @@ target_link_libraries( ${LIB_TARGET} PRIVATE
     Diligent-GraphicsTools
     Diligent-Imgui
     Diligent-TextureLoader
-    glfw # make sure before cinder-lite to prevent compile errors
     cinder-lite
+    glfw
 )
-
