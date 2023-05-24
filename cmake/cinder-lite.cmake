@@ -14,11 +14,25 @@ ci_log_i( "CINDER_PATH: ${CINDER_PATH}" )
 # mason sources
 set( CINDER_SOURCES
     ${CINDER_PATH}/include/cinder/Cinder.h
+    ${CINDER_PATH}/include/cinder/CinderAssert.h
+    ${CINDER_PATH}/src/cinder/CinderAssert.cpp
+    ${CINDER_PATH}/include/cinder/DataSource.h
+    ${CINDER_PATH}/src/cinder/DataSource.cpp
+    ${CINDER_PATH}/include/cinder/Exception.h
+    ${CINDER_PATH}/src/cinder/Exception.cpp
     ${CINDER_PATH}/include/cinder/Filesystem.h
     ${CINDER_PATH}/include/cinder/Log.h
     ${CINDER_PATH}/src/cinder/Log.cpp
     ${CINDER_PATH}/src/cinder/app/Platform.cpp
     ${CINDER_PATH}/include/cinder/app/Platform.h
+)
+
+# TODO: only if windows
+list( APPEND CINDER_SOURCES 
+    ${CINDER_PATH}/src/cinder/app/msw/PlatformMsw.cpp
+    ${CINDER_PATH}/include/cinder/app/msw/PlatformMsw.h
+    ${CINDER_PATH}/src/cinder/msw/StackWalker.cpp
+    ${CINDER_PATH}/include/cinder/msw/StackWalker.h
 )
 
 add_library( ${LIB_TARGET} STATIC ${CINDER_SOURCES} )
