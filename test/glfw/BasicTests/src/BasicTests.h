@@ -3,6 +3,7 @@
 
 #include "juniper/AppBasic.h"
 #include "juniper/Juniper.h"
+#include "juniper/Solids.h"
 
 namespace dg = Diligent;
 
@@ -22,5 +23,6 @@ public:
 
 private:
 
+    std::unique_ptr<ju::Solid>   mSolid;
 };
 

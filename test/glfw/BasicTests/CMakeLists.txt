@@ -13,9 +13,6 @@ set( SOURCES
 )
 
 set( SHADERS
-     assets/shaders/solid.vsh
-     assets/shaders/solid.psh
-     assets/shaders/solid.fxh
 )
 
 set( ASSETS ${SHADERS} )
@@ -36,10 +33,6 @@ target_include_directories( ${APP_TARGET} PUBLIC
 )
 
 #add_dependencies( ${APP_TARGET} cinder )
-
-target_link_libraries( ${APP_TARGET} PRIVATE
-    juniper
-)
 
 set_target_properties( ${APP_TARGET} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES )
 target_compile_features( ${APP_TARGET} PUBLIC cxx_std_17 )
@@ -65,7 +58,9 @@ target_link_libraries( ${APP_TARGET} PRIVATE
     Diligent-Common
     Diligent-GraphicsTools
     Diligent-Imgui
+    Diligent-TextureLoader
     glfw
+    juniper
 )
 
 if(D3D11_SUPPORTED)

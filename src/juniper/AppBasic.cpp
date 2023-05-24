@@ -28,10 +28,16 @@ void AppBasic::initEntry()
     // re-enable imgui.ini save file
     ImGui::GetIO().IniFilename = "imgui.ini";
 
+
     try {
         auto g = global();
-        // TODO: setup global() here
         g->renderDevice = getDevice();
+
+
+        // search directories should be semi-colon separated (will likely store it locally as a vector<path>
+        // TODO: make generic / portable if this stays (going to do my own fp finding and use absolute paths for now)
+        //std::string searchDirs = "../../assets";
+        //getEngineFactory()->CreateDefaultShaderSourceStreamFactory( searchDirs.c_str(), &g->shaderSourceFactory );
         getEngineFactory()->CreateDefaultShaderSourceStreamFactory( nullptr, &g->shaderSourceFactory );
         CHECK_THROW( g->shaderSourceFactory );
 

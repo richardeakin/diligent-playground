@@ -53,6 +53,16 @@ void BasicTests::initialize()
 #if LIVEPP_ENABLED
     ju::initLivePP( LPP_PATH );
 #endif
+
+
+    // make a Solid for testing 3D drawing
+    {
+        ju::Solid::Options options;
+        options.components = ju::VERTEX_COMPONENT_FLAG_POS_NORM_UV;
+
+        mSolid = std::make_unique<ju::Cube>( options );
+        //mSolid = std::make_unique<ju::Pyramid>( options );
+    }
 }
 
 // -------------------------------------------------------------------------------------------------------
@@ -65,7 +75,7 @@ static std::vector<KeyEvent> sKeyEvents;
 static std::vector<KeyEvent> sMouseEvents;
 
 static int MaxKeyEvents = 100;
-static int MaxMouseEvents = 100;
+//static int MaxMouseEvents = 100;
 
 } // anon
 
