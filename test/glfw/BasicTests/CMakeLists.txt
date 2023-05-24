@@ -48,19 +48,10 @@ if( METAL_SUPPORTED )
 endif()
 
 target_compile_definitions( ${APP_TARGET} PRIVATE UNICODE )
+target_compile_definitions( ${APP_TARGET} PRIVATE ENGINE_DLL=1 )
 
 set_target_properties( ${APP_TARGET} PROPERTIES
     FOLDER test/glfw
-)
-
-target_compile_definitions( ${APP_TARGET} PRIVATE ENGINE_DLL=1 )
-target_link_libraries( ${APP_TARGET} PRIVATE
-    Diligent-Common
-    Diligent-GraphicsTools
-    Diligent-Imgui
-    Diligent-TextureLoader
-    glfw
-    juniper
 )
 
 if(D3D11_SUPPORTED)
@@ -117,3 +108,29 @@ set( LINK_OPTIONS
 )
 
 target_link_options( ${APP_TARGET} PRIVATE "${LINK_OPTIONS}" )
+
+target_include_directories( ${APP_TARGET} PUBLIC ${CINDER_INCLUDE_USER} )
+
+set( CINDER_COMPILE_DEFINITIONS
+#    WIN32
+#    _DEBUG
+    _LIB
+    NOMINMAX
+    _WIN32_WINNT=0x0601
+    _CRT_SECURE_NO_WARNINGS
+    _SCL_SECURE_NO_WARNINGS
+    FT2_BUILD_LIBRARY=1
+    FT_DEBUG_LEVEL_TRACE=1
+)
+
+target_compile_definitions( ${APP_TARGET} PRIVATE ${CINDER_COMPILE_DEFINITIONS} )
+
+target_link_libraries( ${APP_TARGET} PRIVATE
+    Diligent-Common
+    Diligent-GraphicsTools
+    Diligent-Imgui
+    Diligent-TextureLoader
+    juniper
+    glfw # make sure before cinder-lite to prevent compile errors
+    cinder-lite
+)

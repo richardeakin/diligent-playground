@@ -50,8 +50,10 @@ if( PLATFORM_MACOS )
     list( APPEND JUNIPER_SOURCES juniper/SurfaceHelper.mm )
 endif()
 
-# TODO: move solid base shaders here
 set( SHADERS
+    ../assets/shaders/solids/solid.vsh
+    ../assets/shaders/solids/solid.psh
+    ../assets/shaders/solids/solid.fxh
 )
 
 set( ASSETS ${SHADERS} )
@@ -64,10 +66,10 @@ target_compile_features( ${LIB_TARGET} PUBLIC cxx_std_17 )
 target_compile_definitions( ${LIB_TARGET} PRIVATE UNICODE )
 
 # creates folder layout so all .h and .cpp files live in the "src" folder, relative to their naturual folder hiearchy
-source_group( TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "src" FILES ${JUNIPER_SOURCES} ${ASSETS} )
+source_group( TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "src" FILES ${JUNIPER_SOURCES} )
 # imgui files use absolute paths so add their group separately
 source_group( "src/imgui" FILES ${IMGUI_SOURCES} )
-#source_group( "assets" FILES ${ASSETS} )
+source_group( "assets" FILES ${ASSETS} ) # FIXME: these aren't getting added to project
 
 set( INCLUDE_USER
 	"." # juniper lib sources
@@ -80,16 +82,6 @@ target_include_directories( ${LIB_TARGET} PRIVATE "${DILIGENT_PATH}/DiligentCore
 if( METAL_SUPPORTED )
     target_include_directories( ${LIB_TARGET} PRIVATE "${DILIGENT_PATH}/DiligentCorePro" )
 endif()
-
-# These add necessary includes for our library
-target_compile_definitions( ${LIB_TARGET} PRIVATE ENGINE_DLL=1 )
-target_link_libraries( ${LIB_TARGET} PRIVATE
-    Diligent-Common
-    Diligent-GraphicsTools
-    Diligent-Imgui
-    Diligent-TextureLoader
-    glfw
-)
 
 if( D3D11_SUPPORTED )
     target_link_libraries( ${LIB_TARGET} PRIVATE Diligent-GraphicsEngineD3D11-shared )
@@ -106,3 +98,15 @@ endif()
 if( METAL_SUPPORTED )
     target_link_libraries( ${LIB_TARGET} PRIVATE Diligent-GraphicsEngineMetal-shared )
 endif()
+
+# These add necessary includes for our library
+target_compile_definitions( ${LIB_TARGET} PRIVATE ENGINE_DLL=1 )
+target_link_libraries( ${LIB_TARGET} PRIVATE
+    Diligent-Common
+    Diligent-GraphicsTools
+    Diligent-Imgui
+    Diligent-TextureLoader
+    glfw # make sure before cinder-lite to prevent compile errors
+    cinder-lite
+)
+

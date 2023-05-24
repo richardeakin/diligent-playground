@@ -7,7 +7,7 @@ project( DiligentPlayground )
 # option(BUILD_SAMPLES "Build Samples" ON)
 option( BUILD_MODDED_SAMPLES "Build Modded Samples" ON )
 option( BUILD_JUNIPER "Build Juniper library" ON )
-option( BUILD_GX "Build GX" OFF )
+option( BUILD_CINDER_LITE "Build cinder-lite" ON )
 
 # variable_watch(CINDER_LIB_DIRECTORY)
 
@@ -18,7 +18,7 @@ include( deps/cinder/proj/cmake/utilities.cmake )
 get_filename_component( REPO_PATH "${CMAKE_CURRENT_SOURCE_DIR}" ABSOLUTE )
 
 # add_subdirectory( cinder )
-get_filename_component( CINDER_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cinder/" ABSOLUTE )
+get_filename_component( CINDER_PATH "${CMAKE_CURRENT_SOURCE_DIR}/deps/cinder/" ABSOLUTE )
 # message("CINDER_PATH: ${CINDER_PATH}")
 
 # ----
@@ -34,6 +34,11 @@ ci_log_i( "DILIGENT_PATH: ${DILIGENT_PATH}" )
 
 add_subdirectory( ${DILIGENT_PATH}/DiligentCore )
 add_subdirectory( ${DILIGENT_PATH}/DiligentTools )
+
+if( ${BUILD_CINDER_LITE} )
+	ci_log_i( "including cinder-lite.." )
+	include( cmake/cinder-lite.cmake )
+endif()
 
 if( ${BUILD_JUNIPER} )
 	ci_log_i( "including Juniper library + apps.." )
