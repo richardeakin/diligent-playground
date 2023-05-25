@@ -270,8 +270,6 @@ void BasicTests::draw()
 
     const float gray = BackgroundGray;
     clear( float4( gray, gray, gray, gray ) );
-
-    // TODO: draw solid here
     
     if( mSolid && DrawTestSolid ) {
         mSolid->draw( context, ViewProjMatrix );

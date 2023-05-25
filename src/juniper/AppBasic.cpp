@@ -76,13 +76,16 @@ void AppBasic::drawEntry()
     auto* swapchain = getSwapChain();
 
     //ITextureView* rtv = swapchain->GetCurrentBackBufferRTV();
-    //context->SetRenderTargets( 1, &rtv, nullptr, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+    //auto* dsv = swapchain->GetDepthBufferDSV();
 
-    //const float gray = 0.2f;
-    //const float ClearColor[4] = { gray, gray, gray, gray };
+    //auto colorDesc = rtv->GetDesc();
+    //auto depthDesc = dsv->GetDesc();
+
+    //context->SetRenderTargets( 1, &rtv, dsv, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+
+    //const float ClearColor[4] = { 0, 0, 0, 0 };
     //context->ClearRenderTarget( rtv, ClearColor, RESOURCE_STATE_TRANSITION_MODE_VERIFY );
 
-    // TODO: this is where App impls draw() will have to get called (once this is moved to lib and subclassed
     draw();
 
     if( mImGui ) {
@@ -108,9 +111,10 @@ void AppBasic::clear( const float4 &color )
     auto* swapchain = getSwapChain();
 
     ITextureView* rtv = swapchain->GetCurrentBackBufferRTV();
-    context->SetRenderTargets( 1, &rtv, nullptr, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
-
+    auto* dsv = swapchain->GetDepthBufferDSV();
+    context->SetRenderTargets( 1, &rtv, dsv, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
     context->ClearRenderTarget( swapchain->GetCurrentBackBufferRTV(), &color.r, RESOURCE_STATE_TRANSITION_MODE_VERIFY );
+    context->ClearDepthStencil( dsv, CLEAR_DEPTH_FLAG, 1.f, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
 }
 
 float4x4 AppBasic::getAdjustedProjectionMatrix( float fov, float nearPlane, float FarPlane ) const
