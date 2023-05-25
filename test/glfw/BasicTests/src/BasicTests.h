@@ -4,6 +4,7 @@
 #include "juniper/AppBasic.h"
 #include "juniper/Juniper.h"
 #include "juniper/Solids.h"
+//#include "FirstPersonCamera.hpp"
 
 namespace dg = Diligent;
 
@@ -23,6 +24,12 @@ public:
 
 private:
 
-    std::unique_ptr<ju::Solid>   mSolid;
-};
+    void updateUI();
 
+    std::unique_ptr<ju::Solid>   mSolid;
+
+    // TODO: get this working
+    // - move to AppBasic
+    // - think it needs to be copied to juniper
+    //dg::FirstPersonCamera mCamera;
+};

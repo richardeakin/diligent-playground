@@ -25,6 +25,10 @@ public:
 
     //! Clears the swapchain's rendertarget to specified color
     void clear( const float4 &color );
+    //!
+    float4x4 getAdjustedProjectionMatrix( float fov, float nearPlane, float farPlane ) const;
+    //!
+    float4x4 getSurfacePretransformMatrix( const float3& cameraViewAxis ) const;
 
 private:
 

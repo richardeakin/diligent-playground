@@ -71,10 +71,13 @@ public:
     virtual ~AppGlfw();
 
     // Public API
-    dg::IEngineFactory* getEngineFactory()  { return mRenderDevice->GetEngineFactory(); }
-    dg::IRenderDevice*  getDevice()         { return mRenderDevice; }
-    dg::IDeviceContext* getContext()        { return mImmediateContext; }
-    dg::ISwapChain*     getSwapChain()      { return mSwapChain; }
+    const dg::IEngineFactory* getEngineFactory() const  { return mRenderDevice->GetEngineFactory(); }
+    dg::IRenderDevice*        getDevice()               { return mRenderDevice; }
+    const dg::IRenderDevice*  getDevice() const         { return mRenderDevice; }
+    dg::IDeviceContext*       getContext()              { return mImmediateContext; }
+    const dg::IDeviceContext* getContext() const        { return mImmediateContext; }
+    dg::ISwapChain*           getSwapChain()            { return mSwapChain; }
+    const dg::ISwapChain*     getSwapChain() const      { return mSwapChain; }
 
     void quit();
 

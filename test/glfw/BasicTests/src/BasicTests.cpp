@@ -26,6 +26,15 @@ using namespace Diligent;
 using namespace juniper;
 
 float BackgroundGray = 0.2f;
+dg::float3      LightDir  = normalize( float3( 1, -0.5f, -0.1f ) );
+
+float3 TestSolidTranslate = { 0, 0, 0 };
+float3 TestSolidScale = { 1, 1, 1 };
+float3 TestSolidLookAt = { 0, 1, 0 };
+bool TestSolidRotate = true;
+bool DrawTestSolid = true;
+
+float4x4 ViewProjMatrix;
 
 // -------------------------------------------------------------------------------------------------------
 // App Init
@@ -122,11 +131,76 @@ void BasicTests::resize( const dg::int2 &size )
 
 // TODO: pass time through as a double always
 void BasicTests::update( float deltaTime )
+{    
+    updateUI();
+
+    static double currentTime = 0; // TODO: store this on AppBasic
+    currentTime += deltaTime;
+
+    // Build a transform matrix for the test solid
+    float4x4 modelTransform = float4x4::Identity();
+    modelTransform *= float4x4::Scale( TestSolidScale );
+    if( TestSolidRotate )  {
+        modelTransform *= float4x4::RotationY( float(currentTime) * 1.0f) * float4x4::RotationX( -PI_F * 0.1f );
+    }
+
+    modelTransform *= float4x4::Translation( TestSolidTranslate );
+
+    mSolid->setLightDir( LightDir );
+    mSolid->update( deltaTime );
+    mSolid->setTransform( modelTransform );
+
+    if( false ) {
+        // TODO: use Camera once implemented
+        //mViewProjMatrix = mCamera.GetViewMatrix() * mCamera.GetProjMatrix();
+        //mWorldViewProjMatrix = modelTransform * mCamera.GetViewMatrix() * mCamera.GetProjMatrix();
+    }
+    else {
+        // from samples..
+        // 
+        // Camera is at (0, 0, -5) looking along the Z axis
+        float4x4 View = float4x4::Translation(0.f, 0.0f, 5.0f);
+
+        // Get pretransform matrix that rotates the scene according the surface orientation
+        // TODO: remove to simplify for now, this is the identity matrix on desktop
+        auto SrfPreTransform = getSurfacePretransformMatrix(float3{0, 0, 1});
+        //auto SrfPreTransform = float4x4::Identity();
+
+        // Get projection matrix adjusted to the current screen orientation
+        auto Proj = getAdjustedProjectionMatrix( PI_F / 4.0f, 0.1f, 100.0f );
+        //auto Proj = GetAdjustedProjectionMatrix( mCamera.GetProjAttribs().FOV, mCamera.GetProjAttribs().NearClipPlane, mCamera.GetProjAttribs().FarClipPlane );
+
+        ViewProjMatrix = View * SrfPreTransform * Proj;
+        //mWorldViewProjMatrix = modelTransform * View * SrfPreTransform * Proj;
+    }
+}
+
+void BasicTests::updateUI()
 {
+    float deltaTime = 0; // TODO: get from app 
     ImGui::Text( "deltaTime: %6.3f", deltaTime );
     ImGui::SliderFloat( "background darkness", &BackgroundGray, 0, 1 );
 
-    if( im::CollapsingHeader( "KeyEvents", ImGuiTreeNodeFlags_DefaultOpen ) ) {
+    im::Separator();
+    im::Text( "Test Solid" );
+    im::Checkbox( "draw##test solid", &DrawTestSolid );
+    im::SameLine();
+    im::DragFloat3( "translate##solid", &TestSolidTranslate.x, 0.01f );
+
+    static bool lockDims = false;
+    if( lockDims ) {
+        if( im::DragFloat( "scale##solids1", &TestSolidScale.x, 0.01f, 0.001f, 1000.0f ) ) {
+            TestSolidScale = float3( TestSolidScale.x, TestSolidScale.x, TestSolidScale.x );
+        }
+    }
+    else {
+        im::DragFloat3( "scale##solid", &TestSolidScale.x, 0.01f );
+    }
+    im::Checkbox( "lock dims##test solid", &lockDims );
+
+
+    // TODO: move to new optional window
+    if( im::CollapsingHeader( "KeyEvents" /*ImGuiTreeNodeFlags_DefaultOpen*/ ) ) {
         if( im::Button( "clear" ) ) {
             sKeyEvents.clear();
         }
@@ -199,4 +273,8 @@ void BasicTests::draw()
 
     // TODO: draw solid here
     
+    if( mSolid && DrawTestSolid ) {
+        mSolid->draw( context, ViewProjMatrix );
+    }
+
 }
