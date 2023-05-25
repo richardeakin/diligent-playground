@@ -27,7 +27,7 @@ void AppBasic::initEntry()
 {
     // re-enable imgui.ini save file
     ImGui::GetIO().IniFilename = "imgui.ini";
-
+    findRepoRootPath();
 
     try {
         auto g = global();

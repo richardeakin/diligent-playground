@@ -17,12 +17,16 @@ struct AppGlobal {
 		dg::RefCntAutoPtr<dg::IShaderSourceInputStreamFactory>	shaderSourceFactory;
 		dg::TEXTURE_FORMAT										colorBufferFormat = dg::TEX_FORMAT_RGBA8_UNORM;
 		dg::TEXTURE_FORMAT										depthBufferFormat = dg::TEX_FORMAT_UNKNOWN;
+
+		fs::path				repoRootPath;
 };
 
 AppGlobal* global();
 
-const fs::path& getRepoRootPath( const fs::path &rootFile = ".git" );
-
+//! Sets the path to the repo root on AppGlobal, by walking up from the executable path until we find \a rootFile
+void findRepoRootPath( const fs::path &rootFile = ".git" );
+//! Returns the path to the asset that lives within the root repo's assets folder
+fs::path getRootAssetPath( const fs::path &relativePath );
 
 } // namespace juniper
 

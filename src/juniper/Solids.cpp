@@ -25,12 +25,11 @@ struct SceneConstants {
 Solid::Solid( const Options &options )
     : mOptions( options )
 {
-    auto repoPath = getRepoRootPath();
     if( mOptions.vertPath.empty() ) {
-        mOptions.vertPath = "shaders/solids/solid.vsh";
+        mOptions.vertPath = getRootAssetPath( "shaders/solids/solid.vsh" );
     }
     if( mOptions.pixelPath.empty() ) {
-        mOptions.pixelPath = "shaders/solids/solid.psh";
+        mOptions.pixelPath = getRootAssetPath( "shaders/solids/solid.psh" );
     }
 
     // TODO: need two separate buffers here - one for SceneConstants and one for ModelConstants

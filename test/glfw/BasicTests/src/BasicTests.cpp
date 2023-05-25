@@ -11,7 +11,7 @@
 #include "imgui.h"
 #include "ImGuiImplDiligent.hpp"
 
-//#include "cinder/Log.h" // TODO: get this working
+#include "cinder/Log.h"
 
 // TODO: move this to AppBasic? Can add a flag for it..
 // TODO: set LPP_PATH as a define from cmake
@@ -56,6 +56,7 @@ void BasicTests::initialize()
     ju::initLivePP( LPP_PATH );
 #endif
 
+    CI_LOG_I( "blarg" );
 
     // make a Solid for testing 3D drawing
     {
