@@ -30,6 +30,8 @@ set( CINDER_SOURCES
     ${CINDER_PATH}/src/cinder/DataSource.cpp
     ${CINDER_PATH}/include/cinder/DataTarget.h
     ${CINDER_PATH}/src/cinder/DataTarget.cpp
+    ${CINDER_PATH}/src/cinder/GeomIo.cpp
+    ${CINDER_PATH}/include/cinder/GeomIo.h
     ${CINDER_PATH}/src/cinder/Surface.cpp
     ${CINDER_PATH}/include/cinder/Surface.h
 
