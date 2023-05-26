@@ -292,7 +292,9 @@ void Solid::draw( IDeviceContext* context, const mat4 &viewProjectionMatrix, uin
  
     // Update constant buffer
     {
-        auto mvp = mTransform * viewProjectionMatrix;
+        //auto mvp = mTransform * viewProjectionMatrix;
+        auto mvp = viewProjectionMatrix * mTransform;
+        mvp = glm::transpose( mvp );
         MapHelper<SceneConstants> CBConstants( context, mSceneConstants, MAP_WRITE, MAP_FLAG_DISCARD );
         //CBConstants->MVP = mvp.Transpose();
         CBConstants->MVP = mvp;
@@ -311,15 +313,12 @@ void Solid::draw( IDeviceContext* context, const mat4 &viewProjectionMatrix, uin
 
     // Set the pipeline state
     context->SetPipelineState(mPSO);
-    // Commit shader resources. RESOURCE_STATE_TRANSITION_MODE_TRANSITION mode
-    // makes sure that resources are transitioned to required states.
     context->CommitShaderResources( mSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
 
-    DrawIndexedAttribs DrawAttrs;     // This is an indexed draw call
-    DrawAttrs.IndexType  = VT_UINT32; // Index type
+    DrawIndexedAttribs DrawAttrs;
+    DrawAttrs.IndexType  = VT_UINT32;
     DrawAttrs.NumIndices = mNumIndices;
     DrawAttrs.NumInstances = numInstances;
-    // Verify the state of vertex and index buffers
     DrawAttrs.Flags = DRAW_FLAG_VERIFY_ALL;
     context->DrawIndexed( DrawAttrs );
 }

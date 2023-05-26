@@ -41,6 +41,12 @@ vec3 TestSolidTranslate = { 0, 0, 0 };
 vec3 TestSolidScale = { 1, 1, 1 };
 vec3 TestSolidLookAt = { 0, 1, 0 };
 glm::mat4 ViewProjMatrix;
+
+float CameraFov = 35;
+glm::vec2 CameraClip = { 0.1f, 1000.0f };
+glm::vec3 CameraEyePos = { 0, 0, 5 };
+glm::vec3 CameraEyeTarget = { 0, 0, 0 };
+
 #else
 float3 TestSolidTranslate = { 0, 0, 0 };
 float3 TestSolidScale = { 1, 1, 1 };
@@ -89,10 +95,6 @@ void BasicTests::initialize()
     }
 }
 
-bool UseCinderCamera = true;
-float CameraFov = 35;
-glm::vec2 CameraClip = { 0.1f, 1000.0f };
-
 void BasicTests::initCamera()
 {
     // TODO NEXT: make some static vars and init cam here
@@ -100,12 +102,10 @@ void BasicTests::initCamera()
     // - probably need to call setPerspective from resize() since that is where we first know the window size
     //mCam.setPerspective( CameraFov, aspect, CameraClip[0], CameraClip[1] );
 
-    glm::vec3 eyePos = { 0, 0, -5 };
-    glm::vec3 eyeTarget = { 0, 0, 0 };
+    //glm::vec3 eyePos = { 0, 0, -5 };
 
 
-    mCam.lookAt( eyePos, eyeTarget );
-
+    mCam.lookAt( CameraEyePos, CameraEyeTarget );
 }
 
 // -------------------------------------------------------------------------------------------------------
@@ -187,8 +187,9 @@ void BasicTests::update( float deltaTime )
 
     modelTransform *= glm::translate( TestSolidTranslate );
 
-
-    ViewProjMatrix = mCam.getViewMatrix() * mCam.getProjectionMatrix();
+    // TODO: think this needs to be in reverse order for glm
+    //ViewProjMatrix = mCam.getViewMatrix() * mCam.getProjectionMatrix();
+    ViewProjMatrix = mCam.getProjectionMatrix() * mCam.getViewMatrix();
     //mWorldViewProjMatrix = modelTransform * mCamera.GetViewMatrix() * mCamera.GetProjMatrix();
 #else
     // Build a transform matrix for the test solid
@@ -247,6 +248,14 @@ void BasicTests::updateUI()
     }
     im::Checkbox( "lock dims##test solid", &lockDims );
 
+    if( im::CollapsingHeader( "Camera", ImGuiTreeNodeFlags_DefaultOpen ) ) {
+        if( im::DragFloat3( "eye pos", &CameraEyePos.x, 0.01f ) ) { 
+            mCam.lookAt( CameraEyePos, CameraEyeTarget );
+        }
+        if( im::DragFloat3( "target", &CameraEyeTarget.x, 0.01f ) ) { 
+            mCam.lookAt( CameraEyePos, CameraEyeTarget );
+        }
+    }
 
     // TODO: move to new optional window
     if( im::CollapsingHeader( "KeyEvents" /*ImGuiTreeNodeFlags_DefaultOpen*/ ) ) {
