@@ -109,12 +109,13 @@ void BasicTests::keyEvent( const KeyEvent &e )
 
 void BasicTests::mouseEvent( const MouseEvent &e )
 {
+    // TODO: pack into sMouseEvents and show in gui instead
     if( e.isScroll() ) {
         JU_LOG_INFO( "mouse pos: ", e.getPos(), ", state: ", getAsString( e.getState() ), ", scroll: ", e.getScroll() );
     }
-    else if( e.isDrag() ) {
-        JU_LOG_INFO( "mouse drag, pos: ", e.getPos(), ", button index: ", e.getButtonIndex() );
-    }
+    //else if( e.isDrag() ) {
+    //    JU_LOG_INFO( "mouse drag, pos: ", e.getPos(), ", button index: ", e.getButtonIndex() );
+    //}
     else if( e.getState() != MouseEvent::State::Move ) {
         JU_LOG_INFO( "mouse pos: ", e.getPos(), ", state: ", getAsString( e.getState() ), ", button index: ", e.getButtonIndex() );
     }
