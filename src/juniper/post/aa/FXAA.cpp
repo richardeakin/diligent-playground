@@ -1,21 +1,20 @@
 #include "FXAA.h"
-#include "AppGlobal.h"
-
-#include "../../common/src/FileWatch.h"
+#include "juniper/AppGlobal.h"
+#include "juniper/FileWatch.h"
 
 #include "imgui.h"
 
 using namespace Diligent;
 namespace im = ImGui;
 
+namespace juniper { namespace post {
+
 namespace {
 
-ju::FileWatchHandle     ShadersDirWatchHandle;
-bool                    ShaderAssetsMarkedDirty = false;
+FileWatchHandle     ShadersDirWatchHandle;
+bool                ShaderAssetsMarkedDirty = false;
 
 }// anon
-
-namespace ju { namespace aa {
 
 FXAA::FXAA( const TEXTURE_FORMAT &colorBufferFormat )
 {
@@ -29,7 +28,7 @@ FXAA::FXAA( const TEXTURE_FORMAT &colorBufferFormat )
         CBDesc.Usage          = USAGE_DEFAULT; // USAGE_DYNAMIC
         CBDesc.BindFlags      = BIND_UNIFORM_BUFFER;
         //CBDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
-        app::global()->renderDevice->CreateBuffer( CBDesc, nullptr, &mConstantsBuffer );
+        global()->renderDevice->CreateBuffer( CBDesc, nullptr, &mConstantsBuffer );
     }
 
     initPipelineState( colorBufferFormat );
@@ -38,8 +37,6 @@ FXAA::FXAA( const TEXTURE_FORMAT &colorBufferFormat )
 
 void FXAA::initPipelineState( const TEXTURE_FORMAT &colorBufferFormat )
 {
-    auto global = app::global();
-
     GraphicsPipelineStateCreateInfo PSOCreateInfo;
 
     PSOCreateInfo.PSODesc.Name         = "FXAA PSO";
@@ -65,14 +62,14 @@ void FXAA::initPipelineState( const TEXTURE_FORMAT &colorBufferFormat )
 
     ShaderCreateInfo shaderCI;
     shaderCI.SourceLanguage             = SHADER_SOURCE_LANGUAGE_HLSL;
-    shaderCI.pShaderSourceStreamFactory = global->shaderSourceFactory;
+    shaderCI.pShaderSourceStreamFactory = global()->shaderSourceFactory;
 
     RefCntAutoPtr<IShader> vertShader;
     {
         shaderCI.Desc = { "FXAA VS", SHADER_TYPE_VERTEX, true };
         shaderCI.EntryPoint = "main";
         shaderCI.FilePath = "shaders/post/aa/fxaa.vsh";
-        global->renderDevice->CreateShader( shaderCI, &vertShader );
+        global()->renderDevice->CreateShader( shaderCI, &vertShader );
     }
 
     RefCntAutoPtr<IShader> pixelShader;
@@ -80,14 +77,14 @@ void FXAA::initPipelineState( const TEXTURE_FORMAT &colorBufferFormat )
         shaderCI.Desc = { "FXAA PS", SHADER_TYPE_PIXEL, true };
         shaderCI.EntryPoint = "main";
         shaderCI.FilePath = "shaders/post/aa/fxaa.psh";
-        global->renderDevice->CreateShader( shaderCI, &pixelShader );
+        global()->renderDevice->CreateShader( shaderCI, &pixelShader );
     }
 
     PSOCreateInfo.pVS = vertShader;
     PSOCreateInfo.pPS = pixelShader;
 
     mPSO.Release();
-    global->renderDevice->CreateGraphicsPipelineState( PSOCreateInfo, &mPSO );
+    global()->renderDevice->CreateGraphicsPipelineState( PSOCreateInfo, &mPSO );
 
     if( mPSO ) {
         //auto pc = mPSO->GetStaticVariableByName( SHADER_TYPE_PIXEL, "ConstantsCB" );
@@ -201,4 +198,4 @@ void FXAA::updateUI()
     im::DragFloat( "quality edge threshold", &mFxaaConstants.qualityEdgeThreshold, 0.002f, 0, 1 );
 }
 
-}} // namespace ju::aa
+}} // namespace juniper::post

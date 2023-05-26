@@ -1,18 +1,16 @@
 #include "Canvas.h"
 
-// TODO: these need to live in the same namespace / code area. currently Canvas is common but AppGlobal is not
-// - will happen when I make an app layer using glfw
-#include "AppGlobal.h"
 #include "MapHelper.hpp"
 
-#include "../../common/src/FileWatch.h"
+#include "juniper/AppGlobal.h"
+#include "juniper/FileWatch.h"
 
-using namespace ju;
+using namespace juniper;
 using namespace Diligent;
 
 namespace {
 
-ju::FileWatchHandle     ShadersDirWatchHandle;
+FileWatchHandle         ShadersDirWatchHandle;
 bool                    ShaderAssetsMarkedDirty = false;
 
 struct VertexConstants {
@@ -32,7 +30,7 @@ Canvas::Canvas( size_t sizePixelConstants )
         CBDesc.Usage          = USAGE_DYNAMIC;
         CBDesc.BindFlags      = BIND_UNIFORM_BUFFER;
         CBDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
-        app::global()->renderDevice->CreateBuffer( CBDesc, nullptr, &mVertexConstants );
+        global()->renderDevice->CreateBuffer( CBDesc, nullptr, &mVertexConstants );
     }
     {
         BufferDesc CBDesc;
@@ -41,7 +39,7 @@ Canvas::Canvas( size_t sizePixelConstants )
         CBDesc.Usage          = USAGE_DYNAMIC;
         CBDesc.BindFlags      = BIND_UNIFORM_BUFFER;
         CBDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
-        app::global()->renderDevice->CreateBuffer( CBDesc, nullptr, &mPixelConstants );
+        global()->renderDevice->CreateBuffer( CBDesc, nullptr, &mPixelConstants );
     }
 
 	initPipelineState();
@@ -50,14 +48,12 @@ Canvas::Canvas( size_t sizePixelConstants )
 
 void Canvas::initPipelineState()
 {
-    auto global = app::global();
-
     GraphicsPipelineStateCreateInfo PSOCreateInfo;
     PSOCreateInfo.PSODesc.Name                                  = "Canvas PSO";
     PSOCreateInfo.PSODesc.PipelineType                          = PIPELINE_TYPE_GRAPHICS;
     PSOCreateInfo.GraphicsPipeline.NumRenderTargets             = 1;
-    PSOCreateInfo.GraphicsPipeline.RTVFormats[0]                = global->colorBufferFormat;
-    PSOCreateInfo.GraphicsPipeline.DSVFormat                    = global->depthBufferFormat;
+    PSOCreateInfo.GraphicsPipeline.RTVFormats[0]                = global()->colorBufferFormat;
+    PSOCreateInfo.GraphicsPipeline.DSVFormat                    = global()->depthBufferFormat;
     PSOCreateInfo.GraphicsPipeline.PrimitiveTopology            = PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
 
     // TODO: make this optional
@@ -72,7 +68,7 @@ void Canvas::initPipelineState()
     ShaderCreateInfo ShaderCI;
     ShaderCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_HLSL;
     ShaderCI.Desc.UseCombinedTextureSamplers = true;
-    ShaderCI.pShaderSourceStreamFactory = global->shaderSourceFactory;
+    ShaderCI.pShaderSourceStreamFactory = global()->shaderSourceFactory;
 
     // TODO: set shader paths with constructor property
     // vertex shader
@@ -82,7 +78,7 @@ void Canvas::initPipelineState()
         ShaderCI.EntryPoint      = "main";
         ShaderCI.Desc.Name       = "Canvas VS";
         ShaderCI.FilePath        = "shaders/canvas/canvas.vsh";
-        global->renderDevice->CreateShader( ShaderCI, &pVS );
+        global()->renderDevice->CreateShader( ShaderCI, &pVS );
     }
 
     // pixel shader
@@ -93,14 +89,14 @@ void Canvas::initPipelineState()
         ShaderCI.Desc.Name       = "Canvas PS";
         //ShaderCI.FilePath        = "shaders/canvas/canvas.psh";
         ShaderCI.FilePath        = "shaders/canvas/canvasRaymarcher.psh";
-        global->renderDevice->CreateShader( ShaderCI, &pPS );
+        global()->renderDevice->CreateShader( ShaderCI, &pPS );
     }
 
     PSOCreateInfo.pVS = pVS;
     PSOCreateInfo.pPS = pPS;
     PSOCreateInfo.PSODesc.ResourceLayout.DefaultVariableType = SHADER_RESOURCE_VARIABLE_TYPE_STATIC;
 
-    global->renderDevice->CreateGraphicsPipelineState( PSOCreateInfo, &mPSO );
+    global()->renderDevice->CreateGraphicsPipelineState( PSOCreateInfo, &mPSO );
 
     if( mPSO ) {
         auto vc = mPSO->GetStaticVariableByName( SHADER_TYPE_VERTEX, "Constants");

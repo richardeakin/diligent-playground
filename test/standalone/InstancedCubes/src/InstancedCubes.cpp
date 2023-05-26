@@ -32,11 +32,16 @@
 #include "GraphicsUtilities.h"
 #include "TextureUtilities.h"
 #include "../../common/src/TexturedCube.hpp" // TODO: add common/src to include path
-#include "../../common/src/LivePP.h"
 
+#define LIVEPP_ENABLED 1
+#if LIVEPP_ENABLED
+#include "juniper/LivePP.h"
 #define LPP_PATH "../../../../../tools/LivePP"
+#endif
 
 #include "imgui.h"
+
+namespace ju = juniper;
 
 namespace Diligent
 {

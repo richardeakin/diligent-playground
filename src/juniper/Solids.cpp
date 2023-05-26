@@ -10,7 +10,7 @@
 
 using namespace Diligent;
 
-namespace ju {
+namespace juniper {
 
 namespace {
 
@@ -26,10 +26,10 @@ Solid::Solid( const Options &options )
     : mOptions( options )
 {
     if( mOptions.vertPath.empty() ) {
-        mOptions.vertPath = "shaders/solids/solid.vsh";
+        mOptions.vertPath = getRootAssetPath( "shaders/solids/solid.vsh" );
     }
     if( mOptions.pixelPath.empty() ) {
-        mOptions.pixelPath = "shaders/solids/solid.psh";
+        mOptions.pixelPath = getRootAssetPath( "shaders/solids/solid.psh" );
     }
 
     // TODO: need two separate buffers here - one for SceneConstants and one for ModelConstants
@@ -42,7 +42,7 @@ Solid::Solid( const Options &options )
         CBDesc.Usage          = USAGE_DYNAMIC;
         CBDesc.BindFlags      = BIND_UNIFORM_BUFFER;
         CBDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
-        app::global()->renderDevice->CreateBuffer( CBDesc, nullptr, &mSceneConstants );
+        global()->renderDevice->CreateBuffer( CBDesc, nullptr, &mSceneConstants );
     }
 
     mOptions.staticShaderVars.push_back( { SHADER_TYPE_VERTEX, "SConstants", mSceneConstants } );
@@ -67,16 +67,14 @@ void Solid::initPipelineState()
     mPSO.Release();
     mSRB.Release();
 
-    auto global = app::global();
-
     GraphicsPipelineStateCreateInfo PSOCreateInfo;
-    auto nameStr = mOptions.name + " PSO";
-    PSOCreateInfo.PSODesc.Name = nameStr.c_str();
+    auto PSONameStr = mOptions.name + " PSO";
+    PSOCreateInfo.PSODesc.Name = PSONameStr.c_str();
     PSOCreateInfo.PSODesc.PipelineType = PIPELINE_TYPE_GRAPHICS;
 
     PSOCreateInfo.GraphicsPipeline.NumRenderTargets             = 1;
-    PSOCreateInfo.GraphicsPipeline.RTVFormats[0]                = global->colorBufferFormat;
-    PSOCreateInfo.GraphicsPipeline.DSVFormat                    = global->depthBufferFormat;
+    PSOCreateInfo.GraphicsPipeline.RTVFormats[0]                = global()->colorBufferFormat;
+    PSOCreateInfo.GraphicsPipeline.DSVFormat                    = global()->depthBufferFormat;
     PSOCreateInfo.GraphicsPipeline.PrimitiveTopology            = PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     PSOCreateInfo.GraphicsPipeline.RasterizerDesc.CullMode      = CULL_MODE_BACK;
     PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.DepthEnable = True;
@@ -84,7 +82,7 @@ void Solid::initPipelineState()
     ShaderCreateInfo ShaderCI;
     ShaderCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_HLSL;
     ShaderCI.Desc.UseCombinedTextureSamplers = true;
-    ShaderCI.pShaderSourceStreamFactory = global->shaderSourceFactory;
+    ShaderCI.pShaderSourceStreamFactory = global()->shaderSourceFactory;
 
     RefCntAutoPtr<IShader> vertShader;
     {
@@ -95,7 +93,7 @@ void Solid::initPipelineState()
         ShaderCI.EntryPoint      = "main";
         ShaderCI.Desc.Name       = nameStr.c_str();
         ShaderCI.FilePath        = filePathStr.c_str();
-        global->renderDevice->CreateShader( ShaderCI, &vertShader );
+        global()->renderDevice->CreateShader( ShaderCI, &vertShader );
     }
 
     RefCntAutoPtr<IShader> pixelShader;
@@ -107,7 +105,7 @@ void Solid::initPipelineState()
         ShaderCI.EntryPoint      = "main";
         ShaderCI.Desc.Name       = nameStr.c_str();
         ShaderCI.FilePath        = filePathStr.c_str();
-        global->renderDevice->CreateShader( ShaderCI, &pixelShader );
+        global()->renderDevice->CreateShader( ShaderCI, &pixelShader );
     }
 
     InputLayoutDescX InputLayout;     
@@ -133,9 +131,9 @@ void Solid::initPipelineState()
         shaderResourceDescVec.push_back( s.desc );
     }
     PSOCreateInfo.PSODesc.ResourceLayout.Variables    = shaderResourceDescVec.data();
-    PSOCreateInfo.PSODesc.ResourceLayout.NumVariables = shaderResourceDescVec.size();
+    PSOCreateInfo.PSODesc.ResourceLayout.NumVariables = (Uint32)shaderResourceDescVec.size();
 
-    global->renderDevice->CreateGraphicsPipelineState( PSOCreateInfo, &mPSO );
+    global()->renderDevice->CreateGraphicsPipelineState( PSOCreateInfo, &mPSO );
 
     if( ! mPSO ) {
         LOG_ERROR_MESSAGE( __FUNCTION__, "|(", mOptions.name, ") Failed to create PSO for Solid named: ", mOptions.name );
@@ -177,7 +175,7 @@ void Solid::initVertexBuffer( const std::vector<float3> &positions, const std::v
         ( (mOptions.components & VERTEX_COMPONENT_FLAG_NORMAL) ? 3 : 0 ) +
         ( (mOptions.components & VERTEX_COMPONENT_FLAG_TEXCOORD) ? 2 : 0 );
 
-    const Uint32 numVertices = positions.size();
+    const Uint32 numVertices = (Uint32)positions.size();
 
     std::vector<float> vertexData( size_t{totalVertexComponents} * numVertices );
 
@@ -215,7 +213,7 @@ void Solid::initVertexBuffer( const std::vector<float3> &positions, const std::v
     VBData.pData    = vertexData.data();
     VBData.DataSize = bufferDesc.Size;
 
-    app::global()->renderDevice->CreateBuffer( bufferDesc, &VBData, &mVertexBuffer );
+    global()->renderDevice->CreateBuffer( bufferDesc, &VBData, &mVertexBuffer );
 }
 
 void Solid::initIndexBuffer( const std::vector<Uint32> &indices )
@@ -230,9 +228,9 @@ void Solid::initIndexBuffer( const std::vector<Uint32> &indices )
     BufferData IBData;
     IBData.pData    = indices.data();
     IBData.DataSize = bufferDesc.Size;
-    app::global()->renderDevice->CreateBuffer( bufferDesc, &IBData, &mIndexBuffer );
+    global()->renderDevice->CreateBuffer( bufferDesc, &IBData, &mIndexBuffer );
 
-    mNumIndices = indices.size();
+    mNumIndices = (Uint32)indices.size();
 }
 
 void Solid::watchShadersDir()
@@ -444,5 +442,4 @@ Pyramid::Pyramid( const Options &options )
     initIndexBuffer( indices );
 }
 
-
-} // namespace ju
+} // namespace juniper

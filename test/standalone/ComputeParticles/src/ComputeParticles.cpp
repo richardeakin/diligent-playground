@@ -9,12 +9,12 @@
 #include "imGuIZMO.h"
 #include "ShaderMacroHelper.hpp"
 
-#include "AppGlobal.h"
-#include "../../common/src/FileWatch.h"
+#include "juniper/AppGlobal.h"
+#include "juniper/FileWatch.h"
 
-#define LIVEPP_ENABLED 0
+#define LIVEPP_ENABLED 1
 #if LIVEPP_ENABLED
-#include "../../common/src/LivePP.h"
+#include "juniper/LivePP.h"
 #define LPP_PATH "../../../../../tools/LivePP"
 #endif
 
@@ -189,22 +189,21 @@ void ComputeParticles::Initialize( const SampleInitInfo& InitInfo )
     // re-enable imgui.ini save file
     im::GetIO().IniFilename = "imgui.ini";
 
-    auto global = app::global();
-    global->renderDevice = m_pDevice;
-    m_pEngineFactory->CreateDefaultShaderSourceStreamFactory( nullptr, &global->shaderSourceFactory );
+    global()->renderDevice = m_pDevice;
+    m_pEngineFactory->CreateDefaultShaderSourceStreamFactory( nullptr, &global()->shaderSourceFactory );
 
     // set texture formats (used when creating render targets)
 	if( m_pDevice->GetTextureFormatInfoExt( TEX_FORMAT_D32_FLOAT ).BindFlags & BIND_DEPTH_STENCIL ) {
-		global->depthBufferFormat = TEX_FORMAT_D32_FLOAT;
+		global()->depthBufferFormat = TEX_FORMAT_D32_FLOAT;
     }
 	else if( m_pDevice->GetTextureFormatInfoExt( TEX_FORMAT_D24_UNORM_S8_UINT ).BindFlags & BIND_DEPTH_STENCIL ) {
-		global->depthBufferFormat = TEX_FORMAT_D24_UNORM_S8_UINT;
+		global()->depthBufferFormat = TEX_FORMAT_D24_UNORM_S8_UINT;
     }
 
 	// Use HDR format if supported.
 	constexpr auto RTFlags = BIND_RENDER_TARGET | BIND_SHADER_RESOURCE;
 	if( ( m_pDevice->GetTextureFormatInfoExt( TEX_FORMAT_RGBA16_FLOAT ).BindFlags & RTFlags ) == RTFlags ) {
-        global->colorBufferFormat = TEX_FORMAT_RGBA16_FLOAT;
+        global()->colorBufferFormat = TEX_FORMAT_RGBA16_FLOAT;
     }
 
     initConsantBuffers();
@@ -218,7 +217,7 @@ void ComputeParticles::Initialize( const SampleInitInfo& InitInfo )
     initSolids();
     initCamera();
 
-    mFXAA = std::make_unique<ju::aa::FXAA>( m_pSwapChain->GetDesc().ColorBufferFormat );
+    mFXAA = std::make_unique<ju::post::FXAA>( m_pSwapChain->GetDesc().ColorBufferFormat );
     mProfiler = std::make_unique<ju::Profiler>( m_pDevice );
 
     watchShadersDir();
@@ -234,8 +233,8 @@ void ComputeParticles::initRenderParticlePSO()
     psoCreateInfo.PSODesc.PipelineType = PIPELINE_TYPE_GRAPHICS;
 
     psoCreateInfo.GraphicsPipeline.NumRenderTargets             = 1;
-    psoCreateInfo.GraphicsPipeline.RTVFormats[0]                = app::global()->colorBufferFormat;
-    psoCreateInfo.GraphicsPipeline.DSVFormat                    = app::global()->depthBufferFormat;
+    psoCreateInfo.GraphicsPipeline.RTVFormats[0]                = global()->colorBufferFormat;
+    psoCreateInfo.GraphicsPipeline.DSVFormat                    = global()->depthBufferFormat;
     psoCreateInfo.GraphicsPipeline.PrimitiveTopology            = PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
 
     psoCreateInfo.GraphicsPipeline.RasterizerDesc.CullMode      = CULL_MODE_NONE;
@@ -729,7 +728,7 @@ void ComputeParticles::WindowResize( Uint32 Width, Uint32 Height )
 	    RTDesc.Height = Height;
 	    RTDesc.MipLevels = DownSampleFactor;
 	    RTDesc.BindFlags = BIND_RENDER_TARGET | BIND_SHADER_RESOURCE;
-	    RTDesc.Format = app::global()->colorBufferFormat;
+	    RTDesc.Format = global()->colorBufferFormat;
 	    m_pDevice->CreateTexture( RTDesc, nullptr, &m_GBuffer.Color );
 
 	    // Create texture view
@@ -749,7 +748,7 @@ void ComputeParticles::WindowResize( Uint32 Width, Uint32 Height )
 	    RTDesc.Name = "GBuffer Depth";
 	    RTDesc.MipLevels = 1;
 	    RTDesc.BindFlags = BIND_DEPTH_STENCIL | BIND_SHADER_RESOURCE;
-	    RTDesc.Format = app::global()->depthBufferFormat;
+	    RTDesc.Format = global()->depthBufferFormat;
 	    m_pDevice->CreateTexture( RTDesc, nullptr, &m_GBuffer.Depth );
 
 	    // Create post-processing SRB
@@ -1118,7 +1117,7 @@ void ComputeParticles::initPostProcessPSO()
 
     ShaderCreateInfo shaderCI;
     shaderCI.SourceLanguage             = SHADER_SOURCE_LANGUAGE_HLSL;
-    shaderCI.pShaderSourceStreamFactory = app::global()->shaderSourceFactory;
+    shaderCI.pShaderSourceStreamFactory = global()->shaderSourceFactory;
 
 	RefCntAutoPtr<IShader> vertShader;
 	{
@@ -1153,7 +1152,7 @@ void ComputeParticles::initPostProcessPSO()
     PSOCreateInfo.pPS = downSamplePS;
 
     PSOCreateInfo.PSODesc.Name                   = "Downsample PSO";
-    PSOCreateInfo.GraphicsPipeline.RTVFormats[0] = app::global()->colorBufferFormat;
+    PSOCreateInfo.GraphicsPipeline.RTVFormats[0] = global()->colorBufferFormat;
 
     PSOCreateInfo.PSODesc.ResourceLayout.ImmutableSamplers    = nullptr;
     PSOCreateInfo.PSODesc.ResourceLayout.NumImmutableSamplers = 0;

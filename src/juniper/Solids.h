@@ -8,10 +8,10 @@
 #include "DeviceContext.h"
 #include "BasicMath.hpp"
 
-#include "../../common/src/FileWatch.h"
+#include "juniper/FileWatch.h"
 #include <filesystem>
 
-namespace ju {
+namespace juniper {
 
 namespace dg = Diligent;
 namespace fs = std::filesystem;
@@ -91,8 +91,8 @@ protected:
 	dg::float3      mLightDirection  = dg::float3( 0, 1, 0 ); // TODO: this should be part of a global constants buffer
 	dg::float4x4	mTransform = dg::float4x4::Identity();
 
-	ju::FileWatchHandle     mShadersDirWatchHandle;
-	bool                    mShaderAssetsMarkedDirty = false;
+	FileWatchHandle     mShadersDirWatchHandle;
+	bool                mShaderAssetsMarkedDirty = false;
 };
 
 class Cube : public Solid {
@@ -107,4 +107,4 @@ public:
 
 };
 
-} // namespace ju
+} // namespace juniper

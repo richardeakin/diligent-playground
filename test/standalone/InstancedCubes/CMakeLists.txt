@@ -6,13 +6,13 @@ set( APP_TARGET "InstancedCubes" )
 set(SOURCE
     src/InstancedCubes.cpp
     ../common/src/TexturedCube.cpp
-    ../common/src/LivePP.cpp
+    ../../../src/juniper/LivePP.cpp
 )
 
 set(INCLUDE
     src/InstancedCubes.hpp
     ../common/src/TexturedCube.hpp
-    ../common/src/LivePP.h
+    ../../../src/juniper/LivePP.h
 )
 
 set(SHADERS
@@ -32,6 +32,7 @@ add_sample_app( ${APP_TARGET} "test/standalone" "${SOURCE}" "${INCLUDE}" "${SHAD
 set_target_properties( ${APP_TARGET} PROPERTIES CXX_STANDARD 20 )
 
 set( INCLUDE_USER
+    "../../../src/" # for juniper sources
     ${LIVEPP_PATH} # set in top level CMakeLists.txt
 )
 

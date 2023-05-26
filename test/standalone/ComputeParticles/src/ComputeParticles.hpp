@@ -5,10 +5,11 @@
 #include "BasicMath.hpp"
 #include "FirstPersonCamera.hpp"
 
-#include "common/src/Canvas.h"
-#include "common/src/post/aa/FXAA.h"
-#include "common/src/Profiler.h"
-#include "Solids.h"
+#include "juniper/Juniper.h"
+#include "juniper/Canvas.h"
+#include "juniper/post/aa/FXAA.h"
+#include "juniper/Profiler.h"
+#include "juniper/Solids.h"
 
 #define DEBUG_PARTICLE_BUFFERS 1
 
@@ -104,8 +105,8 @@ private:
 
     PostProcessConstants mPostProcessConstants;
 
-    std::unique_ptr<ju::aa::FXAA>   mFXAA;
-    bool                            mFXAAEnabled = true;
+    std::unique_ptr<juniper::post::FXAA>    mFXAA;
+    bool                                    mFXAAEnabled = true;
 
     // -------------------------------------------
 

@@ -1,20 +1,24 @@
 cmake_minimum_required( VERSION 3.10 FATAL_ERROR )
-#set( CMAKE_VERBOSE_MAKEFILE ON )
+set( CMAKE_VERBOSE_MAKEFILE ON )
 
 
 project( DiligentPlayground )
 
 # option(BUILD_SAMPLES "Build Samples" ON)
-option(BUILD_STANDALONE "Build GX" ON)
-option(BUILD_GX "Build GX" OFF)
+option( BUILD_MODDED_SAMPLES "Build Modded Samples" ON )
+option( BUILD_JUNIPER "Build Juniper library" ON )
+option( BUILD_CINDER_LITE "Build cinder-lite" ON )
 
 # variable_watch(CINDER_LIB_DIRECTORY)
 
 # used for logging
 include( deps/cinder/proj/cmake/utilities.cmake )
 
+# TODO: try relative
+get_filename_component( REPO_PATH "${CMAKE_CURRENT_SOURCE_DIR}" ABSOLUTE )
+
 # add_subdirectory( cinder )
-get_filename_component( CINDER_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cinder/" ABSOLUTE )
+get_filename_component( CINDER_PATH "${CMAKE_CURRENT_SOURCE_DIR}/deps/cinder/" ABSOLUTE )
 # message("CINDER_PATH: ${CINDER_PATH}")
 
 # ----
@@ -25,22 +29,36 @@ get_filename_component( LIVEPP_PATH "${CMAKE_CURRENT_SOURCE_DIR}/tools/LivePP/AP
 # -------------------------------------------------------------------
 # Diligent
 
-get_filename_component(DILIGENT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/deps/DiligentEngine" ABSOLUTE)
+get_filename_component( DILIGENT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/deps/DiligentEngine" ABSOLUTE )
 ci_log_i( "DILIGENT_PATH: ${DILIGENT_PATH}" )
 
-add_subdirectory(${DILIGENT_PATH}/DiligentCore)
-add_subdirectory(${DILIGENT_PATH}/DiligentTools)
+add_subdirectory( ${DILIGENT_PATH}/DiligentCore )
+add_subdirectory( ${DILIGENT_PATH}/DiligentTools )
 
-if( ${BUILD_STANDALONE} )
+if( ${BUILD_CINDER_LITE} )
+	ci_log_i( "including cinder-lite.." )
+	include( cmake/cinder-lite.cmake )
+endif()
 
-	ci_log_i( "including standalone test apps..." )
+if( ${BUILD_JUNIPER} )
+	ci_log_i( "including Juniper library + apps.." )
+
+	add_subdirectory( src )
+	add_subdirectory( test/glfw/BasicTests )
+endif()
+
+if( ${BUILD_MODDED_SAMPLES} )
+	ci_log_i( "including modded sample apps.." )
 	
 	# pull in add_sample_app() and its cpp
-	set(DILIGENT_BUILD_SAMPLE_BASE_ONLY ON)
-	add_subdirectory(${DILIGENT_PATH}/DiligentSamples)
+	set( DILIGENT_BUILD_SAMPLE_BASE_ONLY ON )
+	add_subdirectory( ${DILIGENT_PATH}/DiligentSamples )
 
 	# my stuff
+	# TODO: rename folder
 	add_subdirectory( test/standalone )
+
+
 endif()
 
 # # -------------------------------------------------------------------

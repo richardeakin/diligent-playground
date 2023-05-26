@@ -11,8 +11,8 @@ set(SOURCE
 set(INCLUDE
     src/Terrain.hpp
     ../common/src/TexturedCube.hpp
-    ../common/src/FileWatch.h
-    ../common/src/FileWatch-Monkman.hpp
+    ../../../src/juniper/FileWatch.h
+    ../../../src/juniper/FileWatch-Monkman.hpp
 )
 
 file(GLOB_RECURSE SHADERS
@@ -38,3 +38,11 @@ set_target_properties("${APP_TARGET}" PROPERTIES
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON
 )
+
+set( INCLUDE_USER
+    "../" # for common/src
+    "../../../src/" # for juniper sources
+    ${LIVEPP_PATH} # set in top level CMakeLists.txt
+)
+
+target_include_directories( ${APP_TARGET} PUBLIC ${INCLUDE_USER} )

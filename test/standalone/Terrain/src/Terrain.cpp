@@ -39,13 +39,14 @@
 #include "CommonlyUsedStates.h"
 #include "ShaderMacroHelper.hpp"
 
-#include "../../common/src/FileWatch.h"
+#include "juniper/FileWatch.h"
 #include "../../common/src/TexturedCube.hpp"
 #include "imgui.h"
 #include "ImGuiUtils.hpp"
 
 using namespace Diligent;
 namespace im = ImGui;
+namespace ju = juniper;
 
 namespace {
 
@@ -288,8 +289,8 @@ void Terrain::WatchShadersDir()
     if( std::filesystem::exists( shaderDir ) ) {
         LOG_INFO_MESSAGE( __FUNCTION__, "| watching assets directory: ", shaderDir );
         try {
-            ShadersDirWatchHandle = std::make_unique<filewatch::FileWatch<std::filesystem::path>>( shaderDir,
-                [=](const std::filesystem::path &path, const filewatch::Event change_type ) {
+            ShadersDirWatchHandle = std::make_unique<ju::FileWatchType>( shaderDir.string(),
+                [=](const ju::PathType &path, const filewatch::Event change_type ) {
                     //LOG_INFO_MESSAGE( __FUNCTION__, "| \t- file event type: ", ju::watchEventTypeToString( change_type ) , ", path: " , path );
                     //ReloadOnAssetsUpdated();
 

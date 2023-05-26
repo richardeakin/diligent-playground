@@ -1,0 +1,29 @@
+#include "shaders/solids/solid.fxh"
+
+cbuffer SConstants {
+    SceneConstants SConstants;
+};
+
+struct PSOutput { 
+    float4 Color : SV_TARGET; 
+};
+
+void main( in PSInput PSIn, out PSOutput PSOut )
+{
+    float NdotL = saturate( dot( PSIn.Normal, - SConstants.LightDirection.xyz ) );
+
+    float lighting = NdotL * 0.8 + 0.1;
+    float3 col = float3( 0.8, 1, 0.9 ) * lighting;
+
+    // TODO: why isn't this working for the big test triangle?
+
+    //col = col * 0.001 + float3( 0, 1, 1 );
+
+    float emission = 4.0;
+
+    //PSOut.Color.r = PSIn.UV.x;
+    //PSOut.Color.g = PSIn.UV.y;
+     PSOut.Color = float4( col, emission );
+    // PSOut.Color = float4( PSIn.UV.x, 0.0, 0.0, 1.0 );
+    //PSOut.Color = float4( PSIn.Normal, emission );
+}

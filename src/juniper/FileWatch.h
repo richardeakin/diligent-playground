@@ -5,7 +5,7 @@
 // https://github.com/ThomasMonkman/filewatch
 #include "FileWatch-Monkman.hpp"
 
-namespace ju {
+namespace juniper {
 
 // TODO: try fs::path again and see if the path comes through correctly, I was thrown off by the temporary files
 //using PathType = std::filesystem::path; // FIXME: can't use std::filesystem until this is addressed: https://github.com/ThomasMonkman/filewatch/issues/39
@@ -27,4 +27,4 @@ inline const char* watchEventTypeToString( const filewatch::Event change_type )
     return "(unknown)";
 }
 
-} // ju
+} // juniper
