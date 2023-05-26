@@ -75,16 +75,9 @@ void AppBasic::drawEntry()
     auto* context   = getContext();
     auto* swapchain = getSwapChain();
 
-    //ITextureView* rtv = swapchain->GetCurrentBackBufferRTV();
-    //auto* dsv = swapchain->GetDepthBufferDSV();
-
-    //auto colorDesc = rtv->GetDesc();
-    //auto depthDesc = dsv->GetDesc();
-
-    //context->SetRenderTargets( 1, &rtv, dsv, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
-
-    //const float ClearColor[4] = { 0, 0, 0, 0 };
-    //context->ClearRenderTarget( rtv, ClearColor, RESOURCE_STATE_TRANSITION_MODE_VERIFY );
+    ITextureView* rtv = swapchain->GetCurrentBackBufferRTV();
+    auto* dsv = swapchain->GetDepthBufferDSV();
+    context->SetRenderTargets( 1, &rtv, dsv, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
 
     draw();
 
@@ -105,16 +98,17 @@ void AppBasic::drawEntry()
 // Other
 // -------------------------------------------------------------------------------------------------------
 
-void AppBasic::clear( const float4 &color )
+void AppBasic::clear( const float4 &color, bool clearDepthStencil )
 {
     auto* context   = getContext();
     auto* swapchain = getSwapChain();
 
     ITextureView* rtv = swapchain->GetCurrentBackBufferRTV();
-    auto* dsv = swapchain->GetDepthBufferDSV();
-    context->SetRenderTargets( 1, &rtv, dsv, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
     context->ClearRenderTarget( swapchain->GetCurrentBackBufferRTV(), &color.r, RESOURCE_STATE_TRANSITION_MODE_VERIFY );
-    context->ClearDepthStencil( dsv, CLEAR_DEPTH_FLAG, 1.f, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+
+    if( clearDepthStencil ) {
+        context->ClearDepthStencil( swapchain->GetDepthBufferDSV(), CLEAR_DEPTH_FLAG, 1.0f, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+    }
 }
 
 float4x4 AppBasic::getAdjustedProjectionMatrix( float fov, float nearPlane, float FarPlane ) const

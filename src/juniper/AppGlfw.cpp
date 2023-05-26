@@ -238,14 +238,14 @@ bool AppGlfw::createWindow( const AppSettings &settings, int glfwApiHint )
 
 		if( monitorCount > settings.monitorIndex ) {
 			// move our window to the right of the primary monitor
-			int xpos, ypos, width, height;
+			int xpos, ypos;
 			glfwGetMonitorPos( monitors[settings.monitorIndex], &xpos, &ypos );
 			glfwSetWindowPos( mWindow, xpos + settings.windowPos.x, ypos + settings.windowPos.y );
 
 			// TODO: use fullScreen settings flag
-			// TODO: this will have to be improved but good enough for now
 			// - window chrome is sitting above
 			//if( FULLSCREEN_WINDOW ) {
+			//  int width, height;
 			//	glfwGetMonitorWorkarea( monitors[1], &xpos, &ypos, &width, &height );
 			//	glfwSetWindowSize( m_Window, width, height );
 			//}
@@ -352,6 +352,7 @@ bool AppGlfw::initEngine( RENDER_DEVICE_TYPE DevType )
 #    endif
 		auto* pFactoryVk = GetEngineFactoryVk();
 
+		// TODO: call EngineCI.SetValidationLevel?
 		EngineVkCreateInfo EngineCI;
 		pFactoryVk->CreateDeviceAndContextsVk( EngineCI, &mRenderDevice, &mImmediateContext );
 		pFactoryVk->CreateSwapChainVk( mRenderDevice, mImmediateContext, SCDesc, Window, &mSwapChain );

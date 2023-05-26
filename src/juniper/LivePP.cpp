@@ -45,7 +45,7 @@ bool initLivePP( const fs::path &lppPath, const fs::path &settingsFile )
 
 	lpp::LppDefaultAgent agent;
 	if( fs::exists( prefsFile ) ) {
-		CI_LOG_I( "found settings file" );
+		CI_LOG_I( "\t- found settings file" );
 		auto wprefs = toWideString( prefsFile.string() );
 		agent = lpp::LppCreateDefaultAgentWithPreferencesFromFile( wp.c_str(), wprefs.c_str() );
 	}

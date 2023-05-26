@@ -23,8 +23,8 @@ public:
 
     const char* getTitle() const override  { return "AppBasic"; }
 
-    //! Clears the swapchain's rendertarget to specified color
-    void clear( const float4 &color );
+    //! Clears the swapchain's rendertarget to specified color, and sets the depth stencil buffer to the default value if \a clearDepthStencil = true
+    void clear( const float4 &color, bool clearDepthStencil = true );
     //!
     float4x4 getAdjustedProjectionMatrix( float fov, float nearPlane, float farPlane ) const;
     //!
