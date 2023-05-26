@@ -12,6 +12,8 @@
 #include <random>
 #include <vector>
 
+using namespace Diligent;
+
 namespace juniper {
 
 AppBasic::~AppBasic()
@@ -42,6 +44,7 @@ void AppBasic::initEntry()
         //getEngineFactory()->CreateDefaultShaderSourceStreamFactory( nullptr, &g->shaderSourceFactory );
         CHECK_THROW( g->shaderSourceFactory );
 
+        // TODO: consider storing these as swapChain desc, and then keeping render formats separate
         g->colorBufferFormat = getSwapChain()->GetDesc().ColorBufferFormat;
         g->depthBufferFormat = getSwapChain()->GetDesc().DepthBufferFormat;
 

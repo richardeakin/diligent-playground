@@ -5,7 +5,10 @@
 
 namespace juniper {
 
-using namespace Diligent; // TODO: remove
+namespace dg = Diligent;
+using dg::Uint32;
+using dg::float3;
+using dg::float4x4;
 
 class AppBasic : public AppGlfw {
 public:
