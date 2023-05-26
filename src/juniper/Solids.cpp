@@ -15,8 +15,9 @@ namespace juniper {
 namespace {
 
 struct SceneConstants {
-    float4x4 MVP;
-    float4x4 normalTranform;
+    //float4x4 MVP;
+    mat4 MVP;
+    float4x4 normalTranform; // TODO: use mat4
     float4   lightDirection;
 };
 
@@ -280,20 +281,24 @@ void Solid::update( double deltaSeconds )
     }
 }
 
-void Solid::draw( IDeviceContext* context, const float4x4 &viewProjectionMatrix, uint32_t numInstances )
+void Solid::draw( IDeviceContext* context, const mat4 &viewProjectionMatrix, uint32_t numInstances )
 {
     if( ! mPSO || ! mSRB ) {
         return;
     }
 
+    // TODO: probably going to have to do some flipping here.
+    // - but I think not transpose since moving to glm?
+ 
     // Update constant buffer
     {
         auto mvp = mTransform * viewProjectionMatrix;
         MapHelper<SceneConstants> CBConstants( context, mSceneConstants, MAP_WRITE, MAP_FLAG_DISCARD );
-        CBConstants->MVP = mvp.Transpose();
+        //CBConstants->MVP = mvp.Transpose();
+        CBConstants->MVP = mvp;
 
         // We need to do inverse-transpose, but we also need to transpose the matrix before writing it to the buffer
-        CBConstants->normalTranform = mTransform.RemoveTranslation().Inverse();;
+        //CBConstants->normalTranform = mTransform.RemoveTranslation().Inverse(); // TODO: re-enable
         CBConstants->lightDirection = mLightDirection;
     }
 

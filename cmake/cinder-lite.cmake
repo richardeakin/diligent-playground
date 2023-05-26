@@ -35,22 +35,6 @@ set( CINDER_SOURCES
     ${CINDER_PATH}/src/cinder/Surface.cpp
     ${CINDER_PATH}/include/cinder/Surface.h
 
-    # Image IO
-    ${CINDER_PATH}/include/cinder/ImageIo.h
-    ${CINDER_PATH}/src/cinder/ImageIo.cpp
-    ${CINDER_PATH}/include/cinder/ImageSourceFileWic.h
-    ${CINDER_PATH}/src/cinder/ImageSourceFileWic.cpp
-    ${CINDER_PATH}/include/cinder/ImageTargetFileWic.h
-    ${CINDER_PATH}/src/cinder/ImageTargetFileWic.cpp
-    ${CINDER_PATH}/include/cinder/ImageFileTinyExr.h
-    ${CINDER_PATH}/src/cinder/ImageFileTinyExr.cpp
-    ${CINDER_PATH}/include/cinder/ImageSourceFileStbImage.h
-    ${CINDER_PATH}/src/cinder/ImageSourceFileStbImage.cpp
-    ${CINDER_PATH}/include/cinder/ImageTargetFileStbImage.h
-    ${CINDER_PATH}/src/cinder/ImageTargetFileStbImage.cpp
-    ${CINDER_PATH}/include/cinder/ImageSourceFileRadiance.h
-    ${CINDER_PATH}/src/cinder/ImageSourceFileRadiance.cpp
-
     ${CINDER_PATH}/include/cinder/Stream.h
     ${CINDER_PATH}/src/cinder/Stream.cpp
     ${CINDER_PATH}/include/cinder/Exception.h

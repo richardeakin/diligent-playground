@@ -21,6 +21,8 @@
 #define LPP_PATH "../../../../../tools/LivePP"
 #endif
 
+#define USE_CINDER_CAMERA 1
+
 namespace im = ImGui;
 using namespace Diligent;
 using namespace juniper;
@@ -28,13 +30,23 @@ using namespace juniper;
 float BackgroundGray = 0.2f;
 dg::float3      LightDir  = normalize( float3( 1, -0.5f, -0.1f ) );
 
-float3 TestSolidTranslate = { 0, 0, 0 };
-float3 TestSolidScale = { 1, 1, 1 };
-float3 TestSolidLookAt = { 0, 1, 0 };
 bool TestSolidRotate = true;
 bool DrawTestSolid = true;
 
+
+
+#if USE_CINDER_CAMERA
+using glm::vec3;
+vec3 TestSolidTranslate = { 0, 0, 0 };
+vec3 TestSolidScale = { 1, 1, 1 };
+vec3 TestSolidLookAt = { 0, 1, 0 };
+glm::mat4 ViewProjMatrix;
+#else
+float3 TestSolidTranslate = { 0, 0, 0 };
+float3 TestSolidScale = { 1, 1, 1 };
+float3 TestSolidLookAt = { 0, 1, 0 };
 float4x4 ViewProjMatrix;
+#endif
 
 // -------------------------------------------------------------------------------------------------------
 // App Init
@@ -75,6 +87,25 @@ void BasicTests::initialize()
         mSolid = std::make_unique<ju::Cube>( options );
         //mSolid = std::make_unique<ju::Pyramid>( options );
     }
+}
+
+bool UseCinderCamera = true;
+float CameraFov = 35;
+glm::vec2 CameraClip = { 0.1f, 1000.0f };
+
+void BasicTests::initCamera()
+{
+    // TODO NEXT: make some static vars and init cam here
+    // - will be using glm at this point
+    // - probably need to call setPerspective from resize() since that is where we first know the window size
+    //mCam.setPerspective( CameraFov, aspect, CameraClip[0], CameraClip[1] );
+
+    glm::vec3 eyePos = { 0, 0, -5 };
+    glm::vec3 eyeTarget = { 0, 0, 0 };
+
+
+    mCam.lookAt( eyePos, eyeTarget );
+
 }
 
 // -------------------------------------------------------------------------------------------------------
@@ -127,7 +158,11 @@ void BasicTests::mouseEvent( const MouseEvent &e )
 
 void BasicTests::resize( const dg::int2 &size )
 {
-    //JU_LOG_INFO( "size: ", size );
+    CI_LOG_I( "size: " << size );
+
+    float aspect = (float)size.x / (float)size.y;
+    mCam.setPerspective( CameraFov, aspect, CameraClip[0], CameraClip[1] );
+    initCamera(); // TODO: only call during initialize or button 
 }
 
 // TODO: pass time through as a double always
@@ -138,6 +173,24 @@ void BasicTests::update( float deltaTime )
     static double currentTime = 0; // TODO: store this on AppBasic
     currentTime += deltaTime;
 
+
+#if USE_CINDER_CAMERA
+    // Build a transform matrix for the test solid
+    // TODO: add back in pieces once I can see it again
+
+    mat4 modelTransform = mat4( 1 );
+    modelTransform *= glm::scale( TestSolidScale );
+
+    //if( TestSolidRotate )  {
+    //    modelTransform *= float4x4::RotationY( float(currentTime) * 1.0f) * float4x4::RotationX( -PI_F * 0.1f );
+    //}
+
+    modelTransform *= glm::translate( TestSolidTranslate );
+
+
+    ViewProjMatrix = mCam.getViewMatrix() * mCam.getProjectionMatrix();
+    //mWorldViewProjMatrix = modelTransform * mCamera.GetViewMatrix() * mCamera.GetProjMatrix();
+#else
     // Build a transform matrix for the test solid
     float4x4 modelTransform = float4x4::Identity();
     modelTransform *= float4x4::Scale( TestSolidScale );
@@ -147,33 +200,27 @@ void BasicTests::update( float deltaTime )
 
     modelTransform *= float4x4::Translation( TestSolidTranslate );
 
+    // from samples..
+    // 
+    // Camera is at (0, 0, -5) looking along the Z axis
+    float4x4 View = float4x4::Translation(0.f, 0.0f, 5.0f);
+
+    // Get pretransform matrix that rotates the scene according the surface orientation
+    // TODO: remove to simplify for now, this is the identity matrix on desktop
+    auto SrfPreTransform = getSurfacePretransformMatrix(float3{0, 0, 1});
+    //auto SrfPreTransform = float4x4::Identity();
+
+    // Get projection matrix adjusted to the current screen orientation
+    auto Proj = getAdjustedProjectionMatrix( PI_F / 4.0f, 0.1f, 100.0f );
+    //auto Proj = GetAdjustedProjectionMatrix( mCamera.GetProjAttribs().FOV, mCamera.GetProjAttribs().NearClipPlane, mCamera.GetProjAttribs().FarClipPlane );
+
+    ViewProjMatrix = View * SrfPreTransform * Proj;
+    //mWorldViewProjMatrix = modelTransform * View * SrfPreTransform * Proj;
+#endif
+
     mSolid->setLightDir( LightDir );
-    mSolid->update( deltaTime );
     mSolid->setTransform( modelTransform );
-
-    if( false ) {
-        // TODO: use Camera once implemented
-        //mViewProjMatrix = mCamera.GetViewMatrix() * mCamera.GetProjMatrix();
-        //mWorldViewProjMatrix = modelTransform * mCamera.GetViewMatrix() * mCamera.GetProjMatrix();
-    }
-    else {
-        // from samples..
-        // 
-        // Camera is at (0, 0, -5) looking along the Z axis
-        float4x4 View = float4x4::Translation(0.f, 0.0f, 5.0f);
-
-        // Get pretransform matrix that rotates the scene according the surface orientation
-        // TODO: remove to simplify for now, this is the identity matrix on desktop
-        auto SrfPreTransform = getSurfacePretransformMatrix(float3{0, 0, 1});
-        //auto SrfPreTransform = float4x4::Identity();
-
-        // Get projection matrix adjusted to the current screen orientation
-        auto Proj = getAdjustedProjectionMatrix( PI_F / 4.0f, 0.1f, 100.0f );
-        //auto Proj = GetAdjustedProjectionMatrix( mCamera.GetProjAttribs().FOV, mCamera.GetProjAttribs().NearClipPlane, mCamera.GetProjAttribs().FarClipPlane );
-
-        ViewProjMatrix = View * SrfPreTransform * Proj;
-        //mWorldViewProjMatrix = modelTransform * View * SrfPreTransform * Proj;
-    }
+    mSolid->update( deltaTime );
 }
 
 void BasicTests::updateUI()
@@ -191,7 +238,8 @@ void BasicTests::updateUI()
     static bool lockDims = false;
     if( lockDims ) {
         if( im::DragFloat( "scale##solids1", &TestSolidScale.x, 0.01f, 0.001f, 1000.0f ) ) {
-            TestSolidScale = float3( TestSolidScale.x, TestSolidScale.x, TestSolidScale.x );
+            //TestSolidScale = float3( TestSolidScale.x, TestSolidScale.x, TestSolidScale.x );
+            TestSolidScale = vec3( TestSolidScale.x, TestSolidScale.x, TestSolidScale.x );
         }
     }
     else {
