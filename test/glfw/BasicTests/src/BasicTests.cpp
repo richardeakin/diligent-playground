@@ -87,7 +87,7 @@ static std::vector<KeyEvent> sKeyEvents;
 static std::vector<KeyEvent> sMouseEvents;
 
 static int MaxKeyEvents = 100;
-//static int MaxMouseEvents = 100;
+static int MaxMouseEvents = 100;
 
 } // anon
 
