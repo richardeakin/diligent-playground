@@ -101,6 +101,22 @@ float sdPlane( float3 p, float3 n, float h )
     return dot( p, n ) + h;
 }
 
+float sdCone( float3 p, float2 c, float h )
+{
+    // c is the sin/cos of the angle, h is height
+    // Alternatively pass q instead of (c,h),
+    // which is the point at the base in 2D
+    float2 q = h * float2(c.x / c.y, -1.0);
+    
+    float2 w = float2(length(p.xz), p.y);
+    float2 a = w - q * clamp(dot(w, q) / dot(q, q), 0.0, 1.0);
+    float2 b = w - q * float2(clamp(w.x / q.x, 0.0, 1.0), 1.0);
+    float k = sign(q.y);
+    float d = min(dot(a, a), dot(b, b));
+    float s = max(k * (w.x * q.y - w.y * q.x), k * (w.y - q.y));
+    return sqrt(d) * sign(s);
+}
+
 float sdBoxFrame( float3 p, float3 b, float e )
 {
 	p = abs( p ) - b;
@@ -141,7 +157,8 @@ float2 smin( float a, float b, float k )
 static const int oid_nothing   = -1;
 static const int oid_floor     = 1;
 static const int oid_ball      = 2;
-static const int oid_bbox      = 3;
+static const int oid_cone      = 3;
+static const int oid_bbox      = 4;
 
 float sdf_scene( in float3 p, inout ObjectInfo object )
 {
@@ -156,7 +173,7 @@ float sdf_scene( in float3 p, inout ObjectInfo object )
     result = floor;
     object.id = oid_floor;
 
-    // TODO NEXT: using spheres to make a volcano
+    // do not do if check in order to smooth blend
 #if 1
     float3 ballCenter = float3( 0, 1.8, 0 );
     float ball = sdSphere( p - ballCenter, 2.5 );
@@ -167,13 +184,27 @@ float sdf_scene( in float3 p, inout ObjectInfo object )
     //result = ball;
     //if( ball < result ) {
         //result = ball;
-        float2 s = smin( result, ball, 3.5 );
-        result = s.x;
-        object.id = oid_ball;
-        object.materialPart = s.y; // TODO NEXT: use this to blend with checker ground    }
+    float2 s = smin( result, ball, 3.5 );
+    result = s.x;
+    object.id = oid_ball;
+    object.materialPart = s.y;
     //}
 #endif
 
+    // TODO NEXT: fix blending material checker with volcano color
+#if 1
+    float3 coneCenter = float3( 0.9, 7.5, -0.5 );
+    float cone = sdCone( p - coneCenter, float2( 2.5, 6 ), 7.5 );
+    //if( cone < result ) {
+    //    result = cone;
+    //    object.id = oid_cone;        
+    //}
+    s = smin( result, cone, 2.0 );
+    result = s.x;
+    object.id = oid_ball;
+    //object.materialPart = s.y;
+#endif
+    
 
     float3 boundsCenter = 0.5 * ( Constants.worldMin + Constants.worldMax );
     float3 boundsSize = 0.5 * ( Constants.worldMax - Constants.worldMin ); // from center to edge in each dimension
@@ -386,7 +417,8 @@ void main( in PSInput PSIn, out PSOutput PSOut )
         //if( object.id == oid_ball ) {
             //col = float3( 0.1, 0, 0 );
 
-            float3 baseColor = float3( 1.0, 0.5, 0.1 );
+            //float3 baseColor = float3( 1.0, 0.5, 0.1 ); // purple
+            float3 baseColor = float3( 0.0, 0.5, 0.1 ); // green
 
             float3 ballCol = baseColor * light_diff;
             ballCol += skyColor * sky_diff * 0.5;
@@ -407,6 +439,11 @@ void main( in PSInput PSIn, out PSOutput PSOut )
             col = float3( 0.5, 0.5, 0.5 );
         }
 
+        if( object.id == oid_cone ) {
+
+            col = float3( 0.0, 0.5, 0.0 );
+        }
+        
         // set pixel depth in normalized [0, 1] range
         float4 clipPos = mul( float4( object.pos, 1.0 ), Constants.viewProj );
         PSOut.Depth = clipPos.z / clipPos.w;
