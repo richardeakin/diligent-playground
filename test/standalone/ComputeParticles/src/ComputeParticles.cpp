@@ -56,7 +56,7 @@ struct ParticleAttribs {
 
 // TODO: rather than duplicating all these vars as member vars, would be easier to keep this struct in
 // the class and then pass in our copy of ParticleConstants to MapHelper (or use map fns directly)
-// - do it the same way that PostProcessConstants is handled
+// - do it the same way that PostProcessConstants is handled?
 // - consider storing all structures in assets/shaders/structures.fxh
 struct ParticleConstants {
     float4x4 viewProj;

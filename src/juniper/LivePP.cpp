@@ -1,14 +1,14 @@
 #include "LivePP.h"
 
-//#include "../../Primitives/interface/Errors.hpp"
+#include "../../Primitives/interface/Errors.hpp"
 
 #include <windows.h>
 #include "LPP_API_x64_CPP.h"
 
-#include "cinder/Log.h"
-
 using namespace std;
 namespace fs = std::filesystem;
+
+#define LOG_INFO( ... )		LOG_INFO_MESSAGE( __FUNCTION__, "| ", ##__VA_ARGS__ )
 
 namespace juniper {
 
@@ -35,22 +35,22 @@ wstring toWideString( const string &utf8String )
 bool initLivePP( const fs::path &lppPath, const fs::path &settingsFile )
 {
 	auto exePath = lpp::LppGetCurrentModulePathANSI();
-	//LOG_INFO_MESSAGE( string( "current module path: " ) + exePath );
-	CI_LOG_I( "current module path: " << exePath );
+	LOG_INFO( string( "current module path: " ) + exePath );
+	//CI_LOG_I( "current module path: " << exePath );
 
 	auto wp = toWideString( lppPath.string() );
 	auto prefsFile = fs::path( exePath ).parent_path() / lppPath / settingsFile;
 
-	CI_LOG_I( "prefsFile: " << prefsFile );
+	LOG_INFO( "prefsFile: ", prefsFile );
 
 	lpp::LppDefaultAgent agent;
 	if( fs::exists( prefsFile ) ) {
-		CI_LOG_I( "\t- found settings file" );
+		LOG_INFO( "\t- found settings file" );
 		auto wprefs = toWideString( prefsFile.string() );
 		agent = lpp::LppCreateDefaultAgentWithPreferencesFromFile( wp.c_str(), wprefs.c_str() );
 	}
 	else {
-		CI_LOG_E( "could not find settings file" );
+		LOG_ERROR_MESSAGE( __FUNCTION__, "could not find settings file" );
 		agent = lpp::LppCreateDefaultAgent( wp.c_str() );
 	}
 

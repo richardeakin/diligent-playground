@@ -5,8 +5,9 @@ set(APP_TARGET "ComputeParticles")
 
 set(SOURCE
     src/ComputeParticles.cpp
+    src/SolidsOriginal.cpp
     ../../../src/juniper/AppGlobal.cpp
-    ../../../src/juniper/Solids.cpp
+    # ../../../src/juniper/Solids.cpp
     ../../../src/juniper/Canvas.cpp
     ../../../src/juniper/LivePP.cpp 
     ../../../src/juniper/Profiler.cpp
@@ -15,8 +16,9 @@ set(SOURCE
 
 set(INCLUDE
     src/ComputeParticles.hpp
+    src/SolidsOriginal.h
     ../../../src/juniper/AppGlobal.h
-    ../../../src/juniper/Solids.h
+    # ../../../src/juniper/Solids.h
     ../../../src/juniper/Canvas.h
     ../../../src/juniper/LivePP.h
     ../../../src/juniper/FileWatch.h
@@ -63,6 +65,7 @@ set( INCLUDE_USER
     "../" # for common/src
     "../../../src/" # for juniper sources
     ${LIVEPP_PATH} # set in top level CMakeLists.txt
+    ../../../deps/cinder/include
 )
 
 target_include_directories( ${APP_TARGET} PUBLIC ${INCLUDE_USER} )
@@ -76,3 +79,6 @@ set( LINK_OPTIONS
 )
 
 target_link_options( ${APP_TARGET} PRIVATE "${LINK_OPTIONS}" )
+
+# TODO: remove once glm is fully in, or keep this test's sources separate
+target_compile_definitions( ${APP_TARGET} PRIVATE CINDER_DISABLED )

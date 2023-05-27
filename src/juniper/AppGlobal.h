@@ -23,10 +23,12 @@ struct AppGlobal {
 
 AppGlobal* global();
 
+#if ! defined( CINDER_DISABLED )
 //! Sets the path to the repo root on AppGlobal, by walking up from the executable path until we find \a rootFile
 void findRepoRootPath( const fs::path &rootFile = ".git" );
 //! Returns the path to the asset that lives within the root repo's assets folder
 fs::path getRootAssetPath( const fs::path &relativePath );
+#endif
 
 } // namespace juniper
 

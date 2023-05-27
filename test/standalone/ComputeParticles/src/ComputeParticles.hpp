@@ -9,7 +9,8 @@
 #include "juniper/Canvas.h"
 #include "juniper/post/aa/FXAA.h"
 #include "juniper/Profiler.h"
-#include "juniper/Solids.h"
+//#include "juniper/Solids.h"
+#include "SolidsOriginal.h"
 
 #define DEBUG_PARTICLE_BUFFERS 1
 
