@@ -7,6 +7,7 @@
 #include "MapHelper.hpp"
 #include "GraphicsTypesX.hpp"
 
+#include "cinder/Vector.h"
 
 using namespace Diligent;
 
@@ -14,10 +15,13 @@ namespace juniper {
 
 namespace {
 
+using glm::vec3;
+
 struct SceneConstants {
     //float4x4 MVP;
     mat4 MVP;
-    float4x4 normalTranform; // TODO: use mat4
+    //float4x4 normalTranform; // TODO: use mat4
+    mat4 normalTranform; // TODO: use mat4
     float4   lightDirection;
 };
 
@@ -287,8 +291,27 @@ void Solid::draw( IDeviceContext* context, const mat4 &viewProjectionMatrix, uin
         return;
     }
 
+    if( GLM_FORCE_LEFT_HANDED ) {
+        int blarg = 2;
+    }
+
+    static float elapsedSeconds = 0;
+    elapsedSeconds += 1.0f / 60.0f;
+    float aspect = 1360.0f / 991.0f;
+
+    // Apply rotation
+    mat4 model = glm::rotate( glm::pi<float>() * 0.1f, vec3( 1.0f, 0.0f, 0.0f ) ) * glm::rotate( elapsedSeconds, vec3( 0.0f, 1.0f, 0.0f ) );
+    // Camera is at (0, 0, -5) looking along the Z axis
+    mat4 view = glm::lookAt( glm::vec3( 0.f, 0.0f, 5.0f ), vec3( 0.0f ), vec3( 0.0f, 1.0f, 0.0f ) );
+    // Get projection matrix adjusted to the current screen orientation
+    mat4 proj = glm::perspective( glm::pi<float>() / 4.0f, aspect, 0.1f, 100.f );
+    // Compute world-view-projection matrix
+    auto simonWorldViewProjection = proj * view * model;
+
+
     // TODO: probably going to have to do some flipping here.
     // - but I think not transpose since moving to glm?
+    // - flipping the order + transpose seems to do the trick, but I need to understand why
  
     // Update constant buffer
     {
@@ -298,9 +321,11 @@ void Solid::draw( IDeviceContext* context, const mat4 &viewProjectionMatrix, uin
         MapHelper<SceneConstants> CBConstants( context, mSceneConstants, MAP_WRITE, MAP_FLAG_DISCARD );
         //CBConstants->MVP = mvp.Transpose();
         CBConstants->MVP = mvp;
+        //CBConstants->MVP = glm::transpose( simonWorldViewProjection ); // this works
 
         // We need to do inverse-transpose, but we also need to transpose the matrix before writing it to the buffer
         //CBConstants->normalTranform = mTransform.RemoveTranslation().Inverse(); // TODO: re-enable
+        CBConstants->normalTranform = mat4( glm::mat3( glm::transpose( glm::inverse( mTransform ) ) ) ); // FIXME: not right yet
         CBConstants->lightDirection = mLightDirection;
     }
 

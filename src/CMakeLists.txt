@@ -60,7 +60,7 @@ add_library( ${LIB_TARGET} STATIC ${JUNIPER_SOURCES} ${IMGUI_SOURCES} ${SHADERS}
 
 set_target_properties( ${LIB_TARGET} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES )
 target_compile_features( ${LIB_TARGET} PUBLIC cxx_std_17 )
-target_compile_definitions( ${LIB_TARGET} PRIVATE UNICODE )
+target_compile_definitions( ${LIB_TARGET} PRIVATE UNICODE _UNICODE )
 
 target_include_directories( ${LIB_TARGET}
 	PUBLIC
@@ -101,7 +101,14 @@ if( METAL_SUPPORTED )
 endif()
 
 # add lib dependencies that apps linking to juniper will need
-target_compile_definitions( ${LIB_TARGET} PRIVATE ENGINE_DLL=1 )
+target_compile_definitions( ${LIB_TARGET}
+	PUBLIC
+		GLM_FORCE_LEFT_HANDED
+	PRIVATE
+		ENGINE_DLL=1
+		GLM_FORCE_LEFT_HANDED
+)
+
 target_link_libraries( ${LIB_TARGET}
 	PUBLIC
 	    Diligent-Common

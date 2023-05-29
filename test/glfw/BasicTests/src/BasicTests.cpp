@@ -12,6 +12,7 @@
 #include "ImGuiImplDiligent.hpp"
 
 #include "cinder/Log.h"
+#include "glm/gtx/rotate_vector.hpp"
 
 // TODO: move this to AppBasic? Can add a flag for it..
 // TODO: set LPP_PATH as a define from cmake
@@ -176,14 +177,14 @@ void BasicTests::update( float deltaTime )
 
 #if USE_CINDER_CAMERA
     // Build a transform matrix for the test solid
-    // TODO: add back in pieces once I can see it again
 
     mat4 modelTransform = mat4( 1 );
     modelTransform *= glm::scale( TestSolidScale );
 
-    //if( TestSolidRotate )  {
-    //    modelTransform *= float4x4::RotationY( float(currentTime) * 1.0f) * float4x4::RotationX( -PI_F * 0.1f );
-    //}
+    if( TestSolidRotate )  {
+        modelTransform *= glm::rotate( float(currentTime) * 0.5f, normalize( vec3( 0, 1, 0 ) ) );
+        modelTransform *= glm::rotate( float(currentTime) * 0.7f, normalize( vec3( 1, 0, 0 ) ) );
+    }
 
     modelTransform *= glm::translate( TestSolidTranslate );
 
@@ -234,6 +235,7 @@ void BasicTests::updateUI()
     im::Text( "Test Solid" );
     im::Checkbox( "draw##test solid", &DrawTestSolid );
     im::SameLine();
+    im::Checkbox( "rotate##test solid", &TestSolidRotate );
     im::DragFloat3( "translate##solid", &TestSolidTranslate.x, 0.01f );
 
     static bool lockDims = false;
