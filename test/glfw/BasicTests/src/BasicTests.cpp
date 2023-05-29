@@ -10,6 +10,7 @@
 
 #include "imgui.h"
 #include "ImGuiImplDiligent.hpp"
+#include "imGuIZMO.h"
 
 #include "cinder/Log.h"
 #include "glm/gtx/rotate_vector.hpp"
@@ -217,8 +218,11 @@ void BasicTests::update( float deltaTime )
 void BasicTests::updateUI()
 {
     float deltaTime = 0; // TODO: get from app as a public property
-    ImGui::Text( "deltaTime: %6.3f", deltaTime );
-    ImGui::SliderFloat( "background darkness", &BackgroundGray, 0, 1 );
+    im::Text( "deltaTime: %6.3f", deltaTime );
+    im::SliderFloat( "background darkness", &BackgroundGray, 0, 1 );
+    im::Text( "light dir: [%0.02f, %0.02f, %0.02f]", LightDir.x, LightDir.y, LightDir.z );
+    im::gizmo3D( "##LightDirection", LightDir, ImGui::GetTextLineHeight() * 5 );
+
 
     im::Separator();
     im::Text( "Test Solid" );
