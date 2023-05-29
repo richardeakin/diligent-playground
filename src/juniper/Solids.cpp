@@ -302,7 +302,7 @@ void Solid::draw( IDeviceContext* context, const mat4 &viewProjectionMatrix, uin
     // Apply rotation
     //mat4 model = glm::rotate( glm::pi<float>() * 0.1f, vec3( 1.0f, 0.0f, 0.0f ) ) * glm::rotate( elapsedSeconds, vec3( 0.0f, 1.0f, 0.0f ) );
     // Camera is at (0, 0, -5) looking along the Z axis
-    mat4 view = glm::lookAt( glm::vec3( 0.f, 0.0f, 5.0f ), vec3( 0.0f ), vec3( 0.0f, 1.0f, 0.0f ) );
+    mat4 view = glm::lookAt( glm::vec3( 0.f, 0.0f, -5.0f ), vec3( 0.0f ), vec3( 0.0f, 1.0f, 0.0f ) );
     // Get projection matrix adjusted to the current screen orientation
     mat4 proj = glm::perspective( glm::pi<float>() / 4.0f, aspect, 0.1f, 100.f );
     // Compute world-view-projection matrix

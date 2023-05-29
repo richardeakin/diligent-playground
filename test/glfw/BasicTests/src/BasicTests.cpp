@@ -171,14 +171,14 @@ void BasicTests::update( float deltaTime )
     // Build a transform matrix for the test solid
 
     mat4 modelTransform = mat4( 1 );
-    modelTransform *= glm::scale( TestSolidScale );
+    modelTransform *= glm::translate( TestSolidTranslate );
 
     if( TestSolidRotate )  {
         modelTransform *= glm::rotate( float(currentTime) * 0.5f, normalize( vec3( 0, 1, 0 ) ) );
         modelTransform *= glm::rotate( float(currentTime) * 0.7f, normalize( vec3( 1, 0, 0 ) ) );
     }
 
-    modelTransform *= glm::translate( TestSolidTranslate );
+    modelTransform *= glm::scale( TestSolidScale );
 
     ViewProjMatrix = mCam.getProjectionMatrix() * mCam.getViewMatrix();
 #else
