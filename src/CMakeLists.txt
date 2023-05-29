@@ -100,13 +100,15 @@ if( METAL_SUPPORTED )
     target_link_libraries( ${LIB_TARGET} PRIVATE Diligent-GraphicsEngineMetal-shared )
 endif()
 
-# These add necessary includes for our library
+# add lib dependencies that apps linking to juniper will need
 target_compile_definitions( ${LIB_TARGET} PRIVATE ENGINE_DLL=1 )
-target_link_libraries( ${LIB_TARGET} PRIVATE
-    Diligent-Common
-    Diligent-GraphicsTools
-    Diligent-Imgui
-    Diligent-TextureLoader
-    cinder-lite
-    glfw
+target_link_libraries( ${LIB_TARGET}
+	PUBLIC
+	    Diligent-Common
+	    Diligent-GraphicsTools
+	    Diligent-Imgui
+	    Diligent-TextureLoader
+	    cinder-lite
+	    glfw
+	    #zlib
 )

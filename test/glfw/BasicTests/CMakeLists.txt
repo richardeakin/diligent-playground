@@ -109,7 +109,8 @@ set( LINK_OPTIONS
 
 target_link_options( ${APP_TARGET} PRIVATE "${LINK_OPTIONS}" )
 
-target_include_directories( ${APP_TARGET} PUBLIC ${CINDER_INCLUDE_USER} )
+# TODO: needed? I think it should get pulled in when linking no?
+# target_include_directories( ${APP_TARGET} PUBLIC ${CINDER_INCLUDE_USER} )
 
 set( CINDER_COMPILE_DEFINITIONS
 #    WIN32
@@ -126,11 +127,11 @@ set( CINDER_COMPILE_DEFINITIONS
 target_compile_definitions( ${APP_TARGET} PRIVATE ${CINDER_COMPILE_DEFINITIONS} )
 
 target_link_libraries( ${APP_TARGET} PRIVATE
-    Diligent-Common
-    Diligent-GraphicsTools
-    Diligent-Imgui
-    Diligent-TextureLoader
+    # Diligent-Common
+    # Diligent-GraphicsTools
+    # Diligent-Imgui
+    # Diligent-TextureLoader
     juniper
-    cinder-lite
-    glfw
+    # cinder-lite
+    # glfw
 )
