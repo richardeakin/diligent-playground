@@ -139,7 +139,20 @@ set( CINDER_COMPILE_DEFINITIONS
     FT_DEBUG_LEVEL_TRACE=1
 )
 
-target_compile_definitions( ${LIB_TARGET} PRIVATE ${CINDER_COMPILE_DEFINITIONS} )
+target_compile_definitions( ${LIB_TARGET}
+    PRIVATE
+        _LIB
+    PUBLIC
+        NOMINMAX
+        UNICODE
+        _UNICODE
+        _WIN32_WINNT=0x0601
+        _CRT_SECURE_NO_WARNINGS
+        _SCL_SECURE_NO_WARNINGS
+        FT2_BUILD_LIBRARY=1
+        FT_DEBUG_LEVEL_TRACE=1
+        GLM_FORCE_LEFT_HANDED
+)
 
 # TODO: may need this (see cinder's platform_msw)
 #    set( CINDER_STATIC_LIBS_FLAGS_DEBUG     "/NODEFAULTLIB:LIBCMT /NODEFAULTLIB:LIBCPMT" )

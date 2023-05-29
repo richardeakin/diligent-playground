@@ -101,13 +101,7 @@ if( METAL_SUPPORTED )
 endif()
 
 # add lib dependencies that apps linking to juniper will need
-target_compile_definitions( ${LIB_TARGET}
-	PUBLIC
-		GLM_FORCE_LEFT_HANDED
-	PRIVATE
-		ENGINE_DLL=1
-		GLM_FORCE_LEFT_HANDED
-)
+target_compile_definitions( ${LIB_TARGET} PRIVATE ENGINE_DLL=1 )
 
 target_link_libraries( ${LIB_TARGET}
 	PUBLIC
