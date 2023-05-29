@@ -98,14 +98,6 @@ void BasicTests::initialize()
 
 void BasicTests::initCamera()
 {
-    // TODO NEXT: make some static vars and init cam here
-    // - will be using glm at this point
-    // - probably need to call setPerspective from resize() since that is where we first know the window size
-    //mCam.setPerspective( CameraFov, aspect, CameraClip[0], CameraClip[1] );
-
-    //glm::vec3 eyePos = { 0, 0, -5 };
-
-
     mCam.lookAt( CameraEyePos, CameraEyeTarget );
 }
 
@@ -188,10 +180,7 @@ void BasicTests::update( float deltaTime )
 
     modelTransform *= glm::translate( TestSolidTranslate );
 
-    // TODO: think this needs to be in reverse order for glm
-    //ViewProjMatrix = mCam.getViewMatrix() * mCam.getProjectionMatrix();
     ViewProjMatrix = mCam.getProjectionMatrix() * mCam.getViewMatrix();
-    //mWorldViewProjMatrix = modelTransform * mCamera.GetViewMatrix() * mCamera.GetProjMatrix();
 #else
     // Build a transform matrix for the test solid
     float4x4 modelTransform = float4x4::Identity();
@@ -227,7 +216,7 @@ void BasicTests::update( float deltaTime )
 
 void BasicTests::updateUI()
 {
-    float deltaTime = 0; // TODO: get from app 
+    float deltaTime = 0; // TODO: get from app as a public property
     ImGui::Text( "deltaTime: %6.3f", deltaTime );
     ImGui::SliderFloat( "background darkness", &BackgroundGray, 0, 1 );
 

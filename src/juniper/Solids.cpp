@@ -300,13 +300,13 @@ void Solid::draw( IDeviceContext* context, const mat4 &viewProjectionMatrix, uin
     float aspect = 1360.0f / 991.0f;
 
     // Apply rotation
-    mat4 model = glm::rotate( glm::pi<float>() * 0.1f, vec3( 1.0f, 0.0f, 0.0f ) ) * glm::rotate( elapsedSeconds, vec3( 0.0f, 1.0f, 0.0f ) );
+    //mat4 model = glm::rotate( glm::pi<float>() * 0.1f, vec3( 1.0f, 0.0f, 0.0f ) ) * glm::rotate( elapsedSeconds, vec3( 0.0f, 1.0f, 0.0f ) );
     // Camera is at (0, 0, -5) looking along the Z axis
     mat4 view = glm::lookAt( glm::vec3( 0.f, 0.0f, 5.0f ), vec3( 0.0f ), vec3( 0.0f, 1.0f, 0.0f ) );
     // Get projection matrix adjusted to the current screen orientation
     mat4 proj = glm::perspective( glm::pi<float>() / 4.0f, aspect, 0.1f, 100.f );
     // Compute world-view-projection matrix
-    auto simonWorldViewProjection = proj * view * model;
+    auto simonWorldViewProjection = proj * view * mTransform;
 
 
     // TODO: probably going to have to do some flipping here.
@@ -316,12 +316,9 @@ void Solid::draw( IDeviceContext* context, const mat4 &viewProjectionMatrix, uin
     // Update constant buffer
     {
         //auto mvp = mTransform * viewProjectionMatrix;
-        auto mvp = viewProjectionMatrix * mTransform;
-        mvp = glm::transpose( mvp );
         MapHelper<SceneConstants> CBConstants( context, mSceneConstants, MAP_WRITE, MAP_FLAG_DISCARD );
-        //CBConstants->MVP = mvp.Transpose();
-        CBConstants->MVP = mvp;
-        //CBConstants->MVP = glm::transpose( simonWorldViewProjection ); // this works
+        //CBConstants->MVP = glm::transpose( viewProjectionMatrix * mTransform );
+        CBConstants->MVP = glm::transpose( simonWorldViewProjection ); // this works
 
         // We need to do inverse-transpose, but we also need to transpose the matrix before writing it to the buffer
         //CBConstants->normalTranform = mTransform.RemoveTranslation().Inverse(); // TODO: re-enable
