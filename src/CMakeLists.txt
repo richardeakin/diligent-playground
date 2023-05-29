@@ -56,9 +56,7 @@ set( SHADERS
     ../assets/shaders/solids/solid.fxh
 )
 
-set( ASSETS ${SHADERS} )
-
-add_library( ${LIB_TARGET} STATIC ${JUNIPER_SOURCES} ${IMGUI_SOURCES} )
+add_library( ${LIB_TARGET} STATIC ${JUNIPER_SOURCES} ${IMGUI_SOURCES} ${SHADERS} )
 
 set_target_properties( ${LIB_TARGET} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES )
 target_compile_features( ${LIB_TARGET} PUBLIC cxx_std_17 )
@@ -78,7 +76,8 @@ target_include_directories( ${LIB_TARGET}
 source_group( TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "src" FILES ${JUNIPER_SOURCES} )
 # imgui files use absolute paths so add their group separately
 source_group( "src/imgui" FILES ${IMGUI_SOURCES} )
-source_group( "assets" FILES ${ASSETS} ) # FIXME: these aren't getting added to project
+source_group( "shaders" FILES ${SHADERS} )
+set_source_files_properties( ${SHADERS}       PROPERTIES VS_TOOL_OVERRIDE "None" )
 
 target_include_directories( ${LIB_TARGET} PRIVATE "${DILIGENT_PATH}/DiligentCore" )
 if( METAL_SUPPORTED )
