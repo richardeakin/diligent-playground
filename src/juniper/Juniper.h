@@ -1,5 +1,7 @@
 #pragma once
 
+#include "BasicTypes.h"
+
 namespace juniper {
 
 namespace dg = Diligent;

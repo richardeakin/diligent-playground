@@ -9,6 +9,7 @@ using glm::vec2;
 using glm::vec3;
 using glm::mat4;
 
+//! General purpose camera class.
 class Camera {
 public:
 
@@ -43,6 +44,7 @@ protected:
 	mat4 mProjectionMatrix;
 };
 
+//! Controls a camera and processes AppEvents for looking around in a first-person style of movement.
 class FlyCam : public Camera {
 public:
 
@@ -62,7 +64,8 @@ public:
 	void mouseDown( const vec2 &mousePos );
 	void mouseUp( const vec2 &mousePos );
 	void mouseWheel( float increment );
-	void mouseDrag( const vec2 &mousePos, bool leftDown, bool middleDown, bool rightDown );
+	//void mouseDrag( const vec2 &mousePos, bool leftDown, bool middleDown, bool rightDown );
+	void mouseDrag( const vec2 &mousePos );
 
 	//! updates movement smoothly
 	void update();
@@ -72,6 +75,8 @@ private:
 	bool	  mLookEnabled = false; // TODO: rename to make more sense
 	vec3	  mMoveDirection, mMoveAccel, mMoveVelocity;
 	float	  mMoveSpeed = 1.0f;
+
+	vec2	  mInitialMousePos, mLookDelta;
 };
 
 } // namespace juniper
