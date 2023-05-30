@@ -6,10 +6,21 @@
 
 namespace juniper {
 
-namespace dg = Diligent;
+using glm::vec2;
+//namespace dg = Diligent;
+
+class AppEvent {
+public:
+	//! Mark the Event as handled
+	void setHandled( bool b = true ) { mHandled = b; }
+	//! Returns true if the Event has been handled
+	bool isHandled() const { return mHandled; }
+protected:
+	bool	mHandled		= false;
+};
 
 //! Represents a keyboard event
-class KeyEvent {
+class KeyEvent : public AppEvent {
 public:
 	// TODO: update this to use enum class
 	enum {	SHIFT_DOWN	= 0x0008,
@@ -222,8 +233,7 @@ protected:
 	unsigned int	mNativeKeyCode = 0;
 };
 
-// TODO: use this (right now just sketching it out
-class MouseEvent {
+class MouseEvent : public AppEvent {
 public:
 	enum class State {
 		Release,
@@ -301,6 +311,7 @@ protected:
 	dg::float2	mScroll			= { 0, 0 };
 	State		mState			= State::Unknown;
 	int			mButtonIndex	= -1;
+	bool		mHandled		= false;
 };
 
 
