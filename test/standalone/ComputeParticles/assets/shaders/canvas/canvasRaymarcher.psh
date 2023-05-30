@@ -175,12 +175,12 @@ float sdf_scene( in float3 p, inout ObjectInfo object )
 
     // do not do if check in order to smooth blend
 #if 1
-    float3 ballCenter = float3( 0, 1.8, 0 );
-    float ball = sdSphere( p - ballCenter, 2.5 );
+    float3 ballCenter = float3( 0, 0.0, 0 );
+    float ball = sdSphere( p - ballCenter, 4.5 );
 
-    float3 ballCenter2 = float3( 0, 4.8, 0 );
+    float3 ballCenter2 = float3( 0, 4.1, 0 );
     float ball2 = sdSphere( p - ballCenter2, 1.5 );
-    ball = smin( ball, ball2, 2.1 );
+    //ball = smin( ball, ball2, 2.1 );
     //result = ball;
     //if( ball < result ) {
         //result = ball;
@@ -191,9 +191,9 @@ float sdf_scene( in float3 p, inout ObjectInfo object )
     //}
 #endif
 
-    // TODO NEXT: fix blending material checker with volcano color
+    // 1st cone
 #if 1
-    float3 coneCenter = float3( 0.9, 7.5, -0.5 );
+    float3 coneCenter = float3( 1.9, 7.5, -0.5 );
     float cone = sdCone( p - coneCenter, float2( 2.5, 6 ), 7.5 );
     //if( cone < result ) {
     //    result = cone;
@@ -204,7 +204,24 @@ float sdf_scene( in float3 p, inout ObjectInfo object )
     object.id = oid_ball;
     //object.materialPart = s.y;
 #endif
-    
+
+    // 2nd cone
+#if 1    
+    coneCenter = float3( -1.5, 6.7, -0.5 );
+    cone = sdCone( p - coneCenter, float2( 2.5, 6 ), 7.5 );
+    s = smin( result, cone, 1.0 );
+    result = s.x;
+    object.id = oid_ball;
+#endif    
+
+    // 3rd cone
+#if 1    
+    coneCenter = float3( 0.4, 8.5, 0.5 );
+    cone = sdCone( p - coneCenter, float2( 2.5, 6 ), 8.5 );
+    s = smin( result, cone, 0.3 );
+    result = s.x;
+    object.id = oid_ball;
+#endif    
 
     float3 boundsCenter = 0.5 * ( Constants.worldMin + Constants.worldMax );
     float3 boundsSize = 0.5 * ( Constants.worldMax - Constants.worldMin ); // from center to edge in each dimension
