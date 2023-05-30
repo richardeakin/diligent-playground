@@ -1,8 +1,10 @@
 
 #pragma once
 
-#include <cstdint>
-#include "BasicMath.hpp"
+//#include <cstdint>
+//#include "BasicMath.hpp"
+
+#include "cinder/Vector.h"
 
 namespace juniper {
 
@@ -244,18 +246,18 @@ public:
 	};
 
 	MouseEvent() = default;
-	MouseEvent( const dg::float2 &pos, State state, int buttonIndex, const dg::float2 &scroll = { 0, 0 } )
+	MouseEvent( const vec2 &pos, State state, int buttonIndex, const vec2 &scroll = { 0, 0 } )
 		: mPos( pos ), mState( state ), mButtonIndex( buttonIndex ), mScroll( scroll )
 	{}
 
 	//! Returns the state of this event
 	State				getState() const		{ return mState; }
 	//! Returns the cursor position of this event
-	const dg::float2&	getPos() const			{ return mPos; }
+	const vec2&	getPos() const			{ return mPos; }
 	//! Returnns the index of the last pressed button, or -1 if none are down
 	int					getButtonIndex() const	{ return mButtonIndex; }
 	//! Returns the cursor scroll (mouse wheel of this event
-	const dg::float2&	getScroll() const		{ return mScroll; }
+	const vec2&	getScroll() const		{ return mScroll; }
 
 	//! Returns if this event can be considered a mouse drag
 	bool				isDrag() const			{ return mState == State::Move && mButtonIndex != -1; }
@@ -307,11 +309,11 @@ public:
 //	};
 
 protected:
-	dg::float2	mPos			= { 0, 0 };
-	dg::float2	mScroll			= { 0, 0 };
-	State		mState			= State::Unknown;
-	int			mButtonIndex	= -1;
-	bool		mHandled		= false;
+	vec2	mPos			= { 0, 0 };
+	vec2	mScroll			= { 0, 0 };
+	State	mState			= State::Unknown;
+	int		mButtonIndex	= -1;
+	bool	mHandled		= false;
 };
 
 

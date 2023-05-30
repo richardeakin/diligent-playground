@@ -487,7 +487,7 @@ void AppGlfw::glwf_mouseButtonCallback( GLFWwindow* window, int button, int acti
 	float yscale = 1;
 	glfwGetWindowContentScale( window, &xscale, &yscale );
 
-	float2 pos = { (float)xpos * xscale, (float)ypos * xscale };
+	vec2 pos = { (float)xpos * xscale, (float)ypos * xscale };
 	auto mouseEvent = MouseEvent( pos, state, button );
 	self->mouseEvent( mouseEvent );
 }
@@ -508,7 +508,7 @@ void AppGlfw::glfw_cursorPosCallback( GLFWwindow* window, double xpos, double yp
 		buttonIndex = GLFW_MOUSE_BUTTON_LEFT;
 	}
 
-	float2 pos = { (float)xpos * xscale, (float)ypos * xscale };
+	vec2 pos = { (float)xpos * xscale, (float)ypos * xscale };
 	auto mouseEvent = MouseEvent( pos, MouseEvent::State::Move, buttonIndex );
 	self->mouseEvent( mouseEvent );
 }
@@ -525,8 +525,8 @@ void AppGlfw::glfw_mouseScrollCallback( GLFWwindow* window, double dx, double dy
 	glfwGetWindowContentScale( window, &xscale, &yscale );
 	auto* self = static_cast<AppGlfw*>( glfwGetWindowUserPointer( window ) );
 
-	float2 pos = { (float)xpos * xscale, (float)ypos * xscale };
-	float2 scroll = { (float)dx, (float)dy };
+	vec2 pos = { (float)xpos * xscale, (float)ypos * xscale };
+	vec2 scroll = { (float)dx, (float)dy };
 	auto mouseEvent = MouseEvent( pos, MouseEvent::State::Scroll, -1, scroll );
 	self->mouseEvent( mouseEvent );
 }
