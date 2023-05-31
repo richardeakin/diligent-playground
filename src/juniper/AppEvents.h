@@ -256,7 +256,7 @@ public:
 	const vec2&	getPos() const			{ return mPos; }
 	//! Returnns the index of the last pressed button, or -1 if none are down
 	int					getButtonIndex() const	{ return mButtonIndex; }
-	//! Returns the cursor scroll (mouse wheel of this event
+	//! Returns the cursor scroll (mouse wheel) of this event
 	const vec2&	getScroll() const		{ return mScroll; }
 
 	//! Returns if this event can be considered a mouse drag

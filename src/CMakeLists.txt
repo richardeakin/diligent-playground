@@ -24,12 +24,12 @@ set( JUNIPER_SOURCES
 	juniper/AppEvents.h
 	juniper/AppGlobal.cpp
 	juniper/AppGlobal.h
+	juniper/Camera.cpp
+	juniper/Camera.h
 	juniper/Canvas.cpp
 	juniper/Canvas.h
 	juniper/FileWatch.h
 	juniper/FileWatch-Monkman.hpp
-	juniper/FlyCam.cpp
-	juniper/FlyCam.h
 	juniper/ImGuiImplGlfw.cpp
 	juniper/ImGuiImplGlfw.h
 	juniper/LivePP.cpp

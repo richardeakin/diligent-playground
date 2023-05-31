@@ -116,7 +116,7 @@ static int MaxMouseEvents = 100;
 
 } // anon
 
-void BasicTests::keyEvent( const KeyEvent &e )
+void BasicTests::keyEvent( KeyEvent &e )
 {
     auto state = e.getState();
     if( state == KeyEvent::State::Release ) {
@@ -130,9 +130,16 @@ void BasicTests::keyEvent( const KeyEvent &e )
         // pop front
         sKeyEvents.erase( sKeyEvents.begin() );
     }
+
+    if( state == KeyEvent::State::Press ) {
+        mCam.keyDown( e );
+    }
+    else if( state == KeyEvent::State::Release ) {
+        mCam.keyDown( e );
+    }
 }
 
-void BasicTests::mouseEvent( const MouseEvent &e )
+void BasicTests::mouseEvent( MouseEvent &e )
 {
     // TODO: pack into sMouseEvents and show in gui instead
     if( e.isScroll() ) {
@@ -144,6 +151,8 @@ void BasicTests::mouseEvent( const MouseEvent &e )
     else if( e.getState() != MouseEvent::State::Move ) {
         JU_LOG_INFO( "mouse pos: ", e.getPos(), ", state: ", getAsString( e.getState() ), ", button index: ", e.getButtonIndex() );
     }
+
+    mCam.mouseEvent( e );
 }
 
 // -------------------------------------------------------------------------------------------------------
@@ -154,8 +163,8 @@ void BasicTests::resize( const dg::int2 &size )
 {
     CI_LOG_I( "size: " << size );
 
-    float aspect = (float)size.x / (float)size.y;
-    mCam.setPerspective( CameraFov, aspect, CameraClip[0], CameraClip[1] );
+    vec2 windowSize = { size.x, size.y };
+    mCam.perspective( CameraFov, windowSize, CameraClip[0], CameraClip[1] );
     initCamera(); // TODO: only call during initialize or button 
 }
 
@@ -244,12 +253,30 @@ void BasicTests::updateUI()
     im::Checkbox( "lock dims##test solid", &lockDims );
 
     if( im::CollapsingHeader( "Camera", ImGuiTreeNodeFlags_DefaultOpen ) ) {
+        // TODO: get rid of static vars here, use the ivars on FlyCam instead
         if( im::DragFloat3( "eye pos", &CameraEyePos.x, 0.01f ) ) { 
             mCam.lookAt( CameraEyePos, CameraEyeTarget );
         }
         if( im::DragFloat3( "target", &CameraEyeTarget.x, 0.01f ) ) { 
             mCam.lookAt( CameraEyePos, CameraEyeTarget );
         }
+        float moveSpeed = mCam.getMoveSpeed();
+        if( im::DragFloat( "move speed", &moveSpeed, 0.01f, 0.001f, 100.0f ) ) {
+            mCam.setMoveSpeed( moveSpeed );
+        }
+        if( im::Button( "reset" ) ) {
+            initCamera();
+        }
+
+        // TODO: draw this with 3 axes (may need a quaternion, need to look at the author's examples)
+        vec3 eyeOrigin = mCam.getEyeOrigin();
+        if( im::DragFloat3( "origin##cam", &eyeOrigin.x, 0.01f ) ) {
+            mCam.lookAt( eyeOrigin, mCam.getEyeTarget() );
+        }
+        auto viewDir = mCam.getWorldForward();
+        float3 viewDir2 = { viewDir.x, viewDir.y, viewDir.z }; // TODO: add overloads for glm
+        im::Text( "view dir: [%0.02f, %0.02f, %0.02f]", viewDir.x, viewDir.y, viewDir.z );
+        im::gizmo3D( "##ViewDir", viewDir2, ImGui::GetTextLineHeight() * 5 );
     }
 
     // TODO: move to new optional window
