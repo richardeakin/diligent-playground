@@ -29,8 +29,8 @@ struct ParticleConstants {
     float   deltaTime;
     float   separation;
 
-    float   scale; // TODO: make float3 so I can use (0.4, 1, 0.4) to shape the pyramid
     int3    gridSize;
+    float   scale;
     
     float2  speedMinMax;
     float   alignment;

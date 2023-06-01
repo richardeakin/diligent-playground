@@ -66,8 +66,8 @@ struct ParticleConstants {
     float   deltaTime;
     float   separation;
 
-    float   scale;
     int3    gridSize;
+    float   scale;
 
     float2  speedMinMax;
     float   alignment;
