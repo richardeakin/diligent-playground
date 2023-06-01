@@ -190,6 +190,7 @@ void BasicTests::update( float deltaTime )
 
     modelTransform *= glm::scale( TestSolidScale );
 
+    mCam.update();
     ViewProjMatrix = mCam.getProjectionMatrix() * mCam.getViewMatrix();
 #else
     // Build a transform matrix for the test solid

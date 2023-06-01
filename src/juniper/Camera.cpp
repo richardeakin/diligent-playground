@@ -104,7 +104,7 @@ void FlyCam::mouseEvent( MouseEvent &e )
 			break;
 		case MouseEvent::State::Move:
 			if( e.isDrag() ) {
-				mouseDown( e.getPos() );
+				mouseDrag( e.getPos() );
 			}
 			break;
 		case MouseEvent::State::Scroll:
@@ -146,7 +146,6 @@ void FlyCam::mouseDrag( const vec2 &mousePos )
 	mLookDelta = ( mousePos - mInitialMousePos ) / mWindowSize;
 	mLookDelta *= 2.75f;
 }
-
 
 void FlyCam::mouseWheel( float increment )
 {
