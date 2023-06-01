@@ -43,6 +43,7 @@ set(SHADERS
     assets/shaders/canvas/canvas.vsh
     assets/shaders/canvas/canvas.psh
     assets/shaders/canvas/canvasRaymarcher.psh
+    assets/shaders/canvas/sdfScene.fxh
     assets/shaders/Quaternion.hlsl
     assets/shaders/post/post_process.vsh
     assets/shaders/post/post_process.psh
