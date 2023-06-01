@@ -245,7 +245,7 @@ void Solid::watchShadersDir()
     if( std::filesystem::exists( shaderDir ) ) {
         LOG_INFO_MESSAGE( __FUNCTION__, "| watching assets directory: ", shaderDir );
         try {
-            mShadersDirWatchHandle = std::make_unique<FileWatchType>( shaderDir.string(),
+            mShadersDirWatchHandle = std::make_unique<FileWatchType>( shaderDir,
                 [=](const PathType &path, const filewatch::Event change_type ) {
 
                     // TODO: filter out repeated events as per
@@ -317,8 +317,8 @@ void Solid::draw( IDeviceContext* context, const mat4 &viewProjectionMatrix, uin
     {
         //auto mvp = mTransform * viewProjectionMatrix;
         MapHelper<SceneConstants> CBConstants( context, mSceneConstants, MAP_WRITE, MAP_FLAG_DISCARD );
-        //CBConstants->MVP = glm::transpose( viewProjectionMatrix * mTransform );
-        CBConstants->MVP = glm::transpose( simonWorldViewProjection ); // this works
+        CBConstants->MVP = glm::transpose( viewProjectionMatrix * mTransform );
+        //CBConstants->MVP = glm::transpose( simonWorldViewProjection ); // this works
 
         // We need to do inverse-transpose, but we also need to transpose the matrix before writing it to the buffer
         //CBConstants->normalTranform = mTransform.RemoveTranslation().Inverse(); // TODO: re-enable

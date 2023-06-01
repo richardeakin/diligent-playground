@@ -44,10 +44,10 @@ vec3 TestSolidScale = { 1, 1, 1 };
 vec3 TestSolidLookAt = { 0, 1, 0 };
 glm::mat4 ViewProjMatrix;
 
-float CameraFov = 35;
-glm::vec2 CameraClip = { 0.1f, 1000.0f };
-glm::vec3 CameraEyePos = { 0, 0, 5 };
-glm::vec3 CameraEyeTarget = { 0, 0, 0 };
+const float CameraFov = 35;
+const glm::vec2 CameraClip = { 0.1f, 1000.0f };
+const glm::vec3 CameraEyePos = { 0, 0, 5 };
+const glm::vec3 CameraEyeTarget = { 0, 0, 0 };
 
 #else
 float3 TestSolidTranslate = { 0, 0, 0 };
@@ -85,8 +85,6 @@ void BasicTests::initialize()
     ju::initLivePP( LPP_PATH );
 #endif
 
-    CI_LOG_I( "blarg" );
-
     // make a Solid for testing 3D drawing
     {
         ju::Solid::Options options;
@@ -95,10 +93,13 @@ void BasicTests::initialize()
         mSolid = std::make_unique<ju::Cube>( options );
         //mSolid = std::make_unique<ju::Pyramid>( options );
     }
+
+    CI_LOG_I( "complete." );
 }
 
 void BasicTests::initCamera()
 {
+    mCam.stop();
     mCam.lookAt( CameraEyePos, CameraEyeTarget );
 }
 
@@ -254,12 +255,17 @@ void BasicTests::updateUI()
     im::Checkbox( "lock dims##test solid", &lockDims );
 
     if( im::CollapsingHeader( "Camera", ImGuiTreeNodeFlags_DefaultOpen ) ) {
-        // TODO: get rid of static vars here, use the ivars on FlyCam instead
-        if( im::DragFloat3( "eye pos", &CameraEyePos.x, 0.01f ) ) { 
-            mCam.lookAt( CameraEyePos, CameraEyeTarget );
+        vec3 eyePos = mCam.getEyeOrigin();
+        vec3 eyeTarget = mCam.getEyeTarget();
+        if( im::DragFloat3( "eye pos", &eyePos.x, 0.01f ) ) { 
+            mCam.lookAt( eyePos, eyeTarget );
         }
-        if( im::DragFloat3( "target", &CameraEyeTarget.x, 0.01f ) ) { 
-            mCam.lookAt( CameraEyePos, CameraEyeTarget );
+        if( im::DragFloat3( "target", &eyeTarget.x, 0.01f ) ) { 
+            mCam.lookAt( eyePos, eyeTarget );
+        }
+        float fov = mCam.getFov();
+        if( im::DragFloat( "fov", &fov, 0.01f, 0.001f, 120.0f ) ) {
+            mCam.setFov( fov );
         }
         float moveSpeed = mCam.getMoveSpeed();
         if( im::DragFloat( "move speed", &moveSpeed, 0.01f, 0.001f, 100.0f ) ) {
@@ -269,15 +275,24 @@ void BasicTests::updateUI()
             initCamera();
         }
 
-        // TODO: draw this with 3 axes (may need a quaternion, need to look at the author's examples)
-        vec3 eyeOrigin = mCam.getEyeOrigin();
-        if( im::DragFloat3( "origin##cam", &eyeOrigin.x, 0.01f ) ) {
-            mCam.lookAt( eyeOrigin, mCam.getEyeTarget() );
+        {
+            auto viewDir = mCam.getWorldForward();
+            float3 viewDir2 = { viewDir.x, viewDir.y, viewDir.z }; // TODO: add overloads for glm
+            im::Text( "view dir: [%0.02f, %0.02f, %0.02f]", viewDir.x, viewDir.y, viewDir.z );
+            im::gizmo3D( "##ViewDir", viewDir2, ImGui::GetTextLineHeight() * 5 );
         }
-        auto viewDir = mCam.getWorldForward();
-        float3 viewDir2 = { viewDir.x, viewDir.y, viewDir.z }; // TODO: add overloads for glm
-        im::Text( "view dir: [%0.02f, %0.02f, %0.02f]", viewDir.x, viewDir.y, viewDir.z );
-        im::gizmo3D( "##ViewDir", viewDir2, ImGui::GetTextLineHeight() * 5 );
+        {
+            auto right = mCam.getWorldRight();
+            float3 right2 = { right.x, right.y, right.z };
+            im::Text( "right: [%0.02f, %0.02f, %0.02f]", right.x, right.y, right.z );
+            im::gizmo3D( "##ViewDir", right2, ImGui::GetTextLineHeight() * 5 );
+        }
+        {
+            auto up = mCam.getWorldUp();
+            float3 up2 = { up.x, up.y, up.z };
+            im::Text( "up: [%0.02f, %0.02f, %0.02f]", up.x, up.y, up.z );
+            im::gizmo3D( "##ViewDir", up2, ImGui::GetTextLineHeight() * 5 );
+        }
     }
 
     // TODO: move to new optional window

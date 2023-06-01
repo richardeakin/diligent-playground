@@ -1,5 +1,7 @@
 #include "Camera.h"
 
+#include "cinder/Log.h"
+
 #include "glm/gtc/quaternion.hpp"
 
 using namespace glm;
@@ -17,6 +19,10 @@ void Camera::lookAt( const vec3 &eyeOrigin, const vec3 &eyeTarget, const vec3 &w
 	mWorldUp = worldUp;
 
 	mViewMatrix = glm::lookAt( mEyeOrigin, mEyeTarget, mWorldUp );
+
+	auto viewDir = normalize( mEyeTarget - mEyeOrigin );
+	//mOrientation = glm::rotation( viewDir, glm::vec3( 0, 0, -1 ) ); // TODO: should this be pointing at positive z?
+	mOrientation = glm::rotation( viewDir, glm::vec3( 0, 0, 1 ) );
 }
 
 void Camera::perspective( float fov, float aspectRatio, float nearClip, float farClip )
@@ -27,6 +33,51 @@ void Camera::perspective( float fov, float aspectRatio, float nearClip, float fa
 	farClip = farClip;
 
 	mProjectionMatrix = glm::perspective( mFov, mAspectRatio, mNearClip, mFarClip );
+}
+
+void Camera::setFov( float verticalFov )
+{ 
+	mFov = verticalFov;
+	mProjectionMatrix = glm::perspective( mFov, mAspectRatio, mNearClip, mFarClip );
+}
+
+//void Camera::setViewDirection( const vec3 &viewDirection )
+//{
+//	mViewDirection = normalize( viewDirection );
+//	mOrientation = glm::rotation( mViewDirection, glm::vec3( 0, 0, -1 ) );
+//	dirtyViewCaches();
+//}
+
+void Camera::setOrientation( const quat &orientation )
+{
+	mOrientation = normalize( orientation );
+	vec3 right   = rotate( mOrientation, vec3( 1, 0, 0 ) );
+	vec3 up		 = rotate( mOrientation, vec3( 0, 1, 0 ) );
+	vec3 forward = rotate( mOrientation, vec3( 0, 0, 1 ) );
+
+	// TODO: how to set rows?
+	// - just going to try both ways and see what works, hopefully
+	mViewMatrix = {
+		right.x,   right.y,   right.z,   0.,
+		up.x,	   up.y,	  up.z,      0,
+		forward.x, forward.y, forward.z, 0,
+		0,		   0,         0,         1
+	};
+}
+
+vec3 Camera::getWorldRight() const
+{
+	return vec3( row( getViewMatrix(), 0 ) );
+}
+
+vec3 Camera::getWorldUp() const
+{
+	return vec3( row( getViewMatrix(), 1 ) );
+}
+
+vec3 Camera::getWorldForward() const
+{
+	return vec3( row( getViewMatrix(), 2 ) );
 }
 
 // -------------------------------------------------------------------------------------------------------
@@ -44,50 +95,6 @@ void FlyCam::setWindowSize( const vec2 &windowSize )
 	mWindowSize = windowSize;
 	Camera::perspective( mFov, mWindowSize.x / mWindowSize.y, mNearClip, mFarClip );
 }
-
-//void FlyCam::mouseDown( MouseEvent &event )
-//{
-//	if( ! mEnabled )
-//		return;
-//
-//	mouseDown( event.getPos() );
-//	event.setHandled();
-//}
-//
-//void FlyCam::mouseUp( MouseEvent &event )
-//{
-//	if( ! mEnabled )
-//		return;
-//
-//	mouseUp( event.getPos() );
-//	event.setHandled();
-//}
-//
-//void FlyCam::mouseWheel( MouseEvent &event )
-//{
-//	if( ! mEnabled )
-//		return;
-//
-//	mouseWheel( event.getScroll().y );
-//	event.setHandled();
-//}
-//
-//void FlyCam::mouseDrag( MouseEvent &event )
-//{
-//	if( ! mEnabled )
-//		return;
-//
-//	//bool isLeftDown = event.isLeftDown();
-//	//bool isMiddleDown = event.isMiddleDown() || event.isAltDown();
-//	//bool isRightDown = event.isRightDown() || event.isControlDown();
-//
-//	//if( isMiddleDown )
-//	//	isLeftDown = false;
-//
-//	//mouseDrag( event.getPos(), isLeftDown, isMiddleDown, isRightDown );
-//	mouseDrag( event.getPos() );
-//	event.setHandled();
-//}
 
 void FlyCam::mouseEvent( MouseEvent &e )
 {
@@ -120,9 +127,9 @@ void FlyCam::mouseDown( const vec2 &mousePos )
 	if( ! mEnabled )
 		return;
 
-	mLookEnabled = true;
+	mMouseDown = true;
 	mInitialMousePos = mousePos;
-	//mInitialCam = *mCamera;
+	mOrientationMouseDown = mOrientation;
 }
 
 void FlyCam::mouseUp( const vec2 &mousePos )
@@ -130,7 +137,7 @@ void FlyCam::mouseUp( const vec2 &mousePos )
 	if( ! mEnabled )
 		return;
 
-	mLookEnabled = false;
+	mMouseDown = false;
 	mLookDelta = vec2( 0 );
 	//mInitialCam = *mCamera;
 }
@@ -217,17 +224,23 @@ void FlyCam::keyUp( KeyEvent &event )
 	event.setHandled( handled );
 }
 
+void FlyCam::stop()
+{
+	mMoveDirection = vec3( 0 );
+	mMoveAccel = vec3( 0 );
+	mMoveVelocity = vec3( 0 );
+}
+
 void FlyCam::update()
 {
-	// TODO: re-enable
-	//if( mLookEnabled ) {
-	//	quat orientation = mInitialCam.getOrientation();
-	//	orientation = normalize( orientation * angleAxis( mLookDelta.x, vec3( 0, -1, 0 ) ) );
-	//	orientation = normalize( orientation * angleAxis( mLookDelta.y, vec3( -1, 0, 0 ) ) );
+	if( mMouseDown ) {
+		quat orientation = mOrientationMouseDown;
+		orientation = normalize( orientation * angleAxis( mLookDelta.x, vec3( 0, -1, 0 ) ) );
+		orientation = normalize( orientation * angleAxis( mLookDelta.y, vec3( -1, 0, 0 ) ) );
 
-	//	mCamera->setOrientation( orientation );
-	//	mCamera->setWorldUp( vec3( 0, 1, 0 ) );
-	//}
+		setOrientation( orientation );
+		//setWorldUp( vec3( 0, 1, 0 ) );
+	}
 
 	mMoveAccel += mMoveDirection;
 
@@ -236,24 +249,19 @@ void FlyCam::update()
 	vec3 targetVelocity = glm::clamp( mMoveAccel * 0.3f, vec3( -maxVelocity ), vec3( maxVelocity ) );
 	mMoveVelocity = lerp( mMoveVelocity, targetVelocity, 0.3f );
 
-	//	if( glm::length( mMoveVelocity ) > 0.01 ) {
-	//		CI_LOG_I( "mMoveDirection: " << mMoveDirection << ", mMoveAccel: " << mMoveAccel << ", mMoveVelocity: " << mMoveVelocity );
-	//	}
-
-	//vec3 forward, right, up;
-	//forward = mCamera->getViewDirection();
-	//mCamera->getBillboardVectors( &right, &up );
-	vec3 forward = getWorldForward();
-	vec3 right = getWorldRight();
-	vec3 up = getWorldUp();
+	if( glm::length( mMoveVelocity ) > 0.01 ) {
+		CI_LOG_I( "mMoveDirection: " << mMoveDirection << ", mMoveAccel: " << mMoveAccel << ", mMoveVelocity: " << mMoveVelocity );
+	}
 
 	vec3 eye = getEyeOrigin();
-	eye += right * mMoveVelocity.x;
-	eye += forward * mMoveVelocity.y;
+	vec3 up = vec3( 0, 1, 0 );
+	eye += getWorldRight() * mMoveVelocity.x;
+	eye += getWorldForward() * mMoveVelocity.y;
 	eye += up * mMoveVelocity.z;
 
+	// TODO: does eye target need to be adjusted? should perhaps not be calling lookAt again here
 	//mCamera->setEyePoint( eye );
-	lookAt( eye, mEyeTarget );
+	lookAt( eye, mEyeTarget, up );
 
 	const float drag = 0.2f;
 	mMoveAccel *= 1 - drag;

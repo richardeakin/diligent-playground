@@ -1,6 +1,7 @@
 #pragma once
 
 #include "cinder/Matrix.h"
+#include "cinder/Quaternion.h"
 #include "juniper/AppEvents.h"
 
 namespace juniper {
@@ -8,6 +9,7 @@ namespace juniper {
 using glm::vec2;
 using glm::vec3;
 using glm::mat4;
+using glm::quat;
 
 //! General purpose camera class.
 class Camera {
@@ -25,21 +27,17 @@ public:
 	//! Returns the camera's vertical field of view measured in degrees.
 	float	getFov() const { return mFov; }
 	//! Sets the camera's vertical field of view measured in degrees.
-	void	setFov( float verticalFov ) { mFov = verticalFov;  mProjectionCached = false; }
+	void	setFov( float verticalFov );
 
 	const mat4& getViewMatrix() const		{ return mViewMatrix; }
 	const mat4& getProjectionMatrix() const	{ return mProjectionMatrix; }
 
-	/*
-	float3 GetWorldRight() const { return float3(m_ViewMatrix._11, m_ViewMatrix._21, m_ViewMatrix._31); }
-	float3 GetWorldUp()    const { return float3(m_ViewMatrix._12, m_ViewMatrix._22, m_ViewMatrix._32); }
-	float3 GetWorldAhead() const { return float3(m_ViewMatrix._13, m_ViewMatrix._23, m_ViewMatrix._33); }
-	*/
+	vec3 getWorldRight() const;
+	vec3 getWorldUp() const;
+	vec3 getWorldForward() const;
 
-	// TODO NEXT: test this in gui
-	vec3 getWorldRight() const		{ return { mViewMatrix[1][1], mViewMatrix[1][2], mViewMatrix[1][3] }; }
-	vec3 getWorldUp() const			{ return { mViewMatrix[2][1], mViewMatrix[2][2], mViewMatrix[3][2] }; }
-	vec3 getWorldForward() const	{ return { mViewMatrix[3][1], mViewMatrix[3][2], mViewMatrix[3][3] }; }
+	void setOrientation( const quat &orientation );
+	const quat& getOrientation() const		{ return mOrientation; }
 
 protected:
 	vec3 mEyeOrigin = { 0, 0, -5 };
@@ -52,10 +50,11 @@ protected:
 	float mFarClip = 100.0f;
 
 	// TODO: use bools to minimize number of calcs
-	bool mProjectionCached = false;
-	bool mViewCached = false;
+	//bool mProjectionCached = false;
+	//bool mViewCached = false;
 	mat4 mViewMatrix;
 	mat4 mProjectionMatrix;
+	quat mOrientation;
 };
 
 //! Controls a camera and processes AppEvents for looking around in a first-person style of movement.
@@ -86,17 +85,21 @@ public:
 	//void mouseDrag( const vec2 &mousePos, bool leftDown, bool middleDown, bool rightDown );
 	void mouseDrag( const vec2 &mousePos );
 
+	//! stops movement
+	void stop();
 	//! updates movement smoothly
 	void update();
 
 private:
 	bool      mEnabled = true;
-	bool	  mLookEnabled = false; // TODO: rename to make more sense
+	bool	  mMouseDown = false;
 	vec3	  mMoveDirection, mMoveAccel, mMoveVelocity;
 	float	  mMoveSpeed = 1.0f;
 
 	vec2	  mWindowSize;
-	vec2	  mInitialMousePos, mLookDelta;
+	vec2	  mInitialMousePos; // TODO: rename
+	vec2	  mLookDelta;
+	quat      mOrientationMouseDown;
 };
 
 } // namespace juniper
