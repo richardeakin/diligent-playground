@@ -206,6 +206,12 @@ void ComputeParticles::Initialize( const SampleInitInfo& InitInfo )
         global()->colorBufferFormat = TEX_FORMAT_RGBA16_FLOAT;
     }
 
+    const auto devType = m_pDevice->GetDeviceInfo().Type;
+    if( devType == RENDER_DEVICE_TYPE_D3D11 ) {
+        // downsampling method not supported on D3D11 backend
+        mPostProcessConstants.glowEnabled = false;
+    }
+
     initConsantBuffers();
     initRenderParticlePSO();
     initUpdateParticlePSO();
@@ -523,7 +529,6 @@ void ComputeParticles::initParticleBuffers()
 
         FenceDesc fenceDesc;
         fenceDesc.Name = "ParticleAttribs available";
-        fenceDesc.Type = FENCE_TYPE_GENERAL; // TODO: is this necessary? MeshShaders tutorial did not use it
         m_pDevice->CreateFence( fenceDesc, &mFenceParticleAttribsAvailable );
     }
 #endif
@@ -1161,6 +1166,7 @@ void ComputeParticles::initPostProcessPSO()
     m_pDevice->CreateGraphicsPipelineState( PSOCreateInfo, &mDownSamplePSO );
 }
 
+// note: this doesn't work on D3D11 (checks in Diligent::VerifyStateTransitionDesc() fail)
 void ComputeParticles::DownSample()
 {
     JU_PROFILE( "downsample", m_pImmediateContext, mProfiler.get() );
