@@ -1,11 +1,15 @@
 #include "shaders/particles/structures.fxh"
 #include "shaders/particles/particles.fxh"
 
+#define PHYSICS_SIM 1
+#include "shaders/canvas/sdfScene.fxh"
+
 // 0: disabled, 1: only consider this particle's bin, 2: also consider neighboring bins
 // FIXME: 2 is still broken
 // TODO: add mode to only consider lateral neighbords, which is much less than mode 2
 // - this should help tell if 2 is actually broken or just taking too long
 #define BINNING_MODE 0
+#define PARTICLES_AVOID_SDF 1
 
 cbuffer Constants {
     ParticleConstants Constants;
@@ -43,6 +47,32 @@ void InteractParticles( inout ParticleAttribs p0, in ParticleAttribs p1 )
             float F = ( Constants.cohesionDist / dist - 1.0f ) * Constants.cohesion;
             p0.accel += d10 * F;
         }
+    }
+}
+
+// TODO: want to cast a ray and see how close we are to something in the scene ahead of us
+// - wasn't working at first try so I switched to using sdf_scene() + sdf_calcNorma()
+// - this allows movement but likely innacurate / difficult to control
+void interactScene( inout ParticleAttribs p )
+{
+    Ray ray;
+    ray.origin = p.pos;
+    ray.dir = normalize( p.vel );
+
+    ObjectInfo object = initObjectInfo();
+    //IntersectInfo intersect = INTERSECT_FN( ray, object, Constants.worldMin, Constants.worldMax );
+    //p.distToSDF = intersect.dist;
+    p.distToSDF = sdf_scene( p.pos, object, Constants.worldMin, Constants.worldMax );
+    
+    const float distToTurn = 2.0;
+    if( p.distToSDF < distToTurn ) {
+        p.nearestSDFObject = object.id;
+        float3 N = sdf_calcNormal( object, Constants.worldMin, Constants.worldMax );
+        float strength = distToTurn - p.distToSDF;
+        p.accel += N * strength * 3.0;
+    }
+    else {
+        p.nearestSDFObject = 0;
     }
 }
 
@@ -111,10 +141,11 @@ void main( uint3 Gid  : SV_GroupID,
     }
 #endif
 
-    particle.newVel += particle.accel * Constants.deltaTime;
+#if PARTICLES_AVOID_SDF
+    interactScene( particle );
+#endif
 
-    // TODO: raycast and turn if headed towards boundary
-    //ClampParticlePosition( particle.newPos, particle.vel, particle.size * Constants.scale );
+    particle.newVel += particle.accel * Constants.deltaTime;
 
     Particles[particleId] = particle;
 }

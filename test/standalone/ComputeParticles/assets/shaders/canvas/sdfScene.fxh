@@ -7,9 +7,14 @@ struct Ray {
 #define SDF_MIN_DIST 0.01
 #define SDF_MAX_DIST 100.0    
 #define DEBUG_SDF_GRADIENT 0
+#define SIMPLE_SCENE 1
 
 #define INTERSECT_FN sdf_intersect
 //#define INTERSECT_FN sdf_intersectEnhanced
+
+#ifndef PHYSICS_SIM
+    #define PHYSICS_SIM 0
+#endif
 
 //! Information for the current object at this pixel
 struct ObjectInfo {
@@ -41,6 +46,8 @@ struct IntersectInfo {
     bool 	isReflection; //! If this intersection is a reflection
 };
 
+float sdf_scene( in float3 p, inout ObjectInfo object, float3 worldMin, float3 worldMax );
+
 // --------------------------------------------------------------------
 // SDF object functions
 // --------------------------------------------------------------------
@@ -49,6 +56,12 @@ struct IntersectInfo {
 float sdSphere( float3 p, float s )
 {
     return length( p ) - s;
+}
+
+float sdBox( float3 p, float3 b )
+{
+  float3 q = abs( p ) - b;
+  return length( max( q, 0.0 ) ) + min( max( q.x, max( q.y,q.z ) ), 0.0 );
 }
 
 float sdPlane( float3 p, float3 n, float h )
@@ -130,9 +143,17 @@ float sdf_scene( in float3 p, inout ObjectInfo object, float3 worldMin, float3 w
     object.id = oid_floor;
 
     // do not do if check in order to smooth blend
-#if 1
-    float3 ballCenter = float3( 0, 0.0, 0 );
-    float ball = sdSphere( p - ballCenter, 4.5 );
+#if SIMPLE_SCENE
+    float3 ballCenter = float3( 0, 4.0, 0 );
+    float ball = sdSphere( p - ballCenter, 3.0 );
+    if( ball < result ) {
+        result = ball;
+        object.id = oid_ball;
+        // object.materialPart = 0.5;
+    }
+#else
+    float3 ballCenter = float3( 0, -3.0, 0 );
+    float ball = sdSphere( p - ballCenter, 7.1 );
 
     float3 ballCenter2 = float3( 0, 4.1, 0 );
     float ball2 = sdSphere( p - ballCenter2, 1.5 );
@@ -147,8 +168,9 @@ float sdf_scene( in float3 p, inout ObjectInfo object, float3 worldMin, float3 w
     //}
 #endif
 
+    // three cones to make crude shape of a volcano
+#if ! SIMPLE_SCENE
     // 1st cone (right side)
-#if 1
     float3 coneCenter = float3( 1.9, 7.5, -0.5 );
     float cone = sdCone( p - coneCenter, float2( 2.5, 6 ), 7.5 );
     //if( cone < result ) {
@@ -159,19 +181,15 @@ float sdf_scene( in float3 p, inout ObjectInfo object, float3 worldMin, float3 w
     result = s.x;
     object.id = oid_ball;
     //object.materialPart = s.y;
-#endif
 
     // 2nd cone (left side)
-#if 1    
     coneCenter = float3( -1.5, 6.7, -0.5 );
     cone = sdCone( p - coneCenter, float2( 3.7, 6 ), 7.5 );
     s = smin( result, cone, 1.0 );
     result = s.x;
     object.id = oid_ball;
-#endif    
 
     // 3rd cone
-#if 1    
     coneCenter = float3( 0.4, 8.9, 0.5 );
     cone = sdCone( p - coneCenter, float2( 2.5, 6 ), 8.5 );
     s = smin( result, cone, 1.1 );
@@ -181,11 +199,149 @@ float sdf_scene( in float3 p, inout ObjectInfo object, float3 worldMin, float3 w
 
     float3 boundsCenter = 0.5 * ( worldMin + worldMax );
     float3 boundsSize = 0.5 * ( worldMax - worldMin ); // from center to edge in each dimension
+#if PHYSICS_SIM
+    float bbox = -sdBox( p - boundsCenter, boundsSize );
+#else
     float bbox = sdBoxFrame( p - boundsCenter, boundsSize, 0.03 );
+#endif
+    // bbox = sdBox( p - boundsCenter, boundsSize );
     if( bbox < result ) {
         result = bbox;
         object.id = oid_bbox;
     }
+
+    return result;
+}
+
+// --------------------------------------------------------------------
+// Raymarching Functions
+// --------------------------------------------------------------------
+
+float3 sdf_calcNormal( in ObjectInfo object, float3 worldMin, float3 worldMax )
+{
+    float3 pos = object.pos;
+
+    // precision of the normal computation
+    // const float eps = 0.002;
+    const float eps = 0.002;
+
+    const float3 v1 = float3(  1.0, -1.0, -1.0 );
+    const float3 v2 = float3( -1.0, -1.0,  1.0 );
+    const float3 v3 = float3( -1.0,  1.0, -1.0 );
+    const float3 v4 = float3(  1.0,  1.0,  1.0 );
+
+    float3 N = v1 * sdf_scene( pos + v1 * eps, object, worldMin, worldMax ) 
+             + v2 * sdf_scene( pos + v2 * eps, object, worldMin, worldMax )
+             + v3 * sdf_scene( pos + v3 * eps, object, worldMin, worldMax ) 
+             + v4 * sdf_scene( pos + v4 * eps, object, worldMin, worldMax );
+
+#if DEBUG_SDF_GRADIENT
+    return N;
+#else
+    return normalize( N );
+#endif
+}
+
+IntersectInfo sdf_intersect( in Ray ray, inout ObjectInfo object, float3 worldMin, float3 worldMax )
+{
+    float scene = SDF_MIN_DIST * 2.0;
+    float t = 0.0;
+    float dist = -1.0; // TODO: why does this start at -1 (inside?)
+    int i;
+    for( i = 0; i < SDF_MAX_ITERATIONS; i++ ) {
+        if( scene < SDF_MIN_DIST || t > SDF_MAX_DIST )
+            break;
+
+        object.pos = ray.origin + ray.dir * t;
+        scene = sdf_scene( object.pos, object, worldMin, worldMax );
+        t += scene;
+    }
+
+    if( t < SDF_MAX_DIST ) {
+        dist = t;
+        object.normal = sdf_calcNormal( object, worldMin, worldMax );
+    }
+    else
+        object.id = oid_nothing;
+
+    IntersectInfo result;
+    result.dist = dist;
+    result.rayLength = t;
+    result.iterations = i;
+
+    return result;
+}
+
+
+// Implementation of Enhanced Sphere Tracing algo from https://www.shadertoy.com/view/ldfyWs
+IntersectInfo sdf_intersectEnhanced( in Ray ray, inout ObjectInfo object, float3 worldMin, float3 worldMax )
+{
+    float omega = 1.2;
+    float t = SDF_MIN_DIST;
+    float candidate_error = 1.0 / 0.0;
+    float candidate_t = SDF_MIN_DIST;
+    float previousRadius = 0.0;
+    float stepLength = 0.0;
+    float pixelRadius = 0.001; // TODO: need to calculate this?
+
+    // TODO: check if this causes distortion at different aspect ratios. It might have to be min( res.x, res.y )
+    //float pixelRadius       = 1.0 / uResolution.y;
+
+    IntersectInfo result;
+    result.iterations = 0;
+    for( int i = 0; i < SDF_MAX_ITERATIONS; i++ ) {
+        result.iterations += 1;
+        object.pos = ray.origin + ray.dir * t;
+        float signedRadius = sdf_scene( object.pos, object, worldMin, worldMax );
+        float radius       = abs( signedRadius );
+
+        bool sorFail = omega > 1.0 && ( radius + previousRadius ) < stepLength;
+        if( sorFail ) {
+            stepLength -= omega * stepLength;
+            omega = 1.0;
+        }
+        else {
+            stepLength = signedRadius * omega;
+        }
+
+        previousRadius = radius;
+
+        float error = radius / t;
+
+        if( ! sorFail && error < candidate_error ) {
+            candidate_t     = t;
+            candidate_error = error;
+        }
+
+        if( ! sorFail && error < pixelRadius || t > SDF_MAX_DIST )
+            break;
+
+        t += stepLength;
+    }
+
+    float intersection = -1;
+    bool hit = t <= SDF_MAX_DIST && candidate_error <= pixelRadius;
+    if( hit ) {
+        object.pos = ray.origin + ray.dir * candidate_t;
+        intersection = sdf_scene( object.pos, object, worldMin, worldMax );
+        result.iterations += 1;
+
+        const int discontinuityReductionIterations = 3;
+        const float discontinuityReductionEpsilon  = 0.1;
+        for( int i = 0; i < discontinuityReductionIterations; i++ ) {
+            object.pos += ray.dir * ( intersection - discontinuityReductionEpsilon );
+            intersection = sdf_scene( object.pos, object, worldMin, worldMax );
+            result.iterations += 1;
+        }
+
+        object.normal = sdf_calcNormal( object, worldMin, worldMax );
+    }
+    else {
+        object.id = oid_nothing;
+    }
+
+    result.dist = intersection;
+    result.rayLength = t;
 
     return result;
 }

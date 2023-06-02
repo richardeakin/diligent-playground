@@ -36,7 +36,7 @@ struct ParticleAttribs {
     float3 pos;
     float  padding0;
     float3 newPos;
-    float  padding1;
+    float  distToSDF = 10e6; // far away
 
     float3 vel;
     float  padding2;
@@ -51,7 +51,7 @@ struct ParticleAttribs {
     float size              = 0;
     float temperature       = 0;
     int   numInteractions   = 0;
-    float padding6          = 0;
+    int   nearestSDFObject  = -1; // nothing. see sdfScene.fxh for others (oid_*)
 };
 
 // TODO: rather than duplicating all these vars as member vars, would be easier to keep this struct in
@@ -1404,7 +1404,7 @@ void ComputeParticles::updateDebugParticleDataUI()
             flags |= ImGuiTableFlags_ScrollY;
             flags |= ImGuiTableFlags_SizingFixedFit;
 
-            if( im::BeginTable( "table_ParticleAttribs", 6, flags ) ) {
+            if( im::BeginTable( "table_ParticleAttribs", 8, flags ) ) {
                 ImGuiTableColumnFlags columnFlags = ImGuiTableColumnFlags_WidthFixed; 
                 im::TableSetupScrollFreeze( 0, 1 ); // Make top row always visible
                 im::TableSetupColumn( "index", columnFlags, 34 );
@@ -1412,7 +1412,9 @@ void ComputeParticles::updateDebugParticleDataUI()
                 im::TableSetupColumn( "vel", columnFlags, 180 );
                 im::TableSetupColumn( "accel", columnFlags, 180 );
                 im::TableSetupColumn( "interactions", columnFlags, 50 );
-                im::TableSetupColumn( "temp", ImGuiTableColumnFlags_None );
+                im::TableSetupColumn( "temp", columnFlags, 50 );
+                im::TableSetupColumn( "sdf dist", columnFlags, 50 );
+                im::TableSetupColumn( "sdf object", columnFlags, 50 );
                 im::TableHeadersRow();
 
                 ImGuiListClipper clipper;
@@ -1434,6 +1436,10 @@ void ComputeParticles::updateDebugParticleDataUI()
                         im::Text( " %d", p.numInteractions );
                         im::TableSetColumnIndex( column++ );
                         im::Text( "%0.03f", p.temperature );
+                        im::TableSetColumnIndex( column++ );
+                        im::Text( "%0.03f", p.distToSDF );
+                        im::TableSetColumnIndex( column++ );
+                        im::Text( "%d", p.nearestSDFObject );
                     }
                 }
                 im::EndTable();
