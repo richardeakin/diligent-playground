@@ -3,7 +3,7 @@ struct ParticleAttribs {
     float3 pos;
     float  padding0;
     float3 newPos;
-    float  distToSDF; // TODO NEXT: use to visualize / debug
+    float  distToSDF;
 
     float3 vel;
     float  padding2;
@@ -18,7 +18,10 @@ struct ParticleAttribs {
     float  size;
     float  temperature;
     int    numInteractions;
-    int    nearestSDFObject; // TODO: assign and debug
+    int    nearestSDFObject;
+    
+    float3 sdfClosestNormal;
+    float  sdfRepelStrength;
 };
 
 struct ParticleConstants {

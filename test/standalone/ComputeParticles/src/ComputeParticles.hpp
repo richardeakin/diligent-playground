@@ -120,8 +120,8 @@ private:
 #endif
 
     bool        mUIEnabled = true;  
-    int         mNumParticles       = 5000; // was: 1000
-    float       mParticleScale      = 0.1f;
+    int         mNumParticles       = 32;
+    float       mParticleScale      = 0.5f;
     float       mParticleScaleVariation = 0.1f;
     float       mParticleBirthPadding = 0.1f;
     float       mSeparation         = 1.9f;

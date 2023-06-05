@@ -49,6 +49,16 @@ struct IntersectInfo {
 float sdf_scene( in float3 p, inout ObjectInfo object, float3 worldMin, float3 worldMax );
 
 // --------------------------------------------------------------------
+// SDF object ids
+// --------------------------------------------------------------------
+
+static const int oid_nothing   = -1;
+static const int oid_floor     = 1;
+static const int oid_ball      = 2;
+static const int oid_cone      = 3;
+static const int oid_bbox      = 4;
+
+// --------------------------------------------------------------------
 // SDF object functions
 // --------------------------------------------------------------------
 // https://iquilezles.org/articles/distfunctions/
@@ -123,12 +133,6 @@ float2 smin( float a, float b, float k )
 // SDF Scene
 // --------------------------------------------------------------------
 
-static const int oid_nothing   = -1;
-static const int oid_floor     = 1;
-static const int oid_ball      = 2;
-static const int oid_cone      = 3;
-static const int oid_bbox      = 4;
-
 float sdf_scene( in float3 p, inout ObjectInfo object, float3 worldMin, float3 worldMax )
 {
     int id;
@@ -144,8 +148,8 @@ float sdf_scene( in float3 p, inout ObjectInfo object, float3 worldMin, float3 w
 
     // do not do if check in order to smooth blend
 #if SIMPLE_SCENE
-    float3 ballCenter = float3( 0, 4.0, 0 );
-    float ball = sdSphere( p - ballCenter, 3.0 );
+    float3 ballCenter = float3( 0, 5.0, 0 );
+    float ball = sdSphere( p - ballCenter, 5.0 );
     if( ball < result ) {
         result = ball;
         object.id = oid_ball;
@@ -166,10 +170,8 @@ float sdf_scene( in float3 p, inout ObjectInfo object, float3 worldMin, float3 w
     object.id = oid_ball;
     object.materialPart = s.y;
     //}
-#endif
 
     // three cones to make crude shape of a volcano
-#if ! SIMPLE_SCENE
     // 1st cone (right side)
     float3 coneCenter = float3( 1.9, 7.5, -0.5 );
     float cone = sdCone( p - coneCenter, float2( 2.5, 6 ), 7.5 );
@@ -200,9 +202,10 @@ float sdf_scene( in float3 p, inout ObjectInfo object, float3 worldMin, float3 w
     float3 boundsCenter = 0.5 * ( worldMin + worldMax );
     float3 boundsSize = 0.5 * ( worldMax - worldMin ); // from center to edge in each dimension
 #if PHYSICS_SIM
+    // invert box to act as a bounding box for physics 
     float bbox = -sdBox( p - boundsCenter, boundsSize );
 #else
-    float bbox = sdBoxFrame( p - boundsCenter, boundsSize, 0.03 );
+    float bbox = sdBoxFrame(p - boundsCenter, boundsSize, 0.03);
 #endif
     // bbox = sdBox( p - boundsCenter, boundsSize );
     if( bbox < result ) {

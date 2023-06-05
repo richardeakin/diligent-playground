@@ -44,6 +44,9 @@ void main( in  PSInput  PSIn, out PSOutput PSOut )
     if( PSIn.InstID == 2 ) {
         col.b = 1.0;
     }
+    if( PSIn.InstID == 3 ) {
+        col = float3( 1, 0, 1 );
+    }
 
     //PSOut.Color = float4( PSIn.UV.x, PSIn.UV.y, 0.0, 1.0 );
     PSOut.Color = float4( col, emmissive * 4.0 );

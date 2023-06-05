@@ -6,6 +6,7 @@
 #include "BasicMath.hpp"
 #include "MapHelper.hpp"
 #include "imgui.h"
+#include "imgui_internal.h" // ShortCut()
 #include "imGuIZMO.h"
 #include "ShaderMacroHelper.hpp"
 
@@ -52,6 +53,9 @@ struct ParticleAttribs {
     float temperature       = 0;
     int   numInteractions   = 0;
     int   nearestSDFObject  = -1; // nothing. see sdfScene.fxh for others (oid_*)
+
+    float3 sdfClosestNormal;
+    float  sdfRepelStrength;
 };
 
 // TODO: rather than duplicating all these vars as member vars, would be easier to keep this struct in
@@ -1230,6 +1234,10 @@ void ComputeParticles::updateUI()
         im::Checkbox( "profiling ui", &mProfilingUIEnabled );
         if( im::CollapsingHeader( "Particles", ImGuiTreeNodeFlags_DefaultOpen ) ) {
             im::Checkbox( "update", &mUpdateParticles );
+            if( im::Shortcut( ImGuiKey_U, 0, ImGuiInputFlags_RouteGlobal ) ) {
+                LOG_INFO_MESSAGE( "(U Shortcut) toggling update particles" );
+                mUpdateParticles = ! mUpdateParticles;
+            }
             im::SameLine();
             im::Checkbox( "draw", &mDrawParticles );
 
@@ -1410,7 +1418,7 @@ void ComputeParticles::updateDebugParticleDataUI()
             flags |= ImGuiTableFlags_ScrollY;
             flags |= ImGuiTableFlags_SizingFixedFit;
 
-            if( im::BeginTable( "table_ParticleAttribs", 8, flags ) ) {
+            if( im::BeginTable( "table_ParticleAttribs", 10, flags ) ) {
                 ImGuiTableColumnFlags columnFlags = ImGuiTableColumnFlags_WidthFixed; 
                 im::TableSetupScrollFreeze( 0, 1 ); // Make top row always visible
                 im::TableSetupColumn( "index", columnFlags, 34 );
@@ -1421,6 +1429,8 @@ void ComputeParticles::updateDebugParticleDataUI()
                 im::TableSetupColumn( "temp", columnFlags, 50 );
                 im::TableSetupColumn( "sdf dist", columnFlags, 50 );
                 im::TableSetupColumn( "sdf object", columnFlags, 50 );
+                im::TableSetupColumn( "sdf N", columnFlags, 180 );
+                im::TableSetupColumn( "repel strength", columnFlags, 50 );
                 im::TableHeadersRow();
 
                 ImGuiListClipper clipper;
@@ -1446,6 +1456,10 @@ void ComputeParticles::updateDebugParticleDataUI()
                         im::Text( "%0.03f", p.distToSDF );
                         im::TableSetColumnIndex( column++ );
                         im::Text( "%d", p.nearestSDFObject );
+                        im::TableSetColumnIndex( column++ );
+                        im::Text( "[%6.3f, %6.3f, %6.3f]", p.sdfClosestNormal.x, p.sdfClosestNormal.y, p.sdfClosestNormal.z );
+                        im::TableSetColumnIndex( column++ );
+                        im::Text( "%0.03f", p.sdfRepelStrength );
                     }
                 }
                 im::EndTable();
