@@ -97,6 +97,7 @@ private:
         int     glowEnabled = 1;
 
         float3  fogColor = { 0.034f, 0.003f, 0.022f }; // dark purple
+        //float3  fogColor = { 0.054f, 0.012f, 0.008f }; // bit more red
         int     fogEnabled = 1;
 
         float   fogIntensity = 0.042f;
