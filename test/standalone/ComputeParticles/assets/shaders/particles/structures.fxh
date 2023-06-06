@@ -42,10 +42,10 @@ struct ParticleConstants {
     float   separationDist;
     float   alignmentDist;
     float   cohesionDist;
-    float   padding0;
+    float   sdfAvoidStrength;
 
     float3  worldMin;
-    float   padding1;
+    float   sdfAvoidDistance;
 
     float3  worldMax;
     float   padding2;

@@ -23,7 +23,7 @@ RWStructuredBuffer<ParticleAttribs> Particles;
 Buffer<int>                         ParticleListHead;
 Buffer<int>                         ParticleLists;
 
-void InteractParticles( inout ParticleAttribs p0, in ParticleAttribs p1 )
+void interactParticles( inout ParticleAttribs p0, in ParticleAttribs p1 )
 {
     float3 r10 = ( p1.pos - p0.pos );
     float dist = length( r10 ); // TODO (optimiziation): use dist squared
@@ -121,7 +121,7 @@ void main( uint3 Gid  : SV_GroupID,
             continue;
         }
         //CollideParticles( particle, Particles[i] );
-        InteractParticles( particle, Particles[i] );
+        interactParticles( particle, Particles[i] );
     }
 #elif BINNING_MODE == 1
     // only considering particles within the same bin
@@ -130,7 +130,7 @@ void main( uint3 Gid  : SV_GroupID,
         while( anotherParticleId >= 0 ) {
             if( particleId != anotherParticleId ) {
                 ParticleAttribs anotherParticle = Particles[anotherParticleId];
-                InteractParticles( particle, anotherParticle );
+                interactParticles( particle, anotherParticle );
             }
 
             anotherParticleId = ParticleLists.Load( anotherParticleId );
@@ -147,7 +147,7 @@ void main( uint3 Gid  : SV_GroupID,
                 while( anotherParticleId >= 0 ) {
                     if( particleId != anotherParticleId ) {
                         ParticleAttribs anotherParticle = Particles[anotherParticleId];
-                        InteractParticles( particle, anotherParticle );
+                        interactParticles( particle, anotherParticle );
                     }
 
                     anotherParticleId = ParticleLists.Load( anotherParticleId );
