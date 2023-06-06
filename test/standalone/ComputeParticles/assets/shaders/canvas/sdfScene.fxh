@@ -7,7 +7,7 @@ struct Ray {
 #define SDF_MIN_DIST 0.01
 #define SDF_MAX_DIST 100.0    
 #define DEBUG_SDF_GRADIENT 0
-#define SIMPLE_SCENE 1
+#define SIMPLE_SCENE 0
 
 #define INTERSECT_FN sdf_intersect
 //#define INTERSECT_FN sdf_intersectEnhanced
