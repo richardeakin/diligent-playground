@@ -60,24 +60,34 @@ void interactScene( inout ParticleAttribs p )
     ray.dir = normalize( p.vel );
 
     ObjectInfo object = initObjectInfo();
-    IntersectInfo intersect = INTERSECT_FN(ray, object, Constants.worldMin, Constants.worldMax);
+    IntersectInfo intersect = sdf_intersect( ray, object, Constants.worldMin, Constants.worldMax );
     p.distToSDF = intersect.dist;
+    p.sdfIterations = intersect.iterations;
+    p.sdfRayLength = intersect.rayLength;
     //p.distToSDF = sdf_scene( p.pos, object, Constants.worldMin, Constants.worldMax );
     
     const float distToTurn = 5.0;
+    /*if( p.distToSDF < 0.0 ) {
+        p.nearestSDFObject = -10;
+        p.sdfClosestNormal = float3( 0, -0.5f, 0 );
+        p.sdfRepelStrength = 0;        
+    }
+    else*/
     if( p.distToSDF < distToTurn ) {
         p.nearestSDFObject = object.id;
         //float3 N = sdf_calcNormal( object, Constants.worldMin, Constants.worldMax );
-        float N = object.normal;
+        float3 N = object.normal;
         float strength = distToTurn - p.distToSDF;
-        strength *= 3.0;
+        strength *= 100.0;
         p.accel += N * strength;
         p.sdfClosestNormal = N;
         p.sdfRepelStrength = strength;
+
+        //p.sdfClosestNormal = normalize(p.sdfClosestNormal); // TODO: this shouldn't be necessary here
     }
     else {
         p.nearestSDFObject = 0;
-        p.sdfClosestNormal = float3( 0, 0, 0 );
+        p.sdfClosestNormal = float3( 0, -0.7f, 0 ); // TODO: set back to (0, 0, 0) once working
         p.sdfRepelStrength = 0;
     }
 }

@@ -16,7 +16,7 @@ void main( uint3 Gid  : SV_GroupID,
 {
     // insure particle is within bounds, in case we are in the last dispatch group
     uint globalThreadIdx = Gid.x * uint(THREAD_GROUP_SIZE) + GTid.x;
-    if( globalThreadIdx < Constants.numParticles ) {
+    if( globalThreadIdx < uint(Constants.numParticles) ) {
         ParticleListHead[globalThreadIdx] = -1;
     }
 }

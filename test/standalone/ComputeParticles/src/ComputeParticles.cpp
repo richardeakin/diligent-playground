@@ -45,16 +45,16 @@ struct ParticleAttribs {
     float  padding3;
 
     float3  accel;
-    float   padding4;
+    float   sdfRayLength = -1;
     float3  newAccel;
-    float   padding5;
+    int     sdfIterations = -1;
 
     float size              = 0;
     float temperature       = 0;
     int   numInteractions   = 0;
     int   nearestSDFObject  = -1; // nothing. see sdfScene.fxh for others (oid_*)
 
-    float3 sdfClosestNormal;
+    float3 sdfClosestNormal = { 1, 2, 3 };
     float  sdfRepelStrength;
 };
 
@@ -65,7 +65,7 @@ struct ParticleAttribs {
 struct ParticleConstants {
     float4x4 viewProj;
 
-    uint    numParticles;
+    int     numParticles;
     float   time;
     float   deltaTime;
     float   separation;
@@ -619,6 +619,7 @@ void ComputeParticles::watchShadersDir()
                         // make a list of files we actually want to update if changed and check that here
                         const static std::vector<PathType> checkFilenames = {
                             "interact_particles.csh",
+                            "sdfScene.fxh",
                             "move_particles.csh",
                             "reset_particles.csh",
                             "particle_sprite.vsh",
@@ -897,7 +898,7 @@ void ComputeParticles::Render()
     {
         MapHelper<ParticleConstants> cb( m_pImmediateContext, mParticleConstants, MAP_WRITE, MAP_FLAG_DISCARD );
         cb->viewProj = mViewProjMatrix.Transpose();
-        cb->numParticles = static_cast<Uint32>( mNumParticles );
+        cb->numParticles = mNumParticles;
         cb->deltaTime     = std::min( mTimeDelta, 1.f / 60.f) * mSimulationSpeed;
         cb->time = mTime;
         cb->scale = mParticleScale;
@@ -1264,10 +1265,11 @@ void ComputeParticles::updateUI()
                 initSolids();
                 initRenderParticlePSO();
             }
-            if( im::Button( "init particle buffers" ) ) {
+            if( im::Button( "init particle buffers" ) || im::Shortcut( ImGuiKey_I, 0, ImGuiInputFlags_RouteGlobal ) ) {
                 initParticleBuffers();
                 initSolids(); // TODO: this is needed to update the ParticleAttribs var, try just setting that on mParticleSolid
             }
+
 #if DEBUG_PARTICLE_BUFFERS
             im::Checkbox( "debug copy particles", &mDebugCopyParticles );
             if( mDebugCopyParticles ) {
@@ -1418,19 +1420,21 @@ void ComputeParticles::updateDebugParticleDataUI()
             flags |= ImGuiTableFlags_ScrollY;
             flags |= ImGuiTableFlags_SizingFixedFit;
 
-            if( im::BeginTable( "table_ParticleAttribs", 10, flags ) ) {
+            if( im::BeginTable( "table_ParticleAttribs", 12, flags ) ) {
                 ImGuiTableColumnFlags columnFlags = ImGuiTableColumnFlags_WidthFixed; 
                 im::TableSetupScrollFreeze( 0, 1 ); // Make top row always visible
                 im::TableSetupColumn( "index", columnFlags, 34 );
                 im::TableSetupColumn( "pos", columnFlags, 180 );
                 im::TableSetupColumn( "vel", columnFlags, 180 );
                 im::TableSetupColumn( "accel", columnFlags, 180 );
-                im::TableSetupColumn( "interactions", columnFlags, 50 );
+                im::TableSetupColumn( "interactions", columnFlags, 35 );
                 im::TableSetupColumn( "temp", columnFlags, 50 );
                 im::TableSetupColumn( "sdf dist", columnFlags, 50 );
-                im::TableSetupColumn( "sdf object", columnFlags, 50 );
+                im::TableSetupColumn( "sdf object", columnFlags, 30 );
                 im::TableSetupColumn( "sdf N", columnFlags, 180 );
                 im::TableSetupColumn( "repel strength", columnFlags, 50 );
+                im::TableSetupColumn( "iterations", columnFlags, 40 );
+                im::TableSetupColumn( "ray length", columnFlags, 40 );
                 im::TableHeadersRow();
 
                 ImGuiListClipper clipper;
@@ -1460,6 +1464,10 @@ void ComputeParticles::updateDebugParticleDataUI()
                         im::Text( "[%6.3f, %6.3f, %6.3f]", p.sdfClosestNormal.x, p.sdfClosestNormal.y, p.sdfClosestNormal.z );
                         im::TableSetColumnIndex( column++ );
                         im::Text( "%0.03f", p.sdfRepelStrength );
+                        im::TableSetColumnIndex( column++ );
+                        im::Text( "%d", p.sdfIterations );
+                        im::TableSetColumnIndex( column++ );
+                        im::Text( "%0.03f", p.sdfRayLength );
                     }
                 }
                 im::EndTable();

@@ -12,10 +12,6 @@ struct Ray {
 #define INTERSECT_FN sdf_intersect
 //#define INTERSECT_FN sdf_intersectEnhanced
 
-#ifndef PHYSICS_SIM
-    #define PHYSICS_SIM 0
-#endif
-
 //! Information for the current object at this pixel
 struct ObjectInfo {
     int id;                 // defines the intersected object
@@ -264,8 +260,9 @@ IntersectInfo sdf_intersect( in Ray ray, inout ObjectInfo object, float3 worldMi
         dist = t;
         object.normal = sdf_calcNormal( object, worldMin, worldMax );
     }
-    else
+    else {
         object.id = oid_nothing;
+    }
 
     IntersectInfo result;
     result.dist = dist;

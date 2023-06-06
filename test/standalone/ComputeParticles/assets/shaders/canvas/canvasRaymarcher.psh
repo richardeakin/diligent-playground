@@ -1,3 +1,5 @@
+
+#define PHYSICS_SIM 0
 #include "shaders/canvas/sdfScene.fxh"
 
 // TODO: try removing the paddings, but make sure it is %16 still

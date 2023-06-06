@@ -11,9 +11,9 @@ struct ParticleAttribs {
     float  padding3;
 
     float3  accel;
-    float   padding4;
+    float   sdfRayLength;
     float3  newAccel;
-    float   padding5;
+    int     sdfIterations;
 
     float  size;
     float  temperature;
@@ -27,7 +27,7 @@ struct ParticleAttribs {
 struct ParticleConstants {
     float4x4 viewProj; // TODO: should be removed? Or moved to the sprites-only buffer
 
-    uint    numParticles;
+    int     numParticles;
     float   time;
     float   deltaTime;
     float   separation;
