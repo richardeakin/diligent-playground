@@ -1,11 +1,15 @@
 #include "shaders/particles/structures.fxh"
 #include "shaders/particles/particles.fxh"
 
+#define PHYSICS_SIM 1
+#include "shaders/canvas/sdfScene.fxh"
+
 // 0: disabled, 1: only consider this particle's bin, 2: also consider neighboring bins
 // FIXME: 2 is still broken
 // TODO: add mode to only consider lateral neighbords, which is much less than mode 2
 // - this should help tell if 2 is actually broken or just taking too long
 #define BINNING_MODE 0
+#define PARTICLES_AVOID_SDF 1
 
 cbuffer Constants {
     ParticleConstants Constants;
@@ -19,7 +23,7 @@ RWStructuredBuffer<ParticleAttribs> Particles;
 Buffer<int>                         ParticleListHead;
 Buffer<int>                         ParticleLists;
 
-void InteractParticles( inout ParticleAttribs p0, in ParticleAttribs p1 )
+void interactParticles( inout ParticleAttribs p0, in ParticleAttribs p1 )
 {
     float3 r10 = ( p1.pos - p0.pos );
     float dist = length( r10 ); // TODO (optimiziation): use dist squared
@@ -43,6 +47,48 @@ void InteractParticles( inout ParticleAttribs p0, in ParticleAttribs p1 )
             float F = ( Constants.cohesionDist / dist - 1.0f ) * Constants.cohesion;
             p0.accel += d10 * F;
         }
+    }
+}
+
+// TODO: want to cast a ray and see how close we are to something in the scene ahead of us
+// - wasn't working at first try so I switched to using sdf_scene() + sdf_calcNorma()
+// - this allows movement but likely innacurate / difficult to control
+void interactScene( inout ParticleAttribs p )
+{
+    Ray ray;
+    ray.origin = p.pos;
+    ray.dir = normalize( p.vel );
+
+    ObjectInfo object = initObjectInfo();
+    IntersectInfo intersect = sdf_intersect( ray, object, Constants.worldMin, Constants.worldMax );
+    p.distToSDF = intersect.dist;
+    p.sdfIterations = intersect.iterations;
+    p.sdfRayLength = intersect.rayLength;
+    //p.distToSDF = sdf_scene( p.pos, object, Constants.worldMin, Constants.worldMax );
+    
+    const float distToTurn = Constants.sdfAvoidDistance;
+    /*if( p.distToSDF < 0.0 ) {
+        p.nearestSDFObject = -10;
+        p.sdfClosestNormal = float3( 0, -0.5f, 0 );
+        p.sdfRepelStrength = 0;        
+    }
+    else*/
+    if( p.distToSDF < distToTurn ) {
+        p.nearestSDFObject = object.id;
+        //float3 N = sdf_calcNormal( object, Constants.worldMin, Constants.worldMax );
+        float3 N = object.normal;
+        float strength = distToTurn - abs( p.distToSDF );
+        strength *= Constants.sdfAvoidStrength;
+        p.accel += N * strength;
+        p.sdfClosestNormal = N;
+        p.sdfRepelStrength = strength;
+
+        //p.sdfClosestNormal = normalize(p.sdfClosestNormal); // TODO: this shouldn't be necessary here
+    }
+    else {
+        p.nearestSDFObject = 0;
+        p.sdfClosestNormal = float3( 0, -0.7f, 0 ); // TODO: set back to (0, 0, 0) once working
+        p.sdfRepelStrength = 0;
     }
 }
 
@@ -75,7 +121,7 @@ void main( uint3 Gid  : SV_GroupID,
             continue;
         }
         //CollideParticles( particle, Particles[i] );
-        InteractParticles( particle, Particles[i] );
+        interactParticles( particle, Particles[i] );
     }
 #elif BINNING_MODE == 1
     // only considering particles within the same bin
@@ -84,7 +130,7 @@ void main( uint3 Gid  : SV_GroupID,
         while( anotherParticleId >= 0 ) {
             if( particleId != anotherParticleId ) {
                 ParticleAttribs anotherParticle = Particles[anotherParticleId];
-                InteractParticles( particle, anotherParticle );
+                interactParticles( particle, anotherParticle );
             }
 
             anotherParticleId = ParticleLists.Load( anotherParticleId );
@@ -101,7 +147,7 @@ void main( uint3 Gid  : SV_GroupID,
                 while( anotherParticleId >= 0 ) {
                     if( particleId != anotherParticleId ) {
                         ParticleAttribs anotherParticle = Particles[anotherParticleId];
-                        InteractParticles( particle, anotherParticle );
+                        interactParticles( particle, anotherParticle );
                     }
 
                     anotherParticleId = ParticleLists.Load( anotherParticleId );
@@ -111,10 +157,11 @@ void main( uint3 Gid  : SV_GroupID,
     }
 #endif
 
-    particle.newVel += particle.accel * Constants.deltaTime;
+#if PARTICLES_AVOID_SDF
+    interactScene( particle );
+#endif
 
-    // TODO: raycast and turn if headed towards boundary
-    //ClampParticlePosition( particle.newPos, particle.vel, particle.size * Constants.scale );
+    particle.newVel += particle.accel * Constants.deltaTime;
 
     Particles[particleId] = particle;
 }

@@ -35,22 +35,6 @@ set( CINDER_SOURCES
     ${CINDER_PATH}/src/cinder/Surface.cpp
     ${CINDER_PATH}/include/cinder/Surface.h
 
-    # Image IO
-    ${CINDER_PATH}/include/cinder/ImageIo.h
-    ${CINDER_PATH}/src/cinder/ImageIo.cpp
-    ${CINDER_PATH}/include/cinder/ImageSourceFileWic.h
-    ${CINDER_PATH}/src/cinder/ImageSourceFileWic.cpp
-    ${CINDER_PATH}/include/cinder/ImageTargetFileWic.h
-    ${CINDER_PATH}/src/cinder/ImageTargetFileWic.cpp
-    ${CINDER_PATH}/include/cinder/ImageFileTinyExr.h
-    ${CINDER_PATH}/src/cinder/ImageFileTinyExr.cpp
-    ${CINDER_PATH}/include/cinder/ImageSourceFileStbImage.h
-    ${CINDER_PATH}/src/cinder/ImageSourceFileStbImage.cpp
-    ${CINDER_PATH}/include/cinder/ImageTargetFileStbImage.h
-    ${CINDER_PATH}/src/cinder/ImageTargetFileStbImage.cpp
-    ${CINDER_PATH}/include/cinder/ImageSourceFileRadiance.h
-    ${CINDER_PATH}/src/cinder/ImageSourceFileRadiance.cpp
-
     ${CINDER_PATH}/include/cinder/Stream.h
     ${CINDER_PATH}/src/cinder/Stream.cpp
     ${CINDER_PATH}/include/cinder/Exception.h
@@ -67,6 +51,32 @@ set( CINDER_SOURCES
     ${CINDER_PATH}/src/cinder/Url.cpp
     ${CINDER_PATH}/src/cinder/UrlImplWinInet.cpp
     ${CINDER_PATH}/include/cinder/UrlImplWinInet.h
+
+    # math things
+    ${CINDER_PATH}/src/cinder/Camera.cpp
+    ${CINDER_PATH}/include/cinder/Camera.h
+    ${CINDER_PATH}/src/cinder/Matrix.cpp
+    ${CINDER_PATH}/include/cinder/Matrix.h
+    ${CINDER_PATH}/src/cinder/Ray.cpp
+    ${CINDER_PATH}/include/cinder/Ray.h
+    ${CINDER_PATH}/src/cinder/Sphere.cpp
+    ${CINDER_PATH}/include/cinder/Sphere.h
+
+    # Image IO
+    ${CINDER_PATH}/include/cinder/ImageIo.h
+    ${CINDER_PATH}/src/cinder/ImageIo.cpp
+    ${CINDER_PATH}/include/cinder/ImageSourceFileWic.h
+    ${CINDER_PATH}/src/cinder/ImageSourceFileWic.cpp
+    ${CINDER_PATH}/include/cinder/ImageTargetFileWic.h
+    ${CINDER_PATH}/src/cinder/ImageTargetFileWic.cpp
+    ${CINDER_PATH}/include/cinder/ImageFileTinyExr.h
+    ${CINDER_PATH}/src/cinder/ImageFileTinyExr.cpp
+    ${CINDER_PATH}/include/cinder/ImageSourceFileStbImage.h
+    ${CINDER_PATH}/src/cinder/ImageSourceFileStbImage.cpp
+    ${CINDER_PATH}/include/cinder/ImageTargetFileStbImage.h
+    ${CINDER_PATH}/src/cinder/ImageTargetFileStbImage.cpp
+    ${CINDER_PATH}/include/cinder/ImageSourceFileRadiance.h
+    ${CINDER_PATH}/src/cinder/ImageSourceFileRadiance.cpp
 
     # cinder::ip
     ${CINDER_PATH}/src/cinder/ip/fill.cpp
@@ -129,7 +139,20 @@ set( CINDER_COMPILE_DEFINITIONS
     FT_DEBUG_LEVEL_TRACE=1
 )
 
-target_compile_definitions( ${LIB_TARGET} PRIVATE ${CINDER_COMPILE_DEFINITIONS} )
+target_compile_definitions( ${LIB_TARGET}
+    PRIVATE
+        _LIB
+    PUBLIC
+        NOMINMAX
+        UNICODE
+        _UNICODE
+        _WIN32_WINNT=0x0601
+        _CRT_SECURE_NO_WARNINGS
+        _SCL_SECURE_NO_WARNINGS
+        FT2_BUILD_LIBRARY=1
+        FT_DEBUG_LEVEL_TRACE=1
+        GLM_FORCE_LEFT_HANDED
+)
 
 # TODO: may need this (see cinder's platform_msw)
 #    set( CINDER_STATIC_LIBS_FLAGS_DEBUG     "/NODEFAULTLIB:LIBCMT /NODEFAULTLIB:LIBCPMT" )

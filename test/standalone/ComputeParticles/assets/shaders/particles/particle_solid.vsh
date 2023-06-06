@@ -23,8 +23,8 @@ struct PSInput {
     float2 UV       : TEX_COORD;
     float  Temp     : TEMPERATURE;
     float3 Normal   : NORMAL;
-
-    uint InstID : INSTANCE_ID;
+    float  Movement : MOVEMENT;
+    uint   InstID   : INSTANCE_ID;
 };
 
 float4 GetRotationFromAxisAngle( in float3 axis, in float angle )
@@ -96,6 +96,7 @@ void main( in VSInput VSIn, out PSInput PSIn )
 
     PSIn.UV  = VSIn.UV;
     PSIn.Temp = Attribs.temperature;
+    PSIn.Movement = length( Attribs.accel );
     PSIn.InstID = VSIn.InstID;
 
     // TODO: normal also needs to be rotated

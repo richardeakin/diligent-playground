@@ -1,9 +1,11 @@
 #include "AppGlobal.h"
 #include <memory>
 
+#if ! defined( CINDER_DISABLED )
 #include "cinder/CinderAssert.h"
 #include "cinder/app/Platform.h"
 #include "cinder/Log.h"
+#endif
 
 namespace juniper {
 
@@ -13,6 +15,7 @@ AppGlobal* global()
 	return &global;
 }
 
+#if ! defined( CINDER_DISABLED )
 
 void findRepoRootPath( const fs::path &rootFile )
 {
@@ -58,5 +61,6 @@ fs::path getRootAssetPath( const fs::path &relativePath )
 	// return empty path to signify failure
 	return {};
 }
+#endif
 
 } // namespace juniper

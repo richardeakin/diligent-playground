@@ -18,7 +18,7 @@ void main( uint3 Gid  : SV_GroupID,
            uint3 GTid : SV_GroupThreadID)
 {
     uint globalThreadId = Gid.x * uint(THREAD_GROUP_SIZE) + GTid.x;
-    if( globalThreadId >= Constants.numParticles ) {
+    if( globalThreadId >= uint(Constants.numParticles) ) {
         return;
     }
 
@@ -36,7 +36,7 @@ void main( uint3 Gid  : SV_GroupID,
     particle.temperature = particle.numInteractions / 10.0;
 
 
-    ClampParticlePosition( particle.pos, particle.vel, particle.size * Constants.scale, Constants.worldMin, Constants.worldMax );
+    //ClampParticlePosition( particle.pos, particle.vel, particle.size * Constants.scale, Constants.worldMin, Constants.worldMax );
     Particles[particleId] = particle;
 
     int gridId = GetGridLocation( particle.pos, Constants.gridSize ).w;

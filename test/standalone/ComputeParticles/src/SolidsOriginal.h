@@ -9,16 +9,12 @@
 #include "BasicMath.hpp"
 
 #include "juniper/FileWatch.h"
-#include "cinder/Matrix.h"
-
 #include <filesystem>
 
 namespace juniper {
 
 namespace dg = Diligent;
 namespace fs = std::filesystem;
-
-using glm::mat4;
 
 enum VERTEX_COMPONENT_FLAGS : int
 {
@@ -69,10 +65,9 @@ public:
 	//void setShaderResourceVar( dg::SHADER_TYPE shaderType, const dg::Char* name, dg::IDeviceObject* object );
 
 	virtual void update( double deltaSeconds );
-	virtual void draw( dg::IDeviceContext* context, const mat4 &viewProjectionMatrix, uint32_t numInstances = 1 );
+	virtual void draw( dg::IDeviceContext* context, const dg::float4x4 &viewProjectionMatrix, uint32_t numInstances = 1 );
 
-	//void setTransform( const dg::float4x4 &m )	{ mTransform = m; }
-	void setTransform( const mat4 &m )	{ mTransform = m; }
+	void setTransform( const dg::float4x4 &m )	{ mTransform = m; }
 
 	void setLightDir( const dg::float3 &dir )	{ mLightDirection = dir; }
 
@@ -94,8 +89,7 @@ protected:
 	Options	mOptions;
 
 	dg::float3      mLightDirection  = dg::float3( 0, 1, 0 ); // TODO: this should be part of a global constants buffer
-	//dg::float4x4	mTransform = dg::float4x4::Identity();
-	mat4	mTransform = mat4( 1 );
+	dg::float4x4	mTransform = dg::float4x4::Identity();
 
 	FileWatchHandle     mShadersDirWatchHandle;
 	bool                mShaderAssetsMarkedDirty = false;

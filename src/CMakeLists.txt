@@ -24,6 +24,8 @@ set( JUNIPER_SOURCES
 	juniper/AppEvents.h
 	juniper/AppGlobal.cpp
 	juniper/AppGlobal.h
+	juniper/Camera.cpp
+	juniper/Camera.h
 	juniper/Canvas.cpp
 	juniper/Canvas.h
 	juniper/FileWatch.h
@@ -56,13 +58,11 @@ set( SHADERS
     ../assets/shaders/solids/solid.fxh
 )
 
-set( ASSETS ${SHADERS} )
-
-add_library( ${LIB_TARGET} STATIC ${JUNIPER_SOURCES} ${IMGUI_SOURCES} )
+add_library( ${LIB_TARGET} STATIC ${JUNIPER_SOURCES} ${IMGUI_SOURCES} ${SHADERS} )
 
 set_target_properties( ${LIB_TARGET} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES )
 target_compile_features( ${LIB_TARGET} PUBLIC cxx_std_17 )
-target_compile_definitions( ${LIB_TARGET} PRIVATE UNICODE )
+target_compile_definitions( ${LIB_TARGET} PRIVATE UNICODE _UNICODE )
 
 target_include_directories( ${LIB_TARGET}
 	PUBLIC
@@ -78,7 +78,8 @@ target_include_directories( ${LIB_TARGET}
 source_group( TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "src" FILES ${JUNIPER_SOURCES} )
 # imgui files use absolute paths so add their group separately
 source_group( "src/imgui" FILES ${IMGUI_SOURCES} )
-source_group( "assets" FILES ${ASSETS} ) # FIXME: these aren't getting added to project
+source_group( "shaders" FILES ${SHADERS} )
+set_source_files_properties( ${SHADERS}       PROPERTIES VS_TOOL_OVERRIDE "None" )
 
 target_include_directories( ${LIB_TARGET} PRIVATE "${DILIGENT_PATH}/DiligentCore" )
 if( METAL_SUPPORTED )
@@ -101,13 +102,16 @@ if( METAL_SUPPORTED )
     target_link_libraries( ${LIB_TARGET} PRIVATE Diligent-GraphicsEngineMetal-shared )
 endif()
 
-# These add necessary includes for our library
+# add lib dependencies that apps linking to juniper will need
 target_compile_definitions( ${LIB_TARGET} PRIVATE ENGINE_DLL=1 )
-target_link_libraries( ${LIB_TARGET} PRIVATE
-    Diligent-Common
-    Diligent-GraphicsTools
-    Diligent-Imgui
-    Diligent-TextureLoader
-    cinder-lite
-    glfw
+
+target_link_libraries( ${LIB_TARGET}
+	PUBLIC
+	    Diligent-Common
+	    Diligent-GraphicsTools
+	    Diligent-Imgui
+	    Diligent-TextureLoader
+	    cinder-lite
+	    glfw
+	    #zlib
 )

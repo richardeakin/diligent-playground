@@ -2,12 +2,11 @@
 
 #include <filesystem>
 
-#include "Solids.h"
-#include "AppGlobal.h"
+#include "SolidsOriginal.h"
 #include "MapHelper.hpp"
 #include "GraphicsTypesX.hpp"
 
-#include "cinder/Vector.h"
+#include "juniper/AppGlobal.h"
 
 using namespace Diligent;
 
@@ -15,13 +14,9 @@ namespace juniper {
 
 namespace {
 
-using glm::vec3;
-
 struct SceneConstants {
-    //float4x4 MVP;
-    mat4 MVP;
-    //float4x4 normalTranform; // TODO: use mat4
-    mat4 normalTranform; // TODO: use mat4
+    float4x4 MVP;
+    float4x4 normalTranform;
     float4   lightDirection;
 };
 
@@ -31,10 +26,10 @@ Solid::Solid( const Options &options )
     : mOptions( options )
 {
     if( mOptions.vertPath.empty() ) {
-        mOptions.vertPath = getRootAssetPath( "shaders/solids/solid.vsh" );
+        mOptions.vertPath = "shaders/solids/solid.vsh";
     }
     if( mOptions.pixelPath.empty() ) {
-        mOptions.pixelPath = getRootAssetPath( "shaders/solids/solid.psh" );
+        mOptions.pixelPath = "shaders/solids/solid.psh";
     }
 
     // TODO: need two separate buffers here - one for SceneConstants and one for ModelConstants
@@ -152,7 +147,7 @@ void Solid::initPipelineState()
             result->Set( var.object );
         }
         else {
-            LOG_WARNING_MESSAGE( __FUNCTION__, "|(", mOptions.name, ") Failed to set static shader var with name: ", var.name, ", shader type: ", var.shaderType );
+            LOG_WARNING_MESSAGE( __FUNCTION__, "|(", mOptions.name, ") Could not set static shader var with name: ", var.name, ", shader type: ", var.shaderType );
         }
     }
 
@@ -245,7 +240,7 @@ void Solid::watchShadersDir()
     if( std::filesystem::exists( shaderDir ) ) {
         LOG_INFO_MESSAGE( __FUNCTION__, "| watching assets directory: ", shaderDir );
         try {
-            mShadersDirWatchHandle = std::make_unique<FileWatchType>( shaderDir,
+            mShadersDirWatchHandle = std::make_unique<FileWatchType>( shaderDir.string(),
                 [=](const PathType &path, const filewatch::Event change_type ) {
 
                     // TODO: filter out repeated events as per
@@ -285,44 +280,20 @@ void Solid::update( double deltaSeconds )
     }
 }
 
-void Solid::draw( IDeviceContext* context, const mat4 &viewProjectionMatrix, uint32_t numInstances )
+void Solid::draw( IDeviceContext* context, const float4x4 &viewProjectionMatrix, uint32_t numInstances )
 {
     if( ! mPSO || ! mSRB ) {
         return;
     }
 
-    if( GLM_FORCE_LEFT_HANDED ) {
-        int blarg = 2;
-    }
-
-    static float elapsedSeconds = 0;
-    elapsedSeconds += 1.0f / 60.0f;
-    float aspect = 1360.0f / 991.0f;
-
-    // Apply rotation
-    //mat4 model = glm::rotate( glm::pi<float>() * 0.1f, vec3( 1.0f, 0.0f, 0.0f ) ) * glm::rotate( elapsedSeconds, vec3( 0.0f, 1.0f, 0.0f ) );
-    // Camera is at (0, 0, -5) looking along the Z axis
-    mat4 view = glm::lookAt( glm::vec3( 0.f, 0.0f, -5.0f ), vec3( 0.0f ), vec3( 0.0f, 1.0f, 0.0f ) );
-    // Get projection matrix adjusted to the current screen orientation
-    mat4 proj = glm::perspective( glm::pi<float>() / 4.0f, aspect, 0.1f, 100.f );
-    // Compute world-view-projection matrix
-    auto simonWorldViewProjection = proj * view * mTransform;
-
-
-    // TODO: probably going to have to do some flipping here.
-    // - but I think not transpose since moving to glm?
-    // - flipping the order + transpose seems to do the trick, but I need to understand why
- 
     // Update constant buffer
     {
-        //auto mvp = mTransform * viewProjectionMatrix;
+        auto mvp = mTransform * viewProjectionMatrix;
         MapHelper<SceneConstants> CBConstants( context, mSceneConstants, MAP_WRITE, MAP_FLAG_DISCARD );
-        CBConstants->MVP = glm::transpose( viewProjectionMatrix * mTransform );
-        //CBConstants->MVP = glm::transpose( simonWorldViewProjection ); // this works
+        CBConstants->MVP = mvp.Transpose();
 
         // We need to do inverse-transpose, but we also need to transpose the matrix before writing it to the buffer
-        //CBConstants->normalTranform = mTransform.RemoveTranslation().Inverse(); // TODO: re-enable
-        CBConstants->normalTranform = mat4( glm::mat3( glm::transpose( glm::inverse( mTransform ) ) ) ); // FIXME: not right yet
+        CBConstants->normalTranform = mTransform.RemoveTranslation().Inverse();;
         CBConstants->lightDirection = mLightDirection;
     }
 
@@ -335,12 +306,15 @@ void Solid::draw( IDeviceContext* context, const mat4 &viewProjectionMatrix, uin
 
     // Set the pipeline state
     context->SetPipelineState(mPSO);
+    // Commit shader resources. RESOURCE_STATE_TRANSITION_MODE_TRANSITION mode
+    // makes sure that resources are transitioned to required states.
     context->CommitShaderResources( mSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
 
-    DrawIndexedAttribs DrawAttrs;
-    DrawAttrs.IndexType  = VT_UINT32;
+    DrawIndexedAttribs DrawAttrs;     // This is an indexed draw call
+    DrawAttrs.IndexType  = VT_UINT32; // Index type
     DrawAttrs.NumIndices = mNumIndices;
     DrawAttrs.NumInstances = numInstances;
+    // Verify the state of vertex and index buffers
     DrawAttrs.Flags = DRAW_FLAG_VERIFY_ALL;
     context->DrawIndexed( DrawAttrs );
 }

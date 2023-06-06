@@ -9,7 +9,8 @@
 #include "juniper/Canvas.h"
 #include "juniper/post/aa/FXAA.h"
 #include "juniper/Profiler.h"
-#include "juniper/Solids.h"
+//#include "juniper/Solids.h"
+#include "SolidsOriginal.h"
 
 #define DEBUG_PARTICLE_BUFFERS 1
 
@@ -25,6 +26,8 @@ using dg::RefCntAutoPtr;
 
 class ComputeParticles final : public dg::SampleBase {
 public:
+    ComputeParticles();
+
     virtual void ModifyEngineInitInfo(const ModifyEngineInitInfoAttribs& Attribs) override final;
     virtual void Initialize(const dg::SampleInitInfo& InitInfo) override final;
     virtual void WindowResize(dg::Uint32 Width, dg::Uint32 Height) override final;
@@ -58,7 +61,7 @@ private:
     RefCntAutoPtr<dg::IShaderResourceBinding> mMoveParticlesSRB;
     RefCntAutoPtr<dg::IPipelineState>         mInteractParticlesPSO;
     RefCntAutoPtr<dg::IShaderResourceBinding> mInteractParticlesSRB;
-    RefCntAutoPtr<dg::IBuffer>                mParticleConstants;
+    RefCntAutoPtr<dg::IBuffer>                mParticleConstantsBuffer;
     RefCntAutoPtr<dg::IBuffer>                mParticleAttribsBuffer;
     RefCntAutoPtr<dg::IBuffer>                mParticleListsBuffer;
     RefCntAutoPtr<dg::IBuffer>                mParticleListHeadsBuffer;
@@ -66,8 +69,8 @@ private:
     // -------------------------------------------
     // Post Process
     void initPostProcessPSO();
-    void DownSample();
-    void PostProcess();
+    void downSample();
+    void postProcess();
 
     RefCntAutoPtr<dg::IPipelineState>         mPostProcessPSO;
     RefCntAutoPtr<dg::IShaderResourceBinding> mPostProcessSRB;
@@ -94,6 +97,7 @@ private:
         int     glowEnabled = 1;
 
         float3  fogColor = { 0.034f, 0.003f, 0.022f }; // dark purple
+        //float3  fogColor = { 0.054f, 0.012f, 0.008f }; // bit more red
         int     fogEnabled = 1;
 
         float   fogIntensity = 0.042f;
@@ -119,22 +123,10 @@ private:
 #endif
 
     bool        mUIEnabled = true;  
-    int         mNumParticles       = 5000; // was: 1000
-    float       mParticleScale      = 0.1f;
     float       mParticleScaleVariation = 0.1f;
     float       mParticleBirthPadding = 0.1f;
-    float       mSeparation         = 1.9f;
-    float       mAlignment          = 0.25f;
-    float       mCohesion           = 0.146f;
-    float       mSeparationDist     = 0.688f;
-    float       mAlignmentDist      = 1.692f; 
-    float       mCohesionDist       = 1.956f;
-    float       mSimulationSpeed    = 0.75f;
-    float2      mSpeedMinMax        = { 0.01f, 4.0f };
+    float       mSimulationSpeed    = 1.35f;
     float       mParticleSpeedVariation = 0.1f;
-    float3      mWorldMin           = { -10, 0.1f, -10 };
-    float3      mWorldMax           = { 10, 10, 10 };
-    int3        mGridSize           = { 10, 10, 10 };
     int         mThreadGroupSize    = 256;
     float       mTime               = 0;
     float       mTimeDelta          = 0;
@@ -143,6 +135,34 @@ private:
     bool        mDrawParticles      = true;
     bool        mUpdateParticles    = true;
 
+    struct ParticleConstants {
+        float4x4 viewProj;
+
+        int     numParticles;
+        float   time;
+        float   deltaTime;
+        float   separation;
+
+        int3    gridSize;
+        float   scale;
+
+        float2  speedMinMax;
+        float   alignment;
+        float   cohesion;
+
+        float   separationDist;
+        float   alignmentDist;
+        float   cohesionDist;
+        float   sdfAvoidStrength;
+
+        float3  worldMin;
+        float   sdfAvoidDistance;
+
+        float3  worldMax;
+        float   padding2;
+    };
+    static_assert(sizeof(ParticleConstants) % 16 == 0, "must be aligned to 16 bytes");
+    ParticleConstants mParticleConstants;
 
     std::unique_ptr<ju::Canvas> mBackgroundCanvas;
     std::unique_ptr<ju::Solid>   mTestSolid, mParticleSolid;

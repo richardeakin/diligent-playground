@@ -8,8 +8,8 @@
 namespace juniper {
 
 // TODO: try fs::path again and see if the path comes through correctly, I was thrown off by the temporary files
-//using PathType = std::filesystem::path; // FIXME: can't use std::filesystem until this is addressed: https://github.com/ThomasMonkman/filewatch/issues/39
-using PathType = std::string;
+using PathType = std::filesystem::path; // FIXME: can't use std::filesystem until this is addressed: https://github.com/ThomasMonkman/filewatch/issues/39
+//using PathType = std::string;
 using FileWatchType = filewatch::FileWatch<PathType>;
 using FileWatchHandle = std::unique_ptr<FileWatchType>;
 

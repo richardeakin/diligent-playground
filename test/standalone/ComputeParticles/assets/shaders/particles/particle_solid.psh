@@ -13,6 +13,7 @@ struct PSInput {
     float2 UV       : TEX_COORD;
     float  Temp     : TEMPERATURE;
     float3 Normal   : NORMAL;
+   float  Movement : MOVEMENT;
     uint InstID     : INSTANCE_ID;
 };
 
@@ -22,7 +23,8 @@ struct PSOutput {
 
 void main( in  PSInput  PSIn, out PSOutput PSOut )
 {
-    float3 col = lerp( float3( 0.0, 0.63, 0.9 ), float3( 0.2, 0.78, 0.95 ), saturate( PSIn.Temp ) );
+    float3 col = lerp( float3( 0.2, 0.8, 0.98 ), float3( 0.9, 0.4, 0.18 ), saturate( PSIn.Movement * 0.15 ) );
+
     //col = float3( 1, 1, 1 );
 
     float NdotL = saturate( dot( PSIn.Normal, - SConstants.LightDirection.xyz ) );
@@ -31,9 +33,11 @@ void main( in  PSInput  PSIn, out PSOutput PSOut )
     col *= lighting;
     
     float emmissive = pow( PSIn.UV.y, 2 );
-    emmissive *= sin( PConstants.time * 4.0 + float(PSIn.InstID) * 10231.12 ) * 0.5 + 0.5;
-    
-    col = lerp(col, float3( emmissive, emmissive * 0.3f, emmissive * 0.01f ), emmissive);
+    emmissive = smoothstep( 0.7, 0.72, PSIn.UV.y );
+    //emmissive *= sin(PConstants.time * 4.0 + float(PSIn.InstID) * 3.12) * 0.5 + 0.5;
+    emmissive *= PSIn.Temp * 0.07;
+
+    col = lerp( col, float3( emmissive, emmissive * 0.3f, emmissive * 0.01f ), emmissive );
     
     if( PSIn.InstID == 0 ) {
         col.r = 1.0;
@@ -43,6 +47,9 @@ void main( in  PSInput  PSIn, out PSOutput PSOut )
     }
     if( PSIn.InstID == 2 ) {
         col.b = 1.0;
+    }
+    if( PSIn.InstID == 3 ) {
+        col = float3( 1, 0, 1 );
     }
 
     //PSOut.Color = float4( PSIn.UV.x, PSIn.UV.y, 0.0, 1.0 );

@@ -98,9 +98,9 @@ public:
     virtual void resize( const int2 &size )                 {}
 
     //! Override to handle keyboard events
-    virtual void keyEvent( const KeyEvent &e )              {}
+    virtual void keyEvent( KeyEvent &e )              {}
     //! Override to handle mouse events
-    virtual void mouseEvent( const MouseEvent &e )          {}
+    virtual void mouseEvent( MouseEvent &e )          {}
     //! Override to return a custom app title
     virtual const char* getTitle() const                    { return "AppGlfw"; }
 

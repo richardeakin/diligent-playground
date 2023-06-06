@@ -3,7 +3,7 @@ struct ParticleAttribs {
     float3 pos;
     float  padding0;
     float3 newPos;
-    float  padding1;
+    float  distToSDF;
 
     float3 vel;
     float  padding2;
@@ -11,26 +11,29 @@ struct ParticleAttribs {
     float  padding3;
 
     float3  accel;
-    float   padding4;
+    float   sdfRayLength;
     float3  newAccel;
-    float   padding5;
+    int     sdfIterations;
 
     float  size;
     float  temperature;
     int    numInteractions;
-    float  padding6;
+    int    nearestSDFObject;
+    
+    float3 sdfClosestNormal;
+    float  sdfRepelStrength;
 };
 
 struct ParticleConstants {
     float4x4 viewProj; // TODO: should be removed? Or moved to the sprites-only buffer
 
-    uint    numParticles;
+    int     numParticles;
     float   time;
     float   deltaTime;
     float   separation;
 
-    float   scale; // TODO: make float3 so I can use (0.4, 1, 0.4) to shape the pyramid
     int3    gridSize;
+    float   scale;
     
     float2  speedMinMax;
     float   alignment;
@@ -39,10 +42,10 @@ struct ParticleConstants {
     float   separationDist;
     float   alignmentDist;
     float   cohesionDist;
-    float   padding0;
+    float   sdfAvoidStrength;
 
     float3  worldMin;
-    float   padding1;
+    float   sdfAvoidDistance;
 
     float3  worldMax;
     float   padding2;

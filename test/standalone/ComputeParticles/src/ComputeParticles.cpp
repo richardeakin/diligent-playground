@@ -6,6 +6,7 @@
 #include "BasicMath.hpp"
 #include "MapHelper.hpp"
 #include "imgui.h"
+#include "imgui_internal.h" // ShortCut()
 #include "imGuIZMO.h"
 #include "ShaderMacroHelper.hpp"
 
@@ -36,7 +37,7 @@ struct ParticleAttribs {
     float3 pos;
     float  padding0;
     float3 newPos;
-    float  padding1;
+    float  distToSDF = 10e6; // far away
 
     float3 vel;
     float  padding2;
@@ -44,45 +45,17 @@ struct ParticleAttribs {
     float  padding3;
 
     float3  accel;
-    float   padding4;
+    float   sdfRayLength = -1;
     float3  newAccel;
-    float   padding5;
+    int     sdfIterations = -1;
 
     float size              = 0;
     float temperature       = 0;
     int   numInteractions   = 0;
-    float padding6          = 0;
-};
+    int   nearestSDFObject  = -1; // nothing. see sdfScene.fxh for others (oid_*)
 
-// TODO: rather than duplicating all these vars as member vars, would be easier to keep this struct in
-// the class and then pass in our copy of ParticleConstants to MapHelper (or use map fns directly)
-// - do it the same way that PostProcessConstants is handled
-// - consider storing all structures in assets/shaders/structures.fxh
-struct ParticleConstants {
-    float4x4 viewProj;
-
-    uint    numParticles;
-    float   time;
-    float   deltaTime;
-    float   separation;
-
-    float   scale;
-    int3    gridSize;
-
-    float2  speedMinMax;
-    float   alignment;
-    float   cohesion;
-
-    float   separationDist;
-    float   alignmentDist;
-    float   cohesionDist;
-    float   padding0;
-
-    float3  worldMin;
-    float   padding1;
-
-    float3  worldMax;
-    float   padding2;
+    float3 sdfClosestNormal = { 1, 2, 3 };
+    float  sdfRepelStrength;
 };
 
 struct BackgroundPixelConstants {
@@ -167,6 +140,30 @@ QuaternionF GetRotationQuat( const float3 &a, const float3 &b, const float3 &up 
 
 } // anon
 
+// ------------------------------------------------------------------------------------------------------------
+// Init
+// ------------------------------------------------------------------------------------------------------------
+
+ComputeParticles::ComputeParticles()
+{
+    mParticleConstants.numParticles = 1000;
+    mParticleConstants.scale = 0.22f;
+    mParticleConstants.gridSize = { 10, 10, 10 };
+    mParticleConstants.worldMin = { -10, 0.1f, -10 };
+    mParticleConstants.worldMax = { 10, 10, 10 };
+    mParticleConstants.speedMinMax = { 0.01f, 4.0f };
+
+    mParticleConstants.separation = 1.9f;
+    mParticleConstants.alignment = 0.25f;
+    mParticleConstants.cohesion = 0.146f;
+    mParticleConstants.separationDist = 0.688f;
+    mParticleConstants.alignmentDist = 1.692f;
+    mParticleConstants.cohesionDist = 1.956f;
+
+    mParticleConstants.sdfAvoidStrength =  100.0;
+    mParticleConstants.sdfAvoidDistance = 5.0f;
+}
+
 void ComputeParticles::ModifyEngineInitInfo( const ModifyEngineInitInfoAttribs& Attribs )
 {
     SampleBase::ModifyEngineInitInfo( Attribs );
@@ -204,6 +201,12 @@ void ComputeParticles::Initialize( const SampleInitInfo& InitInfo )
 	constexpr auto RTFlags = BIND_RENDER_TARGET | BIND_SHADER_RESOURCE;
 	if( ( m_pDevice->GetTextureFormatInfoExt( TEX_FORMAT_RGBA16_FLOAT ).BindFlags & RTFlags ) == RTFlags ) {
         global()->colorBufferFormat = TEX_FORMAT_RGBA16_FLOAT;
+    }
+
+    const auto devType = m_pDevice->GetDeviceInfo().Type;
+    if( devType == RENDER_DEVICE_TYPE_D3D11 ) {
+        // downsampling method not supported on D3D11 backend
+        mPostProcessConstants.glowEnabled = false;
     }
 
     initConsantBuffers();
@@ -293,7 +296,7 @@ void ComputeParticles::initRenderParticlePSO()
     if( mRenderParticlePSO ) {
         auto vc = mRenderParticlePSO->GetStaticVariableByName( SHADER_TYPE_VERTEX, "Constants" );
         if( vc ) {
-            vc->Set( mParticleConstants );
+            vc->Set( mParticleConstantsBuffer );
         }
     }
 }
@@ -365,7 +368,7 @@ void ComputeParticles::initUpdateParticlePSO()
     psoCI.pCS = resetParticleListsCS;
     m_pDevice->CreateComputePipelineState( psoCI, &mResetParticleListsPSO );
     if( auto var = mResetParticleListsPSO->GetStaticVariableByName( SHADER_TYPE_COMPUTE, "Constants" ) ) {
-        var->Set( mParticleConstants );
+        var->Set( mParticleConstantsBuffer );
     }
 
     psoDesc.Name = "Move particles PSO";
@@ -373,7 +376,7 @@ void ComputeParticles::initUpdateParticlePSO()
     m_pDevice->CreateComputePipelineState( psoCI, &mMoveParticlesPSO );
     if( mMoveParticlesPSO ) {
         if( auto var = mMoveParticlesPSO->GetStaticVariableByName( SHADER_TYPE_COMPUTE, "Constants" ) ) {
-            var->Set( mParticleConstants );
+            var->Set( mParticleConstantsBuffer );
         }
     }
 
@@ -381,7 +384,7 @@ void ComputeParticles::initUpdateParticlePSO()
     psoCI.pCS = interactParticlesCS;
     m_pDevice->CreateComputePipelineState( psoCI, &mInteractParticlesPSO );
     if( mInteractParticlesPSO ) {
-        mInteractParticlesPSO->GetStaticVariableByName( SHADER_TYPE_COMPUTE, "Constants" )->Set( mParticleConstants );
+        mInteractParticlesPSO->GetStaticVariableByName( SHADER_TYPE_COMPUTE, "Constants" )->Set( mParticleConstantsBuffer );
     }
 }
 
@@ -410,8 +413,8 @@ void ComputeParticles::initSolids()
         options.pixelPath = "shaders/particles/particle_solid.psh";
         options.name = "Particle Solid";
         options.shaderResourceVars.push_back( { { SHADER_TYPE_VERTEX, "Particles", SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE }, particleAttribsBufferSRV } );
-        options.staticShaderVars.push_back( { SHADER_TYPE_VERTEX, "PConstants", mParticleConstants } );
-        options.staticShaderVars.push_back( { SHADER_TYPE_PIXEL, "PConstants", mParticleConstants } );
+        options.staticShaderVars.push_back( { SHADER_TYPE_VERTEX, "PConstants", mParticleConstantsBuffer } );
+        options.staticShaderVars.push_back( { SHADER_TYPE_PIXEL, "PConstants", mParticleConstantsBuffer } );
 
         if( mParticleType == ParticleType::Cube ) {
             mParticleSolid = std::make_unique<ju::Cube>( options );
@@ -440,16 +443,16 @@ void ComputeParticles::initParticleBuffers()
     BuffDesc.BindFlags         = BIND_SHADER_RESOURCE | BIND_UNORDERED_ACCESS;
     BuffDesc.Mode              = BUFFER_MODE_STRUCTURED;
     BuffDesc.ElementByteStride = sizeof(ParticleAttribs);
-    BuffDesc.Size              = sizeof(ParticleAttribs) * mNumParticles;
+    BuffDesc.Size              = sizeof(ParticleAttribs) * mParticleConstants.numParticles;
 
-    std::vector<ParticleAttribs> ParticleData( mNumParticles );
+    std::vector<ParticleAttribs> ParticleData( mParticleConstants.numParticles );
 
     // Standard mersenne_twister_engine. Use default seed to generate consistent distribution.
     // TODO: try with float3 template argument (once working
     std::mt19937 gen;
-    float3 birthMin = mWorldMin * ( 1.0f - mParticleBirthPadding );
-    float3 birthMax = mWorldMax * ( 1.0f - mParticleBirthPadding );
-    float speed = ( mSpeedMinMax.y - mSpeedMinMax.x ) / 2.0f;
+    float3 birthMin = mParticleConstants.worldMin * ( 1.0f - mParticleBirthPadding );
+    float3 birthMax = mParticleConstants.worldMax * ( 1.0f - mParticleBirthPadding );
+    float speed = ( mParticleConstants.speedMinMax.y - mParticleConstants.speedMinMax.x ) / 2.0f;
 
     std::uniform_real_distribution<float> posDistrX( birthMin.x, birthMax.x );
     std::uniform_real_distribution<float> posDistrY( birthMin.y, birthMax.y );
@@ -476,7 +479,7 @@ void ComputeParticles::initParticleBuffers()
 
     BuffDesc.ElementByteStride = sizeof(int);
     BuffDesc.Mode              = BUFFER_MODE_FORMATTED;
-    BuffDesc.Size              = Uint64{BuffDesc.ElementByteStride} * static_cast<Uint64>( mNumParticles );
+    BuffDesc.Size              = Uint64{BuffDesc.ElementByteStride} * static_cast<Uint64>( mParticleConstants.numParticles );
     BuffDesc.BindFlags         = BIND_UNORDERED_ACCESS | BIND_SHADER_RESOURCE;
     m_pDevice->CreateBuffer( BuffDesc, nullptr, &mParticleListHeadsBuffer );
     m_pDevice->CreateBuffer( BuffDesc, nullptr, &mParticleListsBuffer );
@@ -507,23 +510,22 @@ void ComputeParticles::initParticleBuffers()
         bufferDescStaging.BindFlags      = BIND_NONE;
         bufferDescStaging.Mode           = BUFFER_MODE_UNDEFINED;
         bufferDescStaging.CPUAccessFlags = CPU_ACCESS_READ;
-        bufferDescStaging.Size           = sizeof(ParticleAttribs) * mNumParticles;
+        bufferDescStaging.Size           = sizeof(ParticleAttribs) * mParticleConstants.numParticles;
         m_pDevice->CreateBuffer( bufferDescStaging, nullptr, &mParticleAttribsStaging );
         VERIFY_EXPR( mParticleAttribsStaging != nullptr );
 
         bufferDescStaging.Name           = "ParticleLists staging buffer";
-        bufferDescStaging.Size           = sizeof(int) * mNumParticles;
+        bufferDescStaging.Size           = sizeof(int) * mParticleConstants.numParticles;
         m_pDevice->CreateBuffer( bufferDescStaging, nullptr, &mParticleListsStaging );
         VERIFY_EXPR( mParticleListsStaging != nullptr );
 
         bufferDescStaging.Name           = "ParticleListsHead staging buffer";
-        bufferDescStaging.Size           = sizeof(int) * mNumParticles;
+        bufferDescStaging.Size           = sizeof(int) * mParticleConstants.numParticles;
         m_pDevice->CreateBuffer( bufferDescStaging, nullptr, &mParticleListsHeadStaging );
         VERIFY_EXPR( mParticleListsStaging != nullptr );
 
         FenceDesc fenceDesc;
         fenceDesc.Name = "ParticleAttribs available";
-        fenceDesc.Type = FENCE_TYPE_GENERAL; // TODO: is this necessary? MeshShaders tutorial did not use it
         m_pDevice->CreateFence( fenceDesc, &mFenceParticleAttribsAvailable );
     }
 #endif
@@ -567,21 +569,21 @@ void ComputeParticles::initConsantBuffers()
     {
         BufferDesc BuffDesc;
         BuffDesc.Name           = "ParticleConstants buffer";
-        BuffDesc.Usage          = USAGE_DYNAMIC;
         BuffDesc.BindFlags      = BIND_UNIFORM_BUFFER;
-        BuffDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
+        BuffDesc.Usage          = USAGE_DEFAULT;
+        //BuffDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
         BuffDesc.Size           = sizeof(ParticleConstants);
-        m_pDevice->CreateBuffer( BuffDesc, nullptr, &mParticleConstants );
+        m_pDevice->CreateBuffer( BuffDesc, nullptr, &mParticleConstantsBuffer );
     }
 
     // PostProcessConstants
     {
         BufferDesc BuffDesc;
+        BuffDesc.Name                 = "PostProcessConstants buffer";
         BuffDesc.BindFlags            = BIND_UNIFORM_BUFFER;
         BuffDesc.Usage                = USAGE_DEFAULT;
         BuffDesc.Size                 = sizeof(PostProcessConstants);
         BuffDesc.ImmediateContextMask = (Uint64{1} << m_pImmediateContext->GetDesc().ContextId);
-        BuffDesc.Name                 = "PostProcessConstants buffer";
         m_pDevice->CreateBuffer( BuffDesc, nullptr, &mPostProcessConstantsBuffer );
     }
 }
@@ -610,6 +612,7 @@ void ComputeParticles::watchShadersDir()
                         // make a list of files we actually want to update if changed and check that here
                         const static std::vector<PathType> checkFilenames = {
                             "interact_particles.csh",
+                            "sdfScene.fxh",
                             "move_particles.csh",
                             "reset_particles.csh",
                             "particle_sprite.vsh",
@@ -882,27 +885,12 @@ void ComputeParticles::Render()
     m_pImmediateContext->ClearRenderTarget( rtv, ClearColor, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
     m_pImmediateContext->ClearDepthStencil( dsv, CLEAR_DEPTH_FLAG, 1.0f, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
 
+    // Update mParticleConstantsBuffer
+    mParticleConstants.viewProj = mViewProjMatrix.Transpose();
+    mParticleConstants.deltaTime     = std::min( mTimeDelta, 1.f / 60.f) * mSimulationSpeed;
+    mParticleConstants.time = mTime;
+    m_pImmediateContext->UpdateBuffer( mParticleConstantsBuffer, 0, sizeof( mParticleConstants ), &mParticleConstants, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
 
-    // update ParticleConstants cbuffer
-    // appears we always need to update this buffer or an assert failure happens (stale buffer)
-    {
-        MapHelper<ParticleConstants> cb( m_pImmediateContext, mParticleConstants, MAP_WRITE, MAP_FLAG_DISCARD );
-        cb->viewProj = mViewProjMatrix.Transpose();
-        cb->numParticles = static_cast<Uint32>( mNumParticles );
-        cb->deltaTime     = std::min( mTimeDelta, 1.f / 60.f) * mSimulationSpeed;
-        cb->time = mTime;
-        cb->scale = mParticleScale;
-        cb->gridSize = mGridSize;
-        cb->speedMinMax = mSpeedMinMax;
-        cb->worldMin = mWorldMin;
-        cb->worldMax = mWorldMax;
-        cb->separation = mSeparation;
-        cb->alignment = mAlignment;
-        cb->cohesion = mCohesion;
-        cb->separationDist = mSeparationDist;
-        cb->alignmentDist = mAlignmentDist;
-        cb->cohesionDist = mCohesionDist;
-    }
 
     updateParticles();
     drawParticles();
@@ -915,19 +903,11 @@ void ComputeParticles::Render()
     drawBackgroundCanvas();
 
     if( mPostProcessConstants.glowEnabled ) {
-        DownSample();
+        downSample();
     }
 
     // Final pass
-    // TODO: cleanup
     ITextureView *mainRenderTarget = m_pSwapChain->GetCurrentBackBufferRTV();
-    if( ! mFXAAEnabled ) {
-        m_pImmediateContext->SetRenderTargets( 1, &mainRenderTarget, nullptr, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
-
-        PostProcess();
-    }
-
-
     if( mFXAAEnabled ) {
         // TODO: render to a new target and then pass its TextureView into FXAA apply
         // - code below needs to be called from FXAA->preDraw() or something
@@ -939,13 +919,17 @@ void ComputeParticles::Render()
         m_pImmediateContext->ClearRenderTarget( mPostProcessRTV, clearColor, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
         //m_pImmediateContext->ClearDepthStencil(m_pDepthDSV, CLEAR_DEPTH_FLAG, 1.0f, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 
-        PostProcess();
+        postProcess();
 
         // bind the main render target and render AA into main target
         m_pImmediateContext->SetRenderTargets( 1, &mainRenderTarget, nullptr, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
 
         JU_PROFILE( "FXAA", m_pImmediateContext, mProfiler.get() );
         mFXAA->apply( m_pImmediateContext, m_GBuffer.Color->GetDefaultView( TEXTURE_VIEW_SHADER_RESOURCE ) );
+    }
+    else {
+        m_pImmediateContext->SetRenderTargets( 1, &mainRenderTarget, nullptr, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+        postProcess();
     }
 }
 
@@ -957,7 +941,7 @@ void ComputeParticles::updateParticles()
 
     if( mUpdateParticles ) {
         DispatchComputeAttribs dispatchAttribs;
-        dispatchAttribs.ThreadGroupCountX = ( mNumParticles + mThreadGroupSize - 1) / mThreadGroupSize;
+        dispatchAttribs.ThreadGroupCountX = ( mParticleConstants.numParticles + mThreadGroupSize - 1) / mThreadGroupSize;
 
         {
             JU_PROFILE( "reset particles", m_pImmediateContext, mProfiler.get() );
@@ -984,11 +968,11 @@ void ComputeParticles::updateParticles()
 #if DEBUG_PARTICLE_BUFFERS
     if( mDebugCopyParticles ) {
         m_pImmediateContext->CopyBuffer( mParticleAttribsBuffer, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION,
-            mParticleAttribsStaging, 0, mNumParticles * sizeof(ParticleAttribs), RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+            mParticleAttribsStaging, 0, mParticleConstants.numParticles * sizeof(ParticleAttribs), RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
         m_pImmediateContext->CopyBuffer( mParticleListsBuffer, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION,
-            mParticleListsStaging, 0, mNumParticles * sizeof(int), RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+            mParticleListsStaging, 0, mParticleConstants.numParticles * sizeof(int), RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
         m_pImmediateContext->CopyBuffer( mParticleListHeadsBuffer, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION,
-            mParticleListsHeadStaging, 0, mNumParticles * sizeof(int), RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+            mParticleListsHeadStaging, 0, mParticleConstants.numParticles * sizeof(int), RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
 
         // We should use synchronizations to safely access the mapped memory.
         // TODO: fix and re-enable this, but not crucial when looking at debug data
@@ -999,31 +983,31 @@ void ComputeParticles::updateParticles()
         //m_pImmediateContext->DeviceWaitForFence( mFenceParticleAttribsAvailable, mFenceParticleAttribsValue );
 
         // TODO: copy with std::copy or memcopy
-        DebugParticleAttribsData.resize( mNumParticles );
+        DebugParticleAttribsData.resize( mParticleConstants.numParticles );
         {
             MapHelper<ParticleAttribs> stagingData( m_pImmediateContext, mParticleAttribsStaging, MAP_READ, MAP_FLAG_DO_NOT_WAIT );
             if( stagingData ) {
-                for( size_t i = 0; i < mNumParticles; i++ ) {
+                for( size_t i = 0; i < mParticleConstants.numParticles; i++ ) {
                     const ParticleAttribs &p = stagingData[i];
                     DebugParticleAttribsData.at( i ) = p; 
                 }
             }
         }
-        DebugParticleListsData.resize( mNumParticles );
+        DebugParticleListsData.resize( mParticleConstants.numParticles );
         {
             MapHelper<int> stagingData( m_pImmediateContext, mParticleListsStaging, MAP_READ, MAP_FLAG_DO_NOT_WAIT );
             if( stagingData ) {
-                for( size_t i = 0; i < mNumParticles; i++ ) {
+                for( size_t i = 0; i < mParticleConstants.numParticles; i++ ) {
                     const int &p = stagingData[i];
                     DebugParticleListsData.at( i ) = p; 
                 }
             }
         }
-        DebugParticleListsHeadData.resize( mNumParticles );
+        DebugParticleListsHeadData.resize( mParticleConstants.numParticles );
         {
             MapHelper<int> stagingData( m_pImmediateContext, mParticleListsHeadStaging, MAP_READ, MAP_FLAG_DO_NOT_WAIT );
             if( stagingData ) {
-                for( size_t i = 0; i < mNumParticles; i++ ) {
+                for( size_t i = 0; i < mParticleConstants.numParticles; i++ ) {
                     const int &p = stagingData[i];
                     DebugParticleListsHeadData.at( i ) = p; 
                 }
@@ -1049,11 +1033,11 @@ void ComputeParticles::drawParticles()
     if( mParticleType == ParticleType::Sprite ) {
         DrawAttribs drawAttrs;
         drawAttrs.NumVertices  = 4;
-        drawAttrs.NumInstances = static_cast<Uint32>( mNumParticles );
+        drawAttrs.NumInstances = static_cast<Uint32>( mParticleConstants.numParticles );
         m_pImmediateContext->Draw(drawAttrs);
     }
     else {
-        mParticleSolid->draw( m_pImmediateContext, mViewProjMatrix, mNumParticles );
+        mParticleSolid->draw( m_pImmediateContext, mViewProjMatrix, mParticleConstants.numParticles );
     }
 }
 
@@ -1075,8 +1059,8 @@ void ComputeParticles::drawBackgroundCanvas()
 
     auto swapChainDesc = m_pSwapChain->GetDesc();
     cb->resolution = float2( swapChainDesc.Width, swapChainDesc.Height );
-    cb->worldMin = mWorldMin;
-    cb->worldMax = mWorldMax;
+    cb->worldMin = mParticleConstants.worldMin;
+    cb->worldMax = mParticleConstants.worldMax;
 
     JU_PROFILE( "BackgroundCanvas", m_pImmediateContext, mProfiler.get() );
 
@@ -1161,7 +1145,8 @@ void ComputeParticles::initPostProcessPSO()
     m_pDevice->CreateGraphicsPipelineState( PSOCreateInfo, &mDownSamplePSO );
 }
 
-void ComputeParticles::DownSample()
+// note: this doesn't work on D3D11 (checks in Diligent::VerifyStateTransitionDesc() fail)
+void ComputeParticles::downSample()
 {
     JU_PROFILE( "downsample", m_pImmediateContext, mProfiler.get() );
 
@@ -1188,7 +1173,7 @@ void ComputeParticles::DownSample()
 	m_pImmediateContext->TransitionResourceStates( 1, &Barrier );
 }
 
-void ComputeParticles::PostProcess()
+void ComputeParticles::postProcess()
 {
     JU_PROFILE( "post process", m_pImmediateContext, mProfiler.get() );
 
@@ -1220,26 +1205,31 @@ void ComputeParticles::updateUI()
 
     im::SetNextWindowPos( ImVec2( 10, 10 ), ImGuiCond_FirstUseEver );
     if( im::Begin( "Settings", nullptr ) ) {
+        im::Text( "time: %0.03f, fps: %0.03f", mTime, m_fSmoothFPS );
         im::Checkbox( "ui", &mUIEnabled );
         im::Checkbox( "profiling ui", &mProfilingUIEnabled );
         if( im::CollapsingHeader( "Particles", ImGuiTreeNodeFlags_DefaultOpen ) ) {
             im::Checkbox( "update", &mUpdateParticles );
+            if( im::Shortcut( ImGuiKey_U, 0, ImGuiInputFlags_RouteGlobal ) ) {
+                LOG_INFO_MESSAGE( "(U Shortcut) toggling update particles" );
+                mUpdateParticles = ! mUpdateParticles;
+            }
             im::SameLine();
             im::Checkbox( "draw", &mDrawParticles );
 
-            if( im::InputInt( "count", &mNumParticles, 100, 1000, ImGuiInputTextFlags_EnterReturnsTrue ) ) {
-                mNumParticles = std::min( std::max( mNumParticles, 10 ), 10000000 ); // max: 10million
+            if( im::InputInt( "count", &mParticleConstants.numParticles, 100, 1000, ImGuiInputTextFlags_EnterReturnsTrue ) ) {
+                mParticleConstants.numParticles = std::min( std::max( mParticleConstants.numParticles, 10 ), 10000000 ); // max: 10million
                 initParticleBuffers();
                 initSolids(); // TODO: see comment for 'init particle buffers' button
             }
             im::SliderFloat( "speed", &mSimulationSpeed, 0.1f, 5.f );
-            im::DragFloat( "scale", &mParticleScale, 0.01f, 0.001f, 100.0f );
+            im::DragFloat( "scale", &mParticleConstants.scale, 0.01f, 0.001f, 100.0f );
             im::DragFloat( "scale variation", &mParticleScaleVariation, 0.002f, 0.0f, 100.0f );            
             im::DragFloat( "birth padding %", &mParticleBirthPadding, 0.001f, 0.0f, 1.0f );
-            im::DragFloat3( "world min", &mWorldMin.x, 0.01f, -1000, 1000.0f );
-            im::DragFloat3( "world max", &mWorldMax.x, 0.01f, -1000, 1000.0f );
+            im::DragFloat3( "world min", &mParticleConstants.worldMin.x, 0.01f, -1000, 1000.0f );
+            im::DragFloat3( "world max", &mParticleConstants.worldMax.x, 0.01f, -1000, 1000.0f );
 
-            im::Text( "grid size: [%d, %0d, %d]", mGridSize.x, mGridSize.y, mGridSize.y );
+            im::Text( "grid size: [%d, %0d, %d]", mParticleConstants.gridSize.x, mParticleConstants.gridSize.y, mParticleConstants.gridSize.y );
 
             static std::vector<const char*> types = { "sprite", "cube", "pyramid" };
             int t = (int)mParticleType;
@@ -1250,10 +1240,11 @@ void ComputeParticles::updateUI()
                 initSolids();
                 initRenderParticlePSO();
             }
-            if( im::Button( "init particle buffers" ) ) {
+            if( im::Button( "init particle buffers" ) || im::Shortcut( ImGuiKey_I, 0, ImGuiInputFlags_RouteGlobal ) ) {
                 initParticleBuffers();
                 initSolids(); // TODO: this is needed to update the ParticleAttribs var, try just setting that on mParticleSolid
             }
+
 #if DEBUG_PARTICLE_BUFFERS
             im::Checkbox( "debug copy particles", &mDebugCopyParticles );
             if( mDebugCopyParticles ) {
@@ -1265,15 +1256,18 @@ void ComputeParticles::updateUI()
 #endif
             im::Separator();
             im::Text( "Flocking" );            
-            ImGui::DragFloatRange2("speed", &mSpeedMinMax.x, &mSpeedMinMax.y, 0.02f, 0.0f, 100.0f, "min: %6.3f", "max: %6.3f", ImGuiSliderFlags_AlwaysClamp);
-            im::DragFloat( "separation", &mSeparation, 0.001f, 0.0002f, 2.0f );
-            im::DragFloat( "alignment", &mAlignment, 0.001f, 0.0002f, 2.0f );
-            im::DragFloat( "cohesion", &mCohesion, 0.001f, 0.0002f, 2.0f );
+            ImGui::DragFloatRange2("speed", &mParticleConstants.speedMinMax.x, &mParticleConstants.speedMinMax.y, 0.02f, 0.0f, 100.0f, "min: %6.3f", "max: %6.3f", ImGuiSliderFlags_AlwaysClamp);
+            im::DragFloat( "separation", &mParticleConstants.separation, 0.001f, 0.0002f, 2.0f );
+            im::DragFloat( "alignment", &mParticleConstants.alignment, 0.001f, 0.0002f, 2.0f );
+            im::DragFloat( "cohesion", &mParticleConstants.cohesion, 0.001f, 0.0002f, 2.0f );
 
             // TODO: make sure dists for separation < align < cohesion
-            im::DragFloat( "separation dist", &mSeparationDist, 0.001f, 0.0f, 100.0f );
-            im::DragFloat( "alignment dist", &mAlignmentDist, 0.001f, 0.0f, 100.0f );
-            im::DragFloat( "cohesion dist", &mCohesionDist, 0.001f, 0.0f, 100.0f );
+            im::DragFloat( "separation dist", &mParticleConstants.separationDist, 0.001f, 0.0f, 100.0f );
+            im::DragFloat( "alignment dist", &mParticleConstants.alignmentDist, 0.001f, 0.0f, 100.0f );
+            im::DragFloat( "cohesion dist", &mParticleConstants.cohesionDist, 0.001f, 0.0f, 100.0f );
+
+            im::DragFloat( "sdf avoid strength", &mParticleConstants.sdfAvoidStrength, 0.01f, 0.0f, 100000.0f );
+            im::DragFloat( "sdf avoid distance", &mParticleConstants.sdfAvoidDistance, 0.001f, 0.0f, 100.0f );
         }
 
         if( im::CollapsingHeader( "Camera", ImGuiTreeNodeFlags_DefaultOpen ) ) {
@@ -1395,7 +1389,7 @@ void ComputeParticles::updateDebugParticleDataUI()
     im::SetNextWindowSize( { 800, 700 }, ImGuiCond_FirstUseEver );
 
     if( DebugShowParticleAttribsWindow && im::Begin( "ParticleAttribs", &DebugShowParticleAttribsWindow ) ) {
-        im::Text( "count: %d", mNumParticles );
+        im::Text( "count: %d", mParticleConstants.numParticles );
 
         if( ! DebugParticleAttribsData.empty() ) {
             static int maxRows = 1000;
@@ -1404,19 +1398,25 @@ void ComputeParticles::updateDebugParticleDataUI()
             flags |= ImGuiTableFlags_ScrollY;
             flags |= ImGuiTableFlags_SizingFixedFit;
 
-            if( im::BeginTable( "table_ParticleAttribs", 6, flags ) ) {
+            if( im::BeginTable( "table_ParticleAttribs", 12, flags ) ) {
                 ImGuiTableColumnFlags columnFlags = ImGuiTableColumnFlags_WidthFixed; 
                 im::TableSetupScrollFreeze( 0, 1 ); // Make top row always visible
                 im::TableSetupColumn( "index", columnFlags, 34 );
                 im::TableSetupColumn( "pos", columnFlags, 180 );
                 im::TableSetupColumn( "vel", columnFlags, 180 );
                 im::TableSetupColumn( "accel", columnFlags, 180 );
-                im::TableSetupColumn( "interactions", columnFlags, 50 );
-                im::TableSetupColumn( "temp", ImGuiTableColumnFlags_None );
+                im::TableSetupColumn( "interactions", columnFlags, 35 );
+                im::TableSetupColumn( "temp", columnFlags, 50 );
+                im::TableSetupColumn( "sdf dist", columnFlags, 50 );
+                im::TableSetupColumn( "sdf object", columnFlags, 30 );
+                im::TableSetupColumn( "sdf N", columnFlags, 180 );
+                im::TableSetupColumn( "repel strength", columnFlags, 50 );
+                im::TableSetupColumn( "iterations", columnFlags, 40 );
+                im::TableSetupColumn( "ray length", columnFlags, 40 );
                 im::TableHeadersRow();
 
                 ImGuiListClipper clipper;
-                clipper.Begin( std::min( maxRows, mNumParticles ) );
+                clipper.Begin( std::min( maxRows, mParticleConstants.numParticles ) );
                 while( clipper.Step() ) {
                     for( int row = clipper.DisplayStart; row<clipper.DisplayEnd; row++ ) {
                         im::TableNextRow();
@@ -1434,6 +1434,18 @@ void ComputeParticles::updateDebugParticleDataUI()
                         im::Text( " %d", p.numInteractions );
                         im::TableSetColumnIndex( column++ );
                         im::Text( "%0.03f", p.temperature );
+                        im::TableSetColumnIndex( column++ );
+                        im::Text( "%0.03f", p.distToSDF );
+                        im::TableSetColumnIndex( column++ );
+                        im::Text( "%d", p.nearestSDFObject );
+                        im::TableSetColumnIndex( column++ );
+                        im::Text( "[%6.3f, %6.3f, %6.3f]", p.sdfClosestNormal.x, p.sdfClosestNormal.y, p.sdfClosestNormal.z );
+                        im::TableSetColumnIndex( column++ );
+                        im::Text( "%0.03f", p.sdfRepelStrength );
+                        im::TableSetColumnIndex( column++ );
+                        im::Text( "%d", p.sdfIterations );
+                        im::TableSetColumnIndex( column++ );
+                        im::Text( "%0.03f", p.sdfRayLength );
                     }
                 }
                 im::EndTable();
@@ -1465,7 +1477,7 @@ void ComputeParticles::updateDebugParticleDataUI()
                 im::TableHeadersRow();
 
                 ImGuiListClipper clipper;
-                clipper.Begin( std::min( maxRows, mNumParticles ) );
+                clipper.Begin( std::min( maxRows, mParticleConstants.numParticles ) );
                 while( clipper.Step() ) {
                     for( int row = clipper.DisplayStart; row<clipper.DisplayEnd; row++ ) {
                         im::TableNextRow();
