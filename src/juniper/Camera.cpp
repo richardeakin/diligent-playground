@@ -16,7 +16,7 @@ void Camera::lookAt( const vec3 &eyeOrigin, const vec3 &eyeTarget, const vec3 &w
 {
 	mEyeOrigin = eyeOrigin;
 	mEyeTarget = eyeTarget;
-	mWorldUp = worldUp;
+	mWorldUp = worldUp; // TODO: remove this and use up extracted from view matrix
 
 	mViewMatrix = glm::lookAt( mEyeOrigin, mEyeTarget, mWorldUp );
 
@@ -41,26 +41,19 @@ void Camera::setFov( float verticalFov )
 	mProjectionMatrix = glm::perspective( mFov, mAspectRatio, mNearClip, mFarClip );
 }
 
-//void Camera::setViewDirection( const vec3 &viewDirection )
-//{
-//	mViewDirection = normalize( viewDirection );
-//	mOrientation = glm::rotation( mViewDirection, glm::vec3( 0, 0, -1 ) );
-//	dirtyViewCaches();
-//}
-
 void Camera::setOrientation( const quat &orientation )
 {
 	mOrientation = normalize( orientation );
 	vec3 right   = rotate( mOrientation, vec3( 1, 0, 0 ) );
 	vec3 up		 = rotate( mOrientation, vec3( 0, 1, 0 ) );
 	vec3 forward = rotate( mOrientation, vec3( 0, 0, 1 ) );
+	vec3 d		 = { - dot( mEyeOrigin, right ), - dot( mEyeOrigin, up ), - dot( mEyeOrigin, forward ) };
 
-	// TODO: how to set rows?
-	// - just going to try both ways and see what works, hopefully
+	// TODO: check this order
 	mViewMatrix = {
-		right.x,   right.y,   right.z,   0.,
-		up.x,	   up.y,	  up.z,      0,
-		forward.x, forward.y, forward.z, 0,
+		right.x,   right.y,   right.z,   d.x,
+		up.x,	   up.y,	  up.z,      d.y,
+		forward.x, forward.y, forward.z, d.z,
 		0,		   0,         0,         1
 	};
 }
@@ -251,6 +244,10 @@ void FlyCam::update()
 
 	if( glm::length( mMoveVelocity ) > 0.01 ) {
 		CI_LOG_I( "mMoveDirection: " << mMoveDirection << ", mMoveAccel: " << mMoveAccel << ", mMoveVelocity: " << mMoveVelocity );
+	}
+
+	if( glm::length( mLookDelta ) > 0.01 ) {
+		CI_LOG_I( "mLookDelta: " << mLookDelta );
 	}
 
 	vec3 eye = getEyeOrigin();
