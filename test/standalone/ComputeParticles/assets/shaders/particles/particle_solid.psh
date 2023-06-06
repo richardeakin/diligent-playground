@@ -31,8 +31,10 @@ void main( in  PSInput  PSIn, out PSOutput PSOut )
     col *= lighting;
     
     float emmissive = pow( PSIn.UV.y, 2 );
-    emmissive *= sin( PConstants.time * 4.0 + float(PSIn.InstID) * 10231.12 ) * 0.5 + 0.5;
-    
+    emmissive = smoothstep( 0.7, 0.72, PSIn.UV.y );
+    emmissive *= sin(PConstants.time * 4.0 + float(PSIn.InstID) * 3.12) * 0.5 + 0.5;
+    //emmissive *= sin( PConstants.time * 4.0 ) * 0.5 + 0.5;
+
     col = lerp(col, float3( emmissive, emmissive * 0.3f, emmissive * 0.01f ), emmissive);
     
     if( PSIn.InstID == 0 ) {

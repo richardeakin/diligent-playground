@@ -1205,6 +1205,7 @@ void ComputeParticles::updateUI()
 
     im::SetNextWindowPos( ImVec2( 10, 10 ), ImGuiCond_FirstUseEver );
     if( im::Begin( "Settings", nullptr ) ) {
+        im::Text( "time: %0.03f, fps: %0.03f", mTime, m_fSmoothFPS );
         im::Checkbox( "ui", &mUIEnabled );
         im::Checkbox( "profiling ui", &mProfilingUIEnabled );
         if( im::CollapsingHeader( "Particles", ImGuiTreeNodeFlags_DefaultOpen ) ) {
