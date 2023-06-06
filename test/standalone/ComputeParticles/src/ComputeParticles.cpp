@@ -160,7 +160,8 @@ ComputeParticles::ComputeParticles()
     mParticleConstants.alignmentDist = 1.692f;
     mParticleConstants.cohesionDist = 1.956f;
 
-    // TODO: init new sdf vars here
+    mParticleConstants.sdfAvoidStrength =  100.0;
+    mParticleConstants.sdfAvoidDistance = 5.0f;
 }
 
 void ComputeParticles::ModifyEngineInitInfo( const ModifyEngineInitInfoAttribs& Attribs )
@@ -884,29 +885,7 @@ void ComputeParticles::Render()
     m_pImmediateContext->ClearRenderTarget( rtv, ClearColor, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
     m_pImmediateContext->ClearDepthStencil( dsv, CLEAR_DEPTH_FLAG, 1.0f, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
 
-
-    // update ParticleConstants cbuffer
-    // appears we always need to update this buffer or an assert failure happens (stale buffer)
-    //{
-    //    MapHelper<ParticleConstants> cb( m_pImmediateContext, mParticleConstantsBuffer, MAP_WRITE, MAP_FLAG_DISCARD );
-    //    cb->viewProj = mViewProjMatrix.Transpose();
-    //    //cb->numParticles = mNumParticles;
-    //    cb->deltaTime     = std::min( mTimeDelta, 1.f / 60.f) * mSimulationSpeed;
-    //    cb->time = mTime;
-    //    //cb->scale = mParticleScale;
-    //    //cb->gridSize = mGridSize;
-    //    //cb->speedMinMax = mSpeedMinMax;
-    //    //cb->worldMin = mWorldMin;
-    //    //cb->worldMax = mWorldMax;
-    //    //cb->separation = mSeparation;
-    //    //cb->alignment = mAlignment;
-    //    //cb->cohesion = mCohesion;
-    //    //cb->separationDist = mSeparationDist;
-    //    //cb->alignmentDist = mAlignmentDist;
-    //    //cb->cohesionDist = mCohesionDist;
-    //}
-
-
+    // Update mParticleConstantsBuffer
     mParticleConstants.viewProj = mViewProjMatrix.Transpose();
     mParticleConstants.deltaTime     = std::min( mTimeDelta, 1.f / 60.f) * mSimulationSpeed;
     mParticleConstants.time = mTime;
@@ -1285,6 +1264,9 @@ void ComputeParticles::updateUI()
             im::DragFloat( "separation dist", &mParticleConstants.separationDist, 0.001f, 0.0f, 100.0f );
             im::DragFloat( "alignment dist", &mParticleConstants.alignmentDist, 0.001f, 0.0f, 100.0f );
             im::DragFloat( "cohesion dist", &mParticleConstants.cohesionDist, 0.001f, 0.0f, 100.0f );
+
+            im::DragFloat( "sdf avoid strength", &mParticleConstants.sdfAvoidStrength, 0.01f, 0.0f, 100000.0f );
+            im::DragFloat( "sdf avoid distance", &mParticleConstants.sdfAvoidDistance, 0.001f, 0.0f, 100.0f );
         }
 
         if( im::CollapsingHeader( "Camera", ImGuiTreeNodeFlags_DefaultOpen ) ) {

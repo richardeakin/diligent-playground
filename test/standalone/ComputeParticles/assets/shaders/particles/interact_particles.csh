@@ -66,7 +66,7 @@ void interactScene( inout ParticleAttribs p )
     p.sdfRayLength = intersect.rayLength;
     //p.distToSDF = sdf_scene( p.pos, object, Constants.worldMin, Constants.worldMax );
     
-    const float distToTurn = 5.0;
+    const float distToTurn = Constants.sdfAvoidDistance;
     /*if( p.distToSDF < 0.0 ) {
         p.nearestSDFObject = -10;
         p.sdfClosestNormal = float3( 0, -0.5f, 0 );
@@ -78,7 +78,7 @@ void interactScene( inout ParticleAttribs p )
         //float3 N = sdf_calcNormal( object, Constants.worldMin, Constants.worldMax );
         float3 N = object.normal;
         float strength = distToTurn - abs( p.distToSDF );
-        strength *= 100.0;
+        strength *= Constants.sdfAvoidStrength;
         p.accel += N * strength;
         p.sdfClosestNormal = N;
         p.sdfRepelStrength = strength;
