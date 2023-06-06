@@ -77,7 +77,7 @@ void interactScene( inout ParticleAttribs p )
         p.nearestSDFObject = object.id;
         //float3 N = sdf_calcNormal( object, Constants.worldMin, Constants.worldMax );
         float3 N = object.normal;
-        float strength = distToTurn - p.distToSDF;
+        float strength = distToTurn - abs( p.distToSDF );
         strength *= 100.0;
         p.accel += N * strength;
         p.sdfClosestNormal = N;
