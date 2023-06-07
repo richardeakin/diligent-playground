@@ -202,7 +202,7 @@ float sdf_scene( in float3 p, inout ObjectInfo object, float3 worldMin, float3 w
     float bbox = -sdBox( p - boundsCenter, boundsSize );
 #else
     float bbox = sdBoxFrame(p - boundsCenter, boundsSize, 0.03);
-    bbox = 100; // disable
+    //bbox = 100; // hide the box visual
 #endif
     // bbox = sdBox( p - boundsCenter, boundsSize );
     if( bbox < result ) {

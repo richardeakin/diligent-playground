@@ -37,7 +37,7 @@ int4 GetGridLocation( float3 pos, int3 gridSize )
     loc.y = clamp(int((pos.y + 1.0) * 0.5 * float(gridSize.y)), 0, gridSize.y - 1);
     loc.z = clamp(int((pos.z + 1.0) * 0.5 * float(gridSize.z)), 0, gridSize.z - 1);
 
-    loc.w = Grid3DTo1D( loc.xyz, gridSize );
+    loc.w = Grid3DTo1D( loc.xyz, Grid3DTo1D( loc, gridSize ) );
     return loc;
 }
 

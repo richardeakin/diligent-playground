@@ -32,9 +32,8 @@ void main( uint3 Gid  : SV_GroupID,
     //vel = particle.newVel;
 
     particle.vel = vel;
-    particle.pos   = particle.newPos + vel * Constants.deltaTime;
+    particle.pos = particle.newPos + vel * Constants.deltaTime;
     particle.temperature = particle.numInteractions / 10.0;
-
 
     //ClampParticlePosition( particle.pos, particle.vel, particle.size * Constants.scale, Constants.worldMin, Constants.worldMax );
     Particles[particleId] = particle;

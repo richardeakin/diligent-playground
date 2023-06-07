@@ -146,7 +146,7 @@ QuaternionF GetRotationQuat( const float3 &a, const float3 &b, const float3 &up 
 
 ComputeParticles::ComputeParticles()
 {
-    mParticleConstants.numParticles = 1000;
+    mParticleConstants.numParticles = 32;
     mParticleConstants.scale = 0.22f;
     mParticleConstants.gridSize = { 10, 10, 10 };
     mParticleConstants.worldMin = { -10, 0.1f, -10 };
@@ -448,7 +448,6 @@ void ComputeParticles::initParticleBuffers()
     std::vector<ParticleAttribs> ParticleData( mParticleConstants.numParticles );
 
     // Standard mersenne_twister_engine. Use default seed to generate consistent distribution.
-    // TODO: try with float3 template argument (once working
     std::mt19937 gen;
     float3 birthMin = mParticleConstants.worldMin * ( 1.0f - mParticleBirthPadding );
     float3 birthMax = mParticleConstants.worldMax * ( 1.0f - mParticleBirthPadding );
@@ -477,11 +476,15 @@ void ComputeParticles::initParticleBuffers()
     IBufferView* particleAttribsBufferSRV = mParticleAttribsBuffer->GetDefaultView( BUFFER_VIEW_SHADER_RESOURCE );
     IBufferView* particleAttribsBufferUAV = mParticleAttribsBuffer->GetDefaultView( BUFFER_VIEW_UNORDERED_ACCESS );
 
+    int numBins = mParticleConstants.gridSize.x * mParticleConstants.gridSize.y * mParticleConstants.gridSize.z;
+
     BuffDesc.ElementByteStride = sizeof(int);
     BuffDesc.Mode              = BUFFER_MODE_FORMATTED;
-    BuffDesc.Size              = Uint64{BuffDesc.ElementByteStride} * static_cast<Uint64>( mParticleConstants.numParticles );
+    BuffDesc.Size              = Uint64(sizeof(int)) * Uint64(numBins);
     BuffDesc.BindFlags         = BIND_UNORDERED_ACCESS | BIND_SHADER_RESOURCE;
     m_pDevice->CreateBuffer( BuffDesc, nullptr, &mParticleListHeadsBuffer );
+
+    BuffDesc.Size              = Uint64(sizeof(int)) * Uint64(mParticleConstants.numParticles);
     m_pDevice->CreateBuffer( BuffDesc, nullptr, &mParticleListsBuffer );
     RefCntAutoPtr<IBufferView> particleListHeadsBufferUAV;
     RefCntAutoPtr<IBufferView> particleListsBufferUAV;
