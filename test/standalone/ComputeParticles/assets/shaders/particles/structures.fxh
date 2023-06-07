@@ -22,6 +22,8 @@ struct ParticleAttribs {
     
     float3 sdfClosestNormal;
     float  sdfRepelStrength;
+    
+    int4 bin; // TODO: remove after debugging
 };
 
 struct ParticleConstants {

@@ -35,10 +35,11 @@ void main( uint3 Gid  : SV_GroupID,
     particle.pos = particle.newPos + vel * Constants.deltaTime;
     particle.temperature = particle.numInteractions / 10.0;
 
+    particle.bin = GetGridLocation( particle.pos, Constants.gridSize );
+    int gridId = particle.bin.w;
+
     //ClampParticlePosition( particle.pos, particle.vel, particle.size * Constants.scale, Constants.worldMin, Constants.worldMax );
     Particles[particleId] = particle;
-
-    int gridId = GetGridLocation( particle.pos, Constants.gridSize ).w;
 
     // swap list head with this, move previous down the list one
     int originalListId;

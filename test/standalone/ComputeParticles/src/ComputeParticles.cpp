@@ -56,6 +56,8 @@ struct ParticleAttribs {
 
     float3 sdfClosestNormal = { 1, 2, 3 };
     float  sdfRepelStrength;
+
+    int4 bin; // TODO: remove after debugging
 };
 
 struct BackgroundPixelConstants {
@@ -100,7 +102,7 @@ float CameraRotationSpeed = 0.005f;
 float CameraMoveSpeed = 8.0f;
 float2 CameraSpeedUp = { 0.2f, 2.0f }; // speed multipliers when {shift, ctrl} is down
 
-dg::float3      LightDir  = normalize( float3( 1, -0.5f, -0.1f ) );
+dg::float3      LightDir  = normalize( float3( 0.88f, -0.38f, -0.29f ) );
 
 ju::FileWatchHandle     ShadersDirWatchHandle, ShadersDirWatchHandle2;
 bool                    ParticleShaderAssetsMarkedDirty = false;
@@ -1401,7 +1403,7 @@ void ComputeParticles::updateDebugParticleDataUI()
             flags |= ImGuiTableFlags_ScrollY;
             flags |= ImGuiTableFlags_SizingFixedFit;
 
-            if( im::BeginTable( "table_ParticleAttribs", 12, flags ) ) {
+            if( im::BeginTable( "table_ParticleAttribs", 7, flags ) ) {
                 ImGuiTableColumnFlags columnFlags = ImGuiTableColumnFlags_WidthFixed; 
                 im::TableSetupScrollFreeze( 0, 1 ); // Make top row always visible
                 im::TableSetupColumn( "index", columnFlags, 34 );
@@ -1410,12 +1412,13 @@ void ComputeParticles::updateDebugParticleDataUI()
                 im::TableSetupColumn( "accel", columnFlags, 180 );
                 im::TableSetupColumn( "interactions", columnFlags, 35 );
                 im::TableSetupColumn( "temp", columnFlags, 50 );
-                im::TableSetupColumn( "sdf dist", columnFlags, 50 );
-                im::TableSetupColumn( "sdf object", columnFlags, 30 );
-                im::TableSetupColumn( "sdf N", columnFlags, 180 );
-                im::TableSetupColumn( "repel strength", columnFlags, 50 );
-                im::TableSetupColumn( "iterations", columnFlags, 40 );
-                im::TableSetupColumn( "ray length", columnFlags, 40 );
+                im::TableSetupColumn( "bin", columnFlags, 120 );
+                //im::TableSetupColumn( "sdf dist", columnFlags, 50 );
+                //im::TableSetupColumn( "sdf object", columnFlags, 30 );
+                //im::TableSetupColumn( "sdf N", columnFlags, 180 );
+                //im::TableSetupColumn( "repel strength", columnFlags, 50 );
+                //im::TableSetupColumn( "iterations", columnFlags, 40 );
+                //im::TableSetupColumn( "ray length", columnFlags, 40 );
                 im::TableHeadersRow();
 
                 ImGuiListClipper clipper;
@@ -1438,17 +1441,19 @@ void ComputeParticles::updateDebugParticleDataUI()
                         im::TableSetColumnIndex( column++ );
                         im::Text( "%0.03f", p.temperature );
                         im::TableSetColumnIndex( column++ );
-                        im::Text( "%0.03f", p.distToSDF );
-                        im::TableSetColumnIndex( column++ );
-                        im::Text( "%d", p.nearestSDFObject );
-                        im::TableSetColumnIndex( column++ );
-                        im::Text( "[%6.3f, %6.3f, %6.3f]", p.sdfClosestNormal.x, p.sdfClosestNormal.y, p.sdfClosestNormal.z );
-                        im::TableSetColumnIndex( column++ );
-                        im::Text( "%0.03f", p.sdfRepelStrength );
-                        im::TableSetColumnIndex( column++ );
-                        im::Text( "%d", p.sdfIterations );
-                        im::TableSetColumnIndex( column++ );
-                        im::Text( "%0.03f", p.sdfRayLength );
+                        im::Text( "[%d, %d, %d, %d]", p.bin.x, p.bin.y, p.bin.z, p.bin.w );
+                        //im::TableSetColumnIndex( column++ );
+                        //im::Text( "%0.03f", p.distToSDF );
+                        //im::TableSetColumnIndex( column++ );
+                        //im::Text( "%d", p.nearestSDFObject );
+                        //im::TableSetColumnIndex( column++ );
+                        //im::Text( "[%6.3f, %6.3f, %6.3f]", p.sdfClosestNormal.x, p.sdfClosestNormal.y, p.sdfClosestNormal.z );
+                        //im::TableSetColumnIndex( column++ );
+                        //im::Text( "%0.03f", p.sdfRepelStrength );
+                        //im::TableSetColumnIndex( column++ );
+                        //im::Text( "%d", p.sdfIterations );
+                        //im::TableSetColumnIndex( column++ );
+                        //im::Text( "%0.03f", p.sdfRayLength );
                     }
                 }
                 im::EndTable();

@@ -28,6 +28,7 @@ int Grid3DTo1D( in int3 loc, in int3 gridSize )
     return loc.x + loc.y * gridSize.x + loc.z * gridSize.x * gridSize.y;
 }
 
+// TODO: cleanup
 #if 1
 // returns 3D grid position in .xyz, flattened position in .w
 int4 GetGridLocation( float3 pos, int3 gridSize )
@@ -37,7 +38,7 @@ int4 GetGridLocation( float3 pos, int3 gridSize )
     loc.y = clamp(int((pos.y + 1.0) * 0.5 * float(gridSize.y)), 0, gridSize.y - 1);
     loc.z = clamp(int((pos.z + 1.0) * 0.5 * float(gridSize.z)), 0, gridSize.z - 1);
 
-    loc.w = Grid3DTo1D( loc.xyz, Grid3DTo1D( loc, gridSize ) );
+    loc.w = Grid3DTo1D( loc.xyz, Grid3DTo1D( loc.xyz, gridSize ) );
     return loc;
 }
 
