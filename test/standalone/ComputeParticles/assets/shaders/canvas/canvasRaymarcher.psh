@@ -107,7 +107,7 @@ void main( in PSInput PSIn, out PSOutput PSOut )
             float3 ballCol = baseColor * light_diff;
             ballCol += skyColor * sky_diff * 0.5;
 
-            col = lerp( checkerCol, ballCol, object.materialPart );
+            col = lerp( checkerCol, ballCol, pow( object.materialPart, 0.3 ) );
             //col = checkerCol;
 
             //col = float3( object.materialPart, 0, 0 );
