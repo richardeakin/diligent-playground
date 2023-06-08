@@ -119,7 +119,7 @@ private:
     RefCntAutoPtr<dg::IBuffer>              mParticleAttribsStaging, mParticleListsStaging, mParticleListsHeadStaging;
     RefCntAutoPtr<dg::IFence>               mFenceParticleAttribsAvailable;
     dg::Uint64                                  mFenceParticleAttribsValue = 1; // Can't signal 0
-    bool    mDebugCopyParticles = false;
+    bool    mDebugCopyParticles = true;
 #endif
 
     bool        mUIEnabled = true;  

@@ -1388,6 +1388,28 @@ void ComputeParticles::updateUI()
 }
 
 #if DEBUG_PARTICLE_BUFFERS
+
+namespace {
+
+int grid3DTo1D( int3 loc, int3 gridSize )
+{
+    return loc.x + loc.y * gridSize.x + loc.z * gridSize.x * gridSize.y;
+}
+
+// returns 3D grid position in .xyz, flattened position in .w
+int4 gridLocation( float3 pos, int3 gridSize )
+{
+    int3 loc;
+    loc.x = clamp( int((pos.x + 1.0) * 0.5f * float(gridSize.x)), 0, gridSize.x - 1 );
+    loc.y = clamp( int((pos.y + 1.0) * 0.5f * float(gridSize.y)), 0, gridSize.y - 1 );
+    loc.z = clamp( int((pos.z + 1.0) * 0.5f * float(gridSize.z)), 0, gridSize.z - 1 );
+
+    int flatLoc = grid3DTo1D( loc, gridSize );
+    return int4( loc, flatLoc );
+}
+
+}
+
 void ComputeParticles::updateDebugParticleDataUI()
 {
     im::SetNextWindowPos( { 400, 20 }, ImGuiCond_FirstUseEver );
@@ -1413,6 +1435,8 @@ void ComputeParticles::updateDebugParticleDataUI()
                 im::TableSetupColumn( "interactions", columnFlags, 35 );
                 im::TableSetupColumn( "temp", columnFlags, 50 );
                 im::TableSetupColumn( "bin", columnFlags, 120 );
+
+                // debugging SDF physics
                 //im::TableSetupColumn( "sdf dist", columnFlags, 50 );
                 //im::TableSetupColumn( "sdf object", columnFlags, 30 );
                 //im::TableSetupColumn( "sdf N", columnFlags, 180 );
@@ -1441,7 +1465,12 @@ void ComputeParticles::updateDebugParticleDataUI()
                         im::TableSetColumnIndex( column++ );
                         im::Text( "%0.03f", p.temperature );
                         im::TableSetColumnIndex( column++ );
-                        im::Text( "[%d, %d, %d, %d]", p.bin.x, p.bin.y, p.bin.z, p.bin.w );
+                        //im::Text( "[%d, %d, %d, %d]", p.bin.x, p.bin.y, p.bin.z, p.bin.w );
+                        
+                        int4 bin2 = gridLocation( p.pos, mParticleConstants.gridSize );
+                        im::Text( "[%d, %d, %d, %d]", bin2.x, bin2.y, bin2.z, bin2.w );
+
+                        // debugging SDF physics
                         //im::TableSetColumnIndex( column++ );
                         //im::Text( "%0.03f", p.distToSDF );
                         //im::TableSetColumnIndex( column++ );

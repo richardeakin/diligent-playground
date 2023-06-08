@@ -97,14 +97,14 @@ void main( uint3 Gid  : SV_GroupID,
            uint3 GTid : SV_GroupThreadID )
 {
     uint globalThreadId = Gid.x * uint(THREAD_GROUP_SIZE) + GTid.x;
-    if( globalThreadId >= Constants.numParticles )
+    if( globalThreadId >= uint(Constants.numParticles) )
         return;
 
     int particleId = int(globalThreadId);
     ParticleAttribs particle = Particles[particleId];
     
     const int3 gridSize = Constants.gridSize;
-    const int4 gridLoc = GetGridLocation( particle.pos, Constants.gridSize );
+    const int4 gridLoc = gridLocation( particle.pos, Constants.gridSize );
 
     particle.accel = 0.0; // TODO: should we be adding to newAccel?
 

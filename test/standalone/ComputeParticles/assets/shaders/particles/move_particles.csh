@@ -35,7 +35,7 @@ void main( uint3 Gid  : SV_GroupID,
     particle.pos = particle.newPos + vel * Constants.deltaTime;
     particle.temperature = particle.numInteractions / 10.0;
 
-    particle.bin = GetGridLocation( particle.pos, Constants.gridSize );
+    particle.bin = gridLocation( particle.pos, Constants.gridSize );
     int gridId = particle.bin.w;
 
     //ClampParticlePosition( particle.pos, particle.vel, particle.size * Constants.scale, Constants.worldMin, Constants.worldMax );
