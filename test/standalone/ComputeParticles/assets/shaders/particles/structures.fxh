@@ -53,6 +53,17 @@ struct ParticleConstants {
     float   padding2;
 };
 
+struct BoidPSInput { 
+    float4 Pos      : SV_POSITION; 
+    float2 UV       : TEX_COORD;
+    float  Temp     : TEMPERATURE;
+    float3 Normal   : NORMAL;
+    float  Movement : MOVEMENT;
+    uint   InstID   : INSTANCE_ID;
+    int4   Bin      : PARTICLE_BIN;
+};
+
+
 // matches struct from solids/solid.fxh
 struct SceneConstants {
     float4x4 ModelViewProj;

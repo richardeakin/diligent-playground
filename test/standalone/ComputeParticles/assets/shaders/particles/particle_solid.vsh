@@ -18,15 +18,6 @@ struct VSInput {
     uint    InstID  : SV_InstanceID;
 };
 
-struct PSInput { 
-    float4 Pos      : SV_POSITION; 
-    float2 UV       : TEX_COORD;
-    float  Temp     : TEMPERATURE;
-    float3 Normal   : NORMAL;
-    float  Movement : MOVEMENT;
-    uint   InstID   : INSTANCE_ID;
-};
-
 float4 GetRotationFromAxisAngle( in float3 axis, in float angle )
 {
     float4 result = float4( 0, 0, 0, 1 );
@@ -66,7 +57,7 @@ float4 GetRotationQuat( in float3 a, in float3 b, in float3 up )
     //return rotate_angle_axis( rotAngle, rotAxis );
 }
 
-void main( in VSInput VSIn, out PSInput PSIn )
+void main( in VSInput VSIn, out BoidPSInput PSIn )
 {
     ParticleAttribs Attribs = Particles[VSIn.InstID];
 
@@ -98,6 +89,7 @@ void main( in VSInput VSIn, out PSInput PSIn )
     PSIn.Temp = Attribs.temperature;
     PSIn.Movement = length( Attribs.accel );
     PSIn.InstID = VSIn.InstID;
+    PSIn.Bin = Attribs.bin;
 
     // TODO: normal also needs to be rotated
     PSIn.Normal = mul( float4( VSIn.Normal, 0.0 ), SConstants.NormalTranform ).xyz;

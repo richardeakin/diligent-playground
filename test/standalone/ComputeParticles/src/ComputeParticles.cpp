@@ -148,7 +148,7 @@ QuaternionF GetRotationQuat( const float3 &a, const float3 &b, const float3 &up 
 
 ComputeParticles::ComputeParticles()
 {
-    mParticleConstants.numParticles = 32;
+    mParticleConstants.numParticles = 100;
     mParticleConstants.scale = 0.22f;
     mParticleConstants.gridSize = { 10, 10, 10 };
     mParticleConstants.worldMin = { -10, 0.1f, -10 };
@@ -216,7 +216,6 @@ void ComputeParticles::Initialize( const SampleInitInfo& InitInfo )
     initUpdateParticlePSO();
     initParticleBuffers();
     initPostProcessPSO();
-
 
     mBackgroundCanvas = std::make_unique<ju::Canvas>( sizeof(BackgroundPixelConstants) );
     initSolids();
@@ -478,16 +477,19 @@ void ComputeParticles::initParticleBuffers()
     IBufferView* particleAttribsBufferSRV = mParticleAttribsBuffer->GetDefaultView( BUFFER_VIEW_SHADER_RESOURCE );
     IBufferView* particleAttribsBufferUAV = mParticleAttribsBuffer->GetDefaultView( BUFFER_VIEW_UNORDERED_ACCESS );
 
-    int numBins = mParticleConstants.gridSize.x * mParticleConstants.gridSize.y * mParticleConstants.gridSize.z;
-
     BuffDesc.ElementByteStride = sizeof(int);
     BuffDesc.Mode              = BUFFER_MODE_FORMATTED;
-    BuffDesc.Size              = Uint64(sizeof(int)) * Uint64(numBins);
     BuffDesc.BindFlags         = BIND_UNORDERED_ACCESS | BIND_SHADER_RESOURCE;
+
+    // the second buffer is going to contain the index of the first particle in the list, for every bin
+    const int numBins = mParticleConstants.gridSize.x * mParticleConstants.gridSize.y * mParticleConstants.gridSize.z;
+    BuffDesc.Size              = Uint64(sizeof(int)) * Uint64(numBins);
     m_pDevice->CreateBuffer( BuffDesc, nullptr, &mParticleListHeadsBuffer );
 
+    // the last buffer will contain the index of the next particle in the list, for every particle.
     BuffDesc.Size              = Uint64(sizeof(int)) * Uint64(mParticleConstants.numParticles);
     m_pDevice->CreateBuffer( BuffDesc, nullptr, &mParticleListsBuffer );
+
     RefCntAutoPtr<IBufferView> particleListHeadsBufferUAV;
     RefCntAutoPtr<IBufferView> particleListsBufferUAV;
     RefCntAutoPtr<IBufferView> particleListHeadsBufferSRV;
@@ -525,7 +527,7 @@ void ComputeParticles::initParticleBuffers()
         VERIFY_EXPR( mParticleListsStaging != nullptr );
 
         bufferDescStaging.Name           = "ParticleListsHead staging buffer";
-        bufferDescStaging.Size           = sizeof(int) * mParticleConstants.numParticles;
+        bufferDescStaging.Size           = sizeof(int) * numBins;
         m_pDevice->CreateBuffer( bufferDescStaging, nullptr, &mParticleListsHeadStaging );
         VERIFY_EXPR( mParticleListsStaging != nullptr );
 
@@ -973,11 +975,12 @@ void ComputeParticles::updateParticles()
 #if DEBUG_PARTICLE_BUFFERS
     if( mDebugCopyParticles ) {
         m_pImmediateContext->CopyBuffer( mParticleAttribsBuffer, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION,
-            mParticleAttribsStaging, 0, mParticleConstants.numParticles * sizeof(ParticleAttribs), RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+            mParticleAttribsStaging, 0, Uint64(mParticleConstants.numParticles) * sizeof(ParticleAttribs), RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
         m_pImmediateContext->CopyBuffer( mParticleListsBuffer, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION,
-            mParticleListsStaging, 0, mParticleConstants.numParticles * sizeof(int), RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+            mParticleListsStaging, 0, Uint64(mParticleConstants.numParticles) * sizeof(int), RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+        const int numBins = mParticleConstants.gridSize.x * mParticleConstants.gridSize.y * mParticleConstants.gridSize.z;
         m_pImmediateContext->CopyBuffer( mParticleListHeadsBuffer, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION,
-            mParticleListsHeadStaging, 0, mParticleConstants.numParticles * sizeof(int), RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
+            mParticleListsHeadStaging, 0, Uint64(numBins) * sizeof(int), RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
 
         // We should use synchronizations to safely access the mapped memory.
         // TODO: fix and re-enable this, but not crucial when looking at debug data
@@ -1008,11 +1011,11 @@ void ComputeParticles::updateParticles()
                 }
             }
         }
-        DebugParticleListsHeadData.resize( mParticleConstants.numParticles );
+        DebugParticleListsHeadData.resize( numBins );
         {
             MapHelper<int> stagingData( m_pImmediateContext, mParticleListsHeadStaging, MAP_READ, MAP_FLAG_DO_NOT_WAIT );
             if( stagingData ) {
-                for( size_t i = 0; i < mParticleConstants.numParticles; i++ ) {
+                for( size_t i = 0; i < numBins; i++ ) {
                     const int &p = stagingData[i];
                     DebugParticleListsHeadData.at( i ) = p; 
                 }
@@ -1513,8 +1516,9 @@ void ComputeParticles::updateDebugParticleDataUI()
                 im::TableSetupColumn( "next", columnFlags, 40 );
                 im::TableHeadersRow();
 
+                const int numBins = mParticleConstants.gridSize.x * mParticleConstants.gridSize.y * mParticleConstants.gridSize.z;
                 ImGuiListClipper clipper;
-                clipper.Begin( std::min( maxRows, mParticleConstants.numParticles ) );
+                clipper.Begin( std::min( maxRows, numBins ) );
                 while( clipper.Step() ) {
                     for( int row = clipper.DisplayStart; row<clipper.DisplayEnd; row++ ) {
                         im::TableNextRow();
