@@ -1396,17 +1396,14 @@ namespace {
 
 int grid3DTo1D( int3 loc, int3 gridSize )
 {
-    return loc.x + loc.y * gridSize.x + loc.z * gridSize.x * gridSize.y;
+    return loc.x + ( loc.y * gridSize.x ) + ( loc.z * gridSize.x * gridSize.y );
 }
 
 // returns 3D grid position in .xyz, flattened position in .w
-int4 gridLocation( float3 pos, int3 gridSize )
+int4 gridLocation( float3 pos, int3 gridSize, float3 worldMin, float3 worldMax )
 {
-    int3 loc;
-    loc.x = clamp( int((pos.x + 1.0) * 0.5f * float(gridSize.x)), 0, gridSize.x - 1 );
-    loc.y = clamp( int((pos.y + 1.0) * 0.5f * float(gridSize.y)), 0, gridSize.y - 1 );
-    loc.z = clamp( int((pos.z + 1.0) * 0.5f * float(gridSize.z)), 0, gridSize.z - 1 );
-
+    float3 scaled = ( float3( gridSize.x, gridSize.y, gridSize.z ) * ( pos - worldMin ) ) / ( worldMax - worldMin );
+    int3 loc = int3( scaled.x, scaled.y, scaled.z );
     int flatLoc = grid3DTo1D( loc, gridSize );
     return int4( loc, flatLoc );
 }
@@ -1470,7 +1467,7 @@ void ComputeParticles::updateDebugParticleDataUI()
                         im::TableSetColumnIndex( column++ );
                         //im::Text( "[%d, %d, %d, %d]", p.bin.x, p.bin.y, p.bin.z, p.bin.w );
                         
-                        int4 bin2 = gridLocation( p.pos, mParticleConstants.gridSize );
+                        int4 bin2 = gridLocation( p.pos, mParticleConstants.gridSize, mParticleConstants.worldMin, mParticleConstants.worldMax );
                         im::Text( "[%d, %d, %d, %d]", bin2.x, bin2.y, bin2.z, bin2.w );
 
                         // debugging SDF physics
@@ -1499,9 +1496,17 @@ void ComputeParticles::updateDebugParticleDataUI()
     im::SetNextWindowSize( { 600, 600 }, ImGuiCond_FirstUseEver );
 
     if( DebugShowParticleListssWindow && im::Begin( "ParticleLists", &DebugShowParticleListssWindow ) ) {
-        // TODO: show either as a table or tree
+        const int numBins = mParticleConstants.gridSize.x * mParticleConstants.gridSize.y * mParticleConstants.gridSize.z;
 
         if( ! DebugParticleListsData.empty() && ! DebugParticleListsHeadData.empty() ) {
+            static int printListForBin = 0;
+            if( im::InputInt( "bin", &printListForBin, 1, 10, ImGuiInputTextFlags_EnterReturnsTrue ) ) {
+                printListForBin = std::min( printListForBin, numBins );
+            }
+            im::SameLine();
+            if( im::Button( "print list" ) ) {
+            }
+
             static int maxRows = 1000;
 
             static ImGuiTableFlags flags = ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_Hideable;
@@ -1511,26 +1516,34 @@ void ComputeParticles::updateDebugParticleDataUI()
             if( im::BeginTable( "table_ParticleAttribs", 3, flags ) ) {
                 ImGuiTableColumnFlags columnFlags = ImGuiTableColumnFlags_WidthFixed; 
                 im::TableSetupScrollFreeze( 0, 1 ); // Make top row always visible
-                im::TableSetupColumn( "index", columnFlags, 40 );
+                im::TableSetupColumn( "bin", columnFlags, 40 );
                 im::TableSetupColumn( "head", columnFlags, 40 );
                 im::TableSetupColumn( "next", columnFlags, 40 );
                 im::TableHeadersRow();
 
-                const int numBins = mParticleConstants.gridSize.x * mParticleConstants.gridSize.y * mParticleConstants.gridSize.z;
                 ImGuiListClipper clipper;
                 clipper.Begin( std::min( maxRows, numBins ) );
                 while( clipper.Step() ) {
                     for( int row = clipper.DisplayStart; row<clipper.DisplayEnd; row++ ) {
                         im::TableNextRow();
+                        if( row >= DebugParticleListsHeadData.size() ) {
+                            JU_LOG_ERROR( "row ", row ," out of range (DebugParticleListsHeadData size: ", DebugParticleListsHeadData.size() );
+                        }
                         int headIndex = DebugParticleListsHeadData.at( row );
-                        int nextIndex = DebugParticleListsData.at( row );
                         int column = 0;
                         im::TableSetColumnIndex( column++ );
                         im::Text( "%d", row );
                         im::TableSetColumnIndex( column++ );
                         im::Text( "%d", headIndex );
                         im::TableSetColumnIndex( column++ );
-                        im::Text( "%d", nextIndex );
+
+                        if( headIndex >= 0 ) {
+                            int nextIndex = DebugParticleListsData.at( headIndex );
+                            im::Text( "%d", nextIndex );
+                        }
+                        else {
+                            im::Text( "(none)" );
+                        }
                     }
                 }
                 im::EndTable();

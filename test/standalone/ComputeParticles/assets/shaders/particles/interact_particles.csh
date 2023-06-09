@@ -104,7 +104,7 @@ void main( uint3 Gid  : SV_GroupID,
     ParticleAttribs particle = Particles[particleId];
     
     const int3 gridSize = Constants.gridSize;
-    const int4 gridLoc = gridLocation( particle.pos, Constants.gridSize );
+    const int4 gridLoc = gridLocation( particle.pos, Constants.gridSize, Constants.worldMin, Constants.worldMax );
 
     particle.accel = 0.0; // TODO: should we be adding to newAccel?
 

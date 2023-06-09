@@ -45,8 +45,8 @@ void main( in BoidPSInput PSIn, out PSOutput PSOut )
     }
 #endif
 
-    // FIXME: this is clearly off according to the world    
-    if( PSIn.Bin.x == 0 ) {
+    // visualize bins (xyz = 3D index, w = flattened index)
+    if( PSIn.Bin.w == 100 ) {
         col = float3( 1, 1, 0 );        
     }
 

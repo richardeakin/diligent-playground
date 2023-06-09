@@ -25,17 +25,14 @@ void ClampParticlePosition( inout float3 pos, inout float3 speed, in float size,
 
 int grid3DTo1D( int3 loc, int3 gridSize )
 {
-    return loc.x + loc.y * gridSize.x + loc.z * gridSize.x * gridSize.y;
+    return loc.x + ( loc.y * gridSize.x ) + ( loc.z * gridSize.x * gridSize.y );
 }
 
 // returns 3D grid position in .xyz, flattened position in .w
-int4 gridLocation( float3 pos, int3 gridSize )
+int4 gridLocation( float3 pos, int3 gridSize, in float3 worldMin, in float3 worldMax )
 {
-    int3 loc;
-    loc.x = clamp( int((pos.x + 1.0) * 0.5f * float(gridSize.x)), 0, gridSize.x - 1 );
-    loc.y = clamp( int((pos.y + 1.0) * 0.5f * float(gridSize.y)), 0, gridSize.y - 1 );
-    loc.z = clamp( int((pos.z + 1.0) * 0.5f * float(gridSize.z)), 0, gridSize.z - 1 );
-
+  	float3 scaled = ( float3( gridSize ) * ( pos - worldMin ) ) / ( worldMax - worldMin );
+	int3 loc = int3( scaled );
     int flatLoc = grid3DTo1D( loc, gridSize );
     return int4( loc, flatLoc );
 }
