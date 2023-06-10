@@ -1410,6 +1410,27 @@ int4 gridLocation( float3 pos, int3 gridSize, float3 worldMin, float3 worldMax )
 
 }
 
+const int ID_ERROR_OUT_OF_RANGE = -2;
+const int ID_ERROR_CYCLE_DETECTED = -3;
+void buildDebugBinList( int nextParticle, std::vector<int> &allParticlesInBin )
+{
+    if( nextParticle < 0 ) {
+        return;
+    }
+    if( nextParticle >= DebugParticleListsData.size() ) {
+        allParticlesInBin.push_back( ID_ERROR_OUT_OF_RANGE );
+        return;
+    }
+    if( std::count( allParticlesInBin.begin(), allParticlesInBin.end(), nextParticle ) > 0 ) {
+        allParticlesInBin.push_back( ID_ERROR_CYCLE_DETECTED );
+        return;
+    }
+    allParticlesInBin.push_back( nextParticle );
+
+    int nextNext = DebugParticleListsData[nextParticle];
+    buildDebugBinList( nextNext, allParticlesInBin );
+}
+
 void ComputeParticles::updateDebugParticleDataUI()
 {
     im::SetNextWindowPos( { 400, 20 }, ImGuiCond_FirstUseEver );
@@ -1505,6 +1526,60 @@ void ComputeParticles::updateDebugParticleDataUI()
             }
             im::SameLine();
             if( im::Button( "print list" ) ) {
+                std::vector<int> allParticlesInBin;
+                int head = DebugParticleListsHeadData.at( printListForBin );
+                buildDebugBinList( head, allParticlesInBin );
+
+                JU_LOG_INFO( "particle list size: ", allParticlesInBin.size(), " for bin: ", printListForBin );
+                if( allParticlesInBin.size() > 0 ) {
+                    // concat a string here of vector and print;
+                    std::stringstream ss;
+                    for( int i = 0; i < allParticlesInBin.size(); i++ ) {
+                        int index = allParticlesInBin[i];
+                        if( index == ID_ERROR_OUT_OF_RANGE ) {
+                            ss << "(ERROR: out of range)";
+                        }
+                        else if( index == ID_ERROR_CYCLE_DETECTED ) {
+                            ss << "(ERROR: cycle detected)";
+                        }
+                        else {
+                            ss << index;
+                        }
+                        if( i < allParticlesInBin.size() - 1 ) {
+                            ss << ", ";
+                        }
+                    }
+                    JU_LOG_INFO( "list: ", ss.str() );
+                }
+            }
+            // write a debug routine that checks all bins and writes some stats
+            static int longestListCount = -1;
+            static int longestListIndex = -1;
+            if( im::Button( "check all bins" ) ) {
+                for( int bin = 0; bin < numBins; bin++ ) {
+                    std::vector<int> allParticlesInBin;
+                    int head = DebugParticleListsHeadData.at( bin );
+                    buildDebugBinList( head, allParticlesInBin );
+
+                    for( int i = 0; i < allParticlesInBin.size(); i++ ) {
+                        int index = allParticlesInBin[i];
+                        if( index == ID_ERROR_OUT_OF_RANGE ) {
+                            JU_LOG_ERROR( "ERROR: out of range detected in bin: ", bin, ", list index: ", i );
+                        }
+                        else if( index == ID_ERROR_CYCLE_DETECTED ) {
+                            JU_LOG_ERROR( "ERROR: cycle detected in bin: ", bin, ", list index: ", i );
+                        }
+                    }
+
+                    if( longestListCount < (int)allParticlesInBin.size() ) {
+                        longestListCount = (int)allParticlesInBin.size();
+                        longestListIndex = bin;
+                    }
+                }
+            }
+
+            if( longestListCount >= 0 ) {
+                im::Text( "longest list: %d, bin: %d", longestListCount, longestListIndex );
             }
 
             static int maxRows = 1000;

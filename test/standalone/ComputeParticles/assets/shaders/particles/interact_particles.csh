@@ -8,7 +8,7 @@
 // FIXME: 2 is still broken
 // TODO: add mode to only consider lateral neighbords, which is much less than mode 2
 // - this should help tell if 2 is actually broken or just taking too long
-#define BINNING_MODE 0
+#define BINNING_MODE 1
 #define PARTICLES_AVOID_SDF 1
 
 cbuffer Constants {
