@@ -108,9 +108,7 @@ ju::FileWatchHandle     ShadersDirWatchHandle, ShadersDirWatchHandle2;
 bool                    ParticleShaderAssetsMarkedDirty = false;
 bool                    PostShaderAssetsMarkedDirty = false;
 
-std::vector<ParticleAttribs> DebugParticleAttribsData;
-std::vector<int> DebugParticleListsData;
-std::vector<int> DebugParticleListsHeadData;
+std::vector<ParticleAttribs> mDebugParticleAttribsData; // living here until ParticleAttribs moves to a header
 static bool DebugShowParticleAttribsWindow = true;
 static bool DebugShowParticleListssWindow = true;
 
@@ -540,7 +538,7 @@ void ComputeParticles::initParticleBuffers()
     if( mResetParticleListsPSO ) {
         mResetParticleListsSRB.Release();
         mResetParticleListsPSO->CreateShaderResourceBinding( &mResetParticleListsSRB, true );
-        mResetParticleListsSRB->GetVariableByName(SHADER_TYPE_COMPUTE, "ParticleListHead")->Set( particleListHeadsBufferUAV );
+        mResetParticleListsSRB->GetVariableByName( SHADER_TYPE_COMPUTE, "ParticleListHead" )->Set( particleListHeadsBufferUAV );
     }
     if( mRenderParticlePSO ) {
         mRenderParticleSRB.Release();
@@ -948,15 +946,20 @@ void ComputeParticles::updateParticles()
 
     if( mUpdateParticles ) {
         DispatchComputeAttribs dispatchAttribs;
-        dispatchAttribs.ThreadGroupCountX = ( mParticleConstants.numParticles + mThreadGroupSize - 1) / mThreadGroupSize;
 
+        // one execution per bin
+        // TODO: need to clear ParticleLists?
+        const int numBins = mParticleConstants.gridSize.x * mParticleConstants.gridSize.y * mParticleConstants.gridSize.z;
+        dispatchAttribs.ThreadGroupCountX = ( numBins + mThreadGroupSize - 1 ) / mThreadGroupSize;
         {
             JU_PROFILE( "reset particles", m_pImmediateContext, mProfiler.get() );
             m_pImmediateContext->SetPipelineState( mResetParticleListsPSO );
             m_pImmediateContext->CommitShaderResources( mResetParticleListsSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION );
             m_pImmediateContext->DispatchCompute( dispatchAttribs );
         }
-
+        
+        // one execution per particle
+        dispatchAttribs.ThreadGroupCountX = ( mParticleConstants.numParticles + mThreadGroupSize - 1) / mThreadGroupSize;
         {
             JU_PROFILE( "move particles", m_pImmediateContext, mProfiler.get() );
             m_pImmediateContext->SetPipelineState( mMoveParticlesPSO );
@@ -991,33 +994,33 @@ void ComputeParticles::updateParticles()
         //m_pImmediateContext->DeviceWaitForFence( mFenceParticleAttribsAvailable, mFenceParticleAttribsValue );
 
         // TODO: copy with std::copy or memcopy
-        DebugParticleAttribsData.resize( mParticleConstants.numParticles );
+        mDebugParticleAttribsData.resize( mParticleConstants.numParticles );
         {
             MapHelper<ParticleAttribs> stagingData( m_pImmediateContext, mParticleAttribsStaging, MAP_READ, MAP_FLAG_DO_NOT_WAIT );
             if( stagingData ) {
                 for( size_t i = 0; i < mParticleConstants.numParticles; i++ ) {
                     const ParticleAttribs &p = stagingData[i];
-                    DebugParticleAttribsData.at( i ) = p; 
+                    mDebugParticleAttribsData.at( i ) = p; 
                 }
             }
         }
-        DebugParticleListsData.resize( mParticleConstants.numParticles );
+        mDebugParticleListsData.resize( mParticleConstants.numParticles );
         {
             MapHelper<int> stagingData( m_pImmediateContext, mParticleListsStaging, MAP_READ, MAP_FLAG_DO_NOT_WAIT );
             if( stagingData ) {
                 for( size_t i = 0; i < mParticleConstants.numParticles; i++ ) {
                     const int &p = stagingData[i];
-                    DebugParticleListsData.at( i ) = p; 
+                    mDebugParticleListsData.at( i ) = p; 
                 }
             }
         }
-        DebugParticleListsHeadData.resize( numBins );
+        mDebugParticleListsHeadData.resize( numBins );
         {
             MapHelper<int> stagingData( m_pImmediateContext, mParticleListsHeadStaging, MAP_READ, MAP_FLAG_DO_NOT_WAIT );
             if( stagingData ) {
                 for( size_t i = 0; i < numBins; i++ ) {
                     const int &p = stagingData[i];
-                    DebugParticleListsHeadData.at( i ) = p; 
+                    mDebugParticleListsHeadData.at( i ) = p; 
                 }
             }
         }
@@ -1408,16 +1411,17 @@ int4 gridLocation( float3 pos, int3 gridSize, float3 worldMin, float3 worldMax )
     return int4( loc, flatLoc );
 }
 
-}
-
 const int ID_ERROR_OUT_OF_RANGE = -2;
 const int ID_ERROR_CYCLE_DETECTED = -3;
-void buildDebugBinList( int nextParticle, std::vector<int> &allParticlesInBin )
+
+} // anon
+
+void ComputeParticles::buildDebugBinList( int nextParticle, std::vector<int> &allParticlesInBin )
 {
     if( nextParticle < 0 ) {
         return;
     }
-    if( nextParticle >= DebugParticleListsData.size() ) {
+    if( nextParticle >= mDebugParticleListsData.size() ) {
         allParticlesInBin.push_back( ID_ERROR_OUT_OF_RANGE );
         return;
     }
@@ -1427,9 +1431,40 @@ void buildDebugBinList( int nextParticle, std::vector<int> &allParticlesInBin )
     }
     allParticlesInBin.push_back( nextParticle );
 
-    int nextNext = DebugParticleListsData[nextParticle];
+    int nextNext = mDebugParticleListsData[nextParticle];
     buildDebugBinList( nextNext, allParticlesInBin );
 }
+
+void ComputeParticles::debugPrintBinList( int bin )
+{
+    std::vector<int> allParticlesInBin;
+    int head = mDebugParticleListsHeadData.at( bin );
+    buildDebugBinList( head, allParticlesInBin );
+
+    JU_LOG_INFO( "particle list size: ", allParticlesInBin.size(), " for bin: ", bin );
+    if( allParticlesInBin.size() > 0 ) {
+        // concat a string here of vector and print;
+        std::stringstream ss;
+        for( int i = 0; i < allParticlesInBin.size(); i++ ) {
+            int index = allParticlesInBin[i];
+            ss << index;
+            if( index == ID_ERROR_OUT_OF_RANGE ) {
+                ss << " (ERROR: out of range)";
+                break;
+            }
+            else if( index == ID_ERROR_CYCLE_DETECTED ) {
+                ss << " (ERROR: cycle detected)";
+                break;
+            }
+
+            if( i < allParticlesInBin.size() - 1 ) {
+                ss << ", ";
+            }
+        }
+        JU_LOG_INFO( "list: ", ss.str() );
+    }
+}
+
 
 void ComputeParticles::updateDebugParticleDataUI()
 {
@@ -1439,7 +1474,7 @@ void ComputeParticles::updateDebugParticleDataUI()
     if( DebugShowParticleAttribsWindow && im::Begin( "ParticleAttribs", &DebugShowParticleAttribsWindow ) ) {
         im::Text( "count: %d", mParticleConstants.numParticles );
 
-        if( ! DebugParticleAttribsData.empty() ) {
+        if( ! mDebugParticleAttribsData.empty() ) {
             static int maxRows = 1000;
 
             static ImGuiTableFlags flags = ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_Hideable;
@@ -1471,7 +1506,7 @@ void ComputeParticles::updateDebugParticleDataUI()
                 while( clipper.Step() ) {
                     for( int row = clipper.DisplayStart; row<clipper.DisplayEnd; row++ ) {
                         im::TableNextRow();
-                        const auto &p = DebugParticleAttribsData.at( row );
+                        const auto &p = mDebugParticleAttribsData.at( row );
                         int column = 0;
                         im::TableSetColumnIndex( column++ );
                         im::Text( "%d", row );
@@ -1519,38 +1554,14 @@ void ComputeParticles::updateDebugParticleDataUI()
     if( DebugShowParticleListssWindow && im::Begin( "ParticleLists", &DebugShowParticleListssWindow ) ) {
         const int numBins = mParticleConstants.gridSize.x * mParticleConstants.gridSize.y * mParticleConstants.gridSize.z;
 
-        if( ! DebugParticleListsData.empty() && ! DebugParticleListsHeadData.empty() ) {
+        if( ! mDebugParticleListsData.empty() && ! mDebugParticleListsHeadData.empty() ) {
             static int printListForBin = 0;
             if( im::InputInt( "bin", &printListForBin, 1, 10, ImGuiInputTextFlags_EnterReturnsTrue ) ) {
                 printListForBin = std::min( printListForBin, numBins );
             }
             im::SameLine();
             if( im::Button( "print list" ) ) {
-                std::vector<int> allParticlesInBin;
-                int head = DebugParticleListsHeadData.at( printListForBin );
-                buildDebugBinList( head, allParticlesInBin );
-
-                JU_LOG_INFO( "particle list size: ", allParticlesInBin.size(), " for bin: ", printListForBin );
-                if( allParticlesInBin.size() > 0 ) {
-                    // concat a string here of vector and print;
-                    std::stringstream ss;
-                    for( int i = 0; i < allParticlesInBin.size(); i++ ) {
-                        int index = allParticlesInBin[i];
-                        if( index == ID_ERROR_OUT_OF_RANGE ) {
-                            ss << "(ERROR: out of range)";
-                        }
-                        else if( index == ID_ERROR_CYCLE_DETECTED ) {
-                            ss << "(ERROR: cycle detected)";
-                        }
-                        else {
-                            ss << index;
-                        }
-                        if( i < allParticlesInBin.size() - 1 ) {
-                            ss << ", ";
-                        }
-                    }
-                    JU_LOG_INFO( "list: ", ss.str() );
-                }
+                debugPrintBinList( printListForBin );
             }
             // write a debug routine that checks all bins and writes some stats
             static int longestListCount = -1;
@@ -1558,16 +1569,18 @@ void ComputeParticles::updateDebugParticleDataUI()
             if( im::Button( "check all bins" ) ) {
                 for( int bin = 0; bin < numBins; bin++ ) {
                     std::vector<int> allParticlesInBin;
-                    int head = DebugParticleListsHeadData.at( bin );
+                    int head = mDebugParticleListsHeadData.at( bin );
                     buildDebugBinList( head, allParticlesInBin );
 
                     for( int i = 0; i < allParticlesInBin.size(); i++ ) {
                         int index = allParticlesInBin[i];
                         if( index == ID_ERROR_OUT_OF_RANGE ) {
                             JU_LOG_ERROR( "ERROR: out of range detected in bin: ", bin, ", list index: ", i );
+                            debugPrintBinList( bin );
                         }
                         else if( index == ID_ERROR_CYCLE_DETECTED ) {
                             JU_LOG_ERROR( "ERROR: cycle detected in bin: ", bin, ", list index: ", i );
+                            debugPrintBinList( bin );
                         }
                     }
 
@@ -1601,10 +1614,10 @@ void ComputeParticles::updateDebugParticleDataUI()
                 while( clipper.Step() ) {
                     for( int row = clipper.DisplayStart; row<clipper.DisplayEnd; row++ ) {
                         im::TableNextRow();
-                        if( row >= DebugParticleListsHeadData.size() ) {
-                            JU_LOG_ERROR( "row ", row ," out of range (DebugParticleListsHeadData size: ", DebugParticleListsHeadData.size() );
+                        if( row >= mDebugParticleListsHeadData.size() ) {
+                            JU_LOG_ERROR( "row ", row ," out of range (DebugParticleListsHeadData size: ", mDebugParticleListsHeadData.size() );
                         }
-                        int headIndex = DebugParticleListsHeadData.at( row );
+                        int headIndex = mDebugParticleListsHeadData.at( row );
                         int column = 0;
                         im::TableSetColumnIndex( column++ );
                         im::Text( "%d", row );
@@ -1613,7 +1626,7 @@ void ComputeParticles::updateDebugParticleDataUI()
                         im::TableSetColumnIndex( column++ );
 
                         if( headIndex >= 0 ) {
-                            int nextIndex = DebugParticleListsData.at( headIndex );
+                            int nextIndex = mDebugParticleListsData.at( headIndex );
                             im::Text( "%d", nextIndex );
                         }
                         else {

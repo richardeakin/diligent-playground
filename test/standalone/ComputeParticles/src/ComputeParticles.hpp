@@ -118,8 +118,14 @@ private:
 #if DEBUG_PARTICLE_BUFFERS
     RefCntAutoPtr<dg::IBuffer>              mParticleAttribsStaging, mParticleListsStaging, mParticleListsHeadStaging;
     RefCntAutoPtr<dg::IFence>               mFenceParticleAttribsAvailable;
-    dg::Uint64                                  mFenceParticleAttribsValue = 1; // Can't signal 0
-    bool    mDebugCopyParticles = true;
+    dg::Uint64                              mFenceParticleAttribsValue = 1; // Can't signal 0
+    bool                mDebugCopyParticles = true;
+    std::vector<int>    mDebugParticleListsData;
+    std::vector<int>    mDebugParticleListsHeadData;
+
+    void buildDebugBinList( int nextParticle, std::vector<int> &allParticlesInBin );
+    void debugPrintBinList( int bin );
+
 #endif
 
     bool        mUIEnabled = true;  
