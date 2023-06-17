@@ -1567,6 +1567,8 @@ void ComputeParticles::updateDebugParticleDataUI()
             static int longestListCount = -1;
             static int longestListIndex = -1;
             if( im::Button( "check all bins" ) ) {
+                longestListCount = -1;
+                longestListIndex = -1;
                 for( int bin = 0; bin < numBins; bin++ ) {
                     std::vector<int> allParticlesInBin;
                     int head = mDebugParticleListsHeadData.at( bin );

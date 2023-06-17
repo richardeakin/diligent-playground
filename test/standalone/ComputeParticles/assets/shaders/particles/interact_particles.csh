@@ -5,10 +5,9 @@
 #include "shaders/canvas/sdfScene.fxh"
 
 // 0: disabled, 1: only consider this particle's bin, 2: also consider neighboring bins
-// FIXME: 2 is still broken
-// TODO: add mode to only consider lateral neighbords, which is much less than mode 2
+// TODO NEXT: add mode to only consider lateral neighbors, which is much less than mode 2
 // - this should help tell if 2 is actually broken or just taking too long
-#define BINNING_MODE 1
+#define BINNING_MODE 2
 #define PARTICLES_AVOID_SDF 1
 
 cbuffer Constants {
@@ -142,7 +141,7 @@ void main( uint3 Gid  : SV_GroupID,
     for( int z = max( gridLoc.z - 1, 0 ); z <= min( gridLoc.z + 1, gridSize.z - 1 ); ++z ) {
         for( int y = max( gridLoc.y - 1, 0 ); y <= min( gridLoc.y + 1, gridSize.y - 1 ); ++y ) {
             for( int x = max( gridLoc.x - 1, 0 ); x <= min( gridLoc.x + 1, gridSize.x - 1 ); ++x ) {
-                int neighborIndex = Grid3DTo1D( int3( x, y, z ), gridSize );
+                int neighborIndex = grid3DTo1D( int3( x, y, z ), gridSize );
                 int anotherParticleId = ParticleListHead.Load( neighborIndex );
                 while( anotherParticleId >= 0 ) {
                     if( particleId != anotherParticleId ) {
