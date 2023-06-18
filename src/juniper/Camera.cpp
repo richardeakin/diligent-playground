@@ -30,7 +30,7 @@ void Camera::perspective( float fov, float aspectRatio, float nearClip, float fa
 	mFov = fov;
 	mAspectRatio = aspectRatio;
 	mNearClip = nearClip;
-	farClip = farClip;
+	mFarClip = farClip;
 
 	mProjectionMatrix = glm::perspective( mFov, mAspectRatio, mNearClip, mFarClip );
 }
