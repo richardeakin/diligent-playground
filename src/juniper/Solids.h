@@ -73,6 +73,7 @@ public:
 
 	//void setTransform( const dg::float4x4 &m )	{ mTransform = m; }
 	void setTransform( const mat4 &m )	{ mTransform = m; }
+	const mat4&	getTransform() const	{ return mTransform; }
 
 	void setLightDir( const dg::float3 &dir )	{ mLightDirection = dir; }
 

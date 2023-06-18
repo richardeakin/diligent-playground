@@ -40,13 +40,15 @@ bool DrawTestSolid = true;
 #if USE_CINDER_CAMERA
 using glm::vec3;
 vec3 TestSolidTranslate = { 0, 0, 0 };
+vec3 TestSolidTranslate2 = { -4, -1, 0 };
+vec3 TestSolidTranslate3 = { 4, -1, 0 };
 vec3 TestSolidScale = { 1, 1, 1 };
 vec3 TestSolidLookAt = { 0, 1, 0 };
 glm::mat4 ViewProjMatrix;
 
 const float CameraFov = 35;
 const glm::vec2 CameraClip = { 0.1f, 1000.0f };
-const glm::vec3 CameraEyePos = { 0, 0, 5 };
+const glm::vec3 CameraEyePos = { 0, 0, -8 };
 const glm::vec3 CameraEyeTarget = { 0, 0, 0 };
 
 #else
@@ -241,6 +243,8 @@ void BasicTests::updateUI()
     im::SameLine();
     im::Checkbox( "rotate##test solid", &TestSolidRotate );
     im::DragFloat3( "translate##solid", &TestSolidTranslate.x, 0.01f );
+    im::DragFloat3( "translate2##solid", &TestSolidTranslate2.x, 0.01f );
+    im::DragFloat3( "translate3##solid", &TestSolidTranslate3.x, 0.01f );
 
     static bool lockDims = false;
     if( lockDims ) {
@@ -369,6 +373,22 @@ void BasicTests::draw()
     
     if( mSolid && DrawTestSolid ) {
         mSolid->draw( context, ViewProjMatrix );
+
+#if 1
+        // draw a couple more cubes while debugging perspective
+        auto transform = mSolid->getTransform();
+        //auto transformLeft = transform * glm::translate( TestSolidTranslate2 );
+        auto transform2 =  glm::translate( TestSolidTranslate2 ) * transform;
+        mSolid->setTransform( transform2 );
+        mSolid->draw( context, ViewProjMatrix );
+
+        auto transform3 =  glm::translate( TestSolidTranslate3 ) * transform;
+        mSolid->setTransform( transform3 );
+        mSolid->draw( context, ViewProjMatrix );
+
+        // restore transform to the original
+        mSolid->setTransform( transform );
+#endif
     }
 
 }
